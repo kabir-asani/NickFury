@@ -1,0 +1,17 @@
+{
+  "name": "nickfury",
+  "version": "1.0.0",
+  "description": "TwitterX's backend written in NodeJS (express+firestore)",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "nodemon src/index.ts"
+  },
+  "keywords": [
+    "TwitterX"
+  ],
+  "author": "Mohammed Sadiq",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^17.0.21"
+  }
+}
