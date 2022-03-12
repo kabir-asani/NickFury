@@ -24,7 +24,9 @@ authentication.post('/logIn',
 
 authentication.post(
     '/logOut',
-    [...gatekeeper()],
+    [
+        ...gatekeeper()
+    ],
     (req: Request, res: Response) => {
         const failure = new RouteFailure('This route is currently under construction');
 
