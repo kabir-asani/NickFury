@@ -1,6 +1,6 @@
 import admin from 'firebase-admin';
 import { App } from 'firebase-admin/app';
-import firebaseSecrets from '../../firebase.json';
+import Secrets from '../../secrets.json';
 
 export class Firebase {
     private static _shared = new Firebase();
@@ -11,9 +11,9 @@ export class Firebase {
 
     constructor() {
         const serviceAccount = {
-            projectId: firebaseSecrets.project_id,
-            clientEmail: firebaseSecrets.client_email,
-            privateKey: firebaseSecrets.private_key
+            projectId: Secrets.firebase.projectId,
+            clientEmail: Secrets.firebase.clientEmail,
+            privateKey: Secrets.firebase.privateKey
         };
 
         this._app = admin.initializeApp({
