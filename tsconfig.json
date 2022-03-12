@@ -3,6 +3,7 @@
         "forceConsistentCasingInFileNames": true,
         "module": "commonjs",
         "esModuleInterop": true,
+        "resolveJsonModule": true,
         "outDir": "./build",
         "rootDir": "./src",
         "target": "es6",

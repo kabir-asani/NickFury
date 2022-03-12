@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "express": "^4.17.3",
+    "firebase-admin": "^10.0.2",
     "joi": "^17.6.0"
   }
 }
