@@ -4,8 +4,8 @@ import { Firebase } from "../firebase/firebase";
 import { DatabaseDeleteFailureReason, DatabaseReadFailureReason, DatabaseWriteFailureReason } from "./types";
 
 export class Database {
-    private static instance = new Database();
-    public static shared = (): Database => this.instance;
+    private static _shared = new Database();
+    public static shared = (): Database => this._shared;
 
     private db = firestore(Firebase.shared().app());
 
