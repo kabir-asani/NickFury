@@ -12,6 +12,10 @@
   "author": "Mohammed Sadiq",
   "license": "MIT",
   "devDependencies": {
+    "@types/express": "^4.17.13",
     "@types/node": "^17.0.21"
+  },
+  "dependencies": {
+    "express": "^4.17.3"
   }
 }
