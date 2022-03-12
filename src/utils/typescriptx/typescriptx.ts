@@ -1,5 +1,9 @@
+export interface Empty {
+
+}
+
 export abstract class Either<S, F> {
-    abstract resolve<T>(parameters: {onSuccess: (s: S) => T, onFailure: (f: F) => T}): T;
+    abstract resolve<T>(parameters: { onSuccess: (s: S) => T, onFailure: (f: F) => T }): T;
 }
 
 export class Success<S, F> extends Either<S, F> {
@@ -11,7 +15,7 @@ export class Success<S, F> extends Either<S, F> {
         this.success = success;
     }
 
-    resolve<T>(parameters: {onSuccess: (s: S) => T, onFailure: (f: F) => T}): T {
+    resolve<T>(parameters: { onSuccess: (s: S) => T, onFailure: (f: F) => T }): T {
         return parameters.onSuccess(this.success);
     }
 }
@@ -25,7 +29,7 @@ export class Failure<S, F> extends Either<S, F> {
         this.failure = failure;
     }
 
-    resolve<T>(parameters: {onSuccess: (s: S) => T, onFailure: (f: F) => T}): T {
+    resolve<T>(parameters: { onSuccess: (s: S) => T, onFailure: (f: F) => T }): T {
         return parameters.onFailure(this.failure);
     }
 }
