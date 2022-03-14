@@ -1,7 +1,7 @@
 import { firestore } from "firebase-admin";
 import { Either, Empty, failure, success } from "../../utils/typescriptx/typescriptx";
 import { Firebase } from "../firebase/firebase";
-import { DatabaseDeleteFailureReason, DatabaseReadFailureReason, DatabaseWriteFailureReason } from "./types";
+import { DatabaseDeleteFailure, DatabaseDeleteFailureReason, DatabaseDeleteSuccess, DatabaseReadFailure, DatabaseReadFailureReason, DatabaseReadSuccess, DatabaseWriteFailure, DatabaseWriteFailureReason, DatabaseWriteSuccess, ReadAllQueryOperator } from "./types";
 
 export class Database {
     private static _shared = new Database();
@@ -26,7 +26,7 @@ export class Database {
         document?: String,
         data: Object,
         overwrite?: Boolean
-    }): Promise<Either<{ identifier?: String }, DatabaseWriteFailureReason>> {
+    }): Promise<Either<DatabaseWriteSuccess, DatabaseWriteFailure>> {
         const isDocumentIdProvided = parameters.document !== undefined;
 
         // Check if we can create or overwrite this document
@@ -54,26 +54,34 @@ export class Database {
                 if (isDocumentIdProvided) {
                     const { id } = await collectionRef.add(parameters.data);
 
-                    return Promise.resolve(success({ identifier: id }));
+                    return success({
+                        id: id
+                    });
                 } else {
                     const documentRef = collectionRef.doc(parameters.document!.valueOf());
 
                     await documentRef.set(parameters.data);
 
-                    return Promise.resolve(success({}));
+                    return success({
+                        id: parameters.document,
+                    });
                 }
             } catch (error) {
-                return Promise.resolve(failure(DatabaseWriteFailureReason.unknown));
+                return failure({
+                    reason: DatabaseWriteFailureReason.unknown
+                });
             }
         } else {
-            return Promise.resolve(failure(DatabaseWriteFailureReason.documentCannotBeOverwritten));
+            return failure({
+                reason: DatabaseWriteFailureReason.documentCannotBeOverwritten
+            });
         }
     }
 
-    async read<T>(parameters: {
+    async read(parameters: {
         collection: String,
         document: String
-    }): Promise<Either<T, DatabaseReadFailureReason>> {
+    }): Promise<Either<DatabaseReadSuccess, DatabaseReadFailure>> {
         const isDocumentExisting = await this.exists({
             collection: parameters.collection,
             document: parameters.document,
@@ -87,19 +95,48 @@ export class Database {
                 const document = await documentRef.get();
                 const data = document.data;
 
-                return Promise.resolve(success(data as unknown as T));
+                return success({
+                    data: data
+                });
             } catch (error) {
-                return Promise.resolve(failure(DatabaseReadFailureReason.unknown));
+                return failure({
+                    reason: DatabaseReadFailureReason.unknown
+                });
             }
         } else {
-            return Promise.resolve(failure(DatabaseReadFailureReason.documentNotFound));
+            return failure({
+                reason: DatabaseReadFailureReason.documentNotFound
+            });
         }
+    }
+
+    async readAll<T>(parameters: {
+        collection: String,
+        where: {
+            operandOne: String,
+            operator: ReadAllQueryOperator,
+            operandTwo: String,
+        }
+    }): Promise<Either<DatabaseReadSuccess, DatabaseReadFailure>> {
+        const collectionRef = this.db.collection(parameters.collection.valueOf());
+        const queryRef = collectionRef.where(
+            parameters.where.operandOne.valueOf(),
+            parameters.where.operator,
+            parameters.where.operandTwo
+        );
+
+        const querySnapshot = await queryRef.get();
+        const data = querySnapshot.docs.map((doc) => doc.data);
+
+        return success({
+            data: data
+        });
     }
 
     async delete(parameters: {
         collection: String,
         document: String,
-    }): Promise<Either<Empty, DatabaseDeleteFailureReason>> {
+    }): Promise<Either<DatabaseDeleteSuccess, DatabaseDeleteFailure>> {
         const isDocumentExisting = await this.exists({
             collection: parameters.collection,
             document: parameters.document,
@@ -112,12 +149,40 @@ export class Database {
 
                 await documentRef.delete();
 
-                return Promise.resolve(success({}));
+                return success({});
             } catch (error) {
-                return Promise.resolve(failure(DatabaseDeleteFailureReason.unknown));
+                return failure({
+                    reason: DatabaseDeleteFailureReason.unknown
+                });
             }
         } else {
-            return Promise.resolve(failure(DatabaseDeleteFailureReason.documentNotFound));
+            return failure({
+                reason: DatabaseDeleteFailureReason.documentNotFound
+            });
         }
+    }
+
+    async deleteAll(parameters: {
+        collection: String,
+        where: {
+            operandOne: String,
+            operator: ReadAllQueryOperator,
+            operandTwo: String,
+        }
+    }): Promise<Either<DatabaseDeleteSuccess, DatabaseDeleteFailure>> {
+        const collectionRef = this.db.collection(parameters.collection.valueOf());
+        const queryRef = collectionRef.where(
+            parameters.where.operandOne.valueOf(),
+            parameters.where.operator,
+            parameters.where.operandTwo
+        );
+
+        const querySnapshot = await queryRef.get();
+
+        for (const doc of querySnapshot.docs) {
+            await doc.ref.delete();
+        }
+
+        return success({});
     }
 }
