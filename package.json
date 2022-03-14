@@ -13,12 +13,14 @@
   "license": "MIT",
   "devDependencies": {
     "@types/express": "^4.17.13",
-    "@types/node": "^17.0.21"
+    "@types/node": "^17.0.21",
+    "@types/uuid": "^8.3.4"
   },
   "dependencies": {
     "axios": "^0.26.1",
     "express": "^4.17.3",
     "firebase-admin": "^10.0.2",
-    "joi": "^17.6.0"
+    "joi": "^17.6.0",
+    "uuid": "^8.3.2"
   }
 }
