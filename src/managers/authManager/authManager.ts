@@ -1,10 +1,9 @@
 import { Either, failure, success } from "../../utils/typescriptx/typescriptx";
 import { AuthProvider, LogInFailure, LogInFailureReason, LogInSuccess } from "./types";
 
-
 class AuthManager {
     private static _shared = new AuthManager();
-    public static shared = () => this._shared;
+    public static shared = (): AuthManager => this._shared;
 
     async logIn(parameters: {
         provider: AuthProvider,
