@@ -3,9 +3,9 @@ import { Database } from "../../assistants/database/database";
 import { Either, failure, success } from "../../utils/typescriptx/typescriptx";
 import { CreateSessionFailure, CreateSessionFailureReason, CreateSessionSuccess, Session, ReadSessionFailure, ReadSessionSuccess } from "./types";
 
-class SessionManager {
-    private static _shared = new SessionManager();
-    public static shared = (): SessionManager => this._shared;
+class SessionsManager {
+    private static _shared = new SessionsManager();
+    public static shared = (): SessionsManager => this._shared;
 
     private static collection = "sessions";
 
@@ -14,7 +14,7 @@ class SessionManager {
         accessToken: String
     }): Promise<Either<CreateSessionSuccess, CreateSessionFailure>> {
         const writeResult = await Database.shared().write({
-            collection: SessionManager.collection,
+            collection: SessionsManager.collection,
             document: parameters.id,
             data: {
                 accessToken: parameters.accessToken
