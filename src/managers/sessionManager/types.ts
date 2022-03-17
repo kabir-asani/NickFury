@@ -1,9 +1,4 @@
-// MODELS
-export interface Session {
-    accessToken: String;
-}
-
-// REQUEST, RESPONSE
+import { Session } from "./models";
 
 // Create Session
 export interface CreateSessionSuccess {
@@ -18,15 +13,15 @@ export enum CreateSessionFailureReason {
     unknown
 }
 
-// Read Session
-export interface ReadSessionSuccess {
-
+// Delete Session
+export interface DeleteSessionSuccess {
+    
 }
 
-export interface ReadSessionFailure {
-    reason: ReadSessionFailureReason;
+export interface DeleteSessionFailure {
+    reason: DeleteSessionFailureReason;
 }
 
-export enum ReadSessionFailureReason {
+export enum DeleteSessionFailureReason {
     unknown
 }
