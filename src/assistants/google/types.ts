@@ -1,5 +1,5 @@
-export interface Person {
+export interface GoogleProfile {
     name: String;
     email: String;
-    profilePictureUrl?: String;
+    imageUrl: String;
 }

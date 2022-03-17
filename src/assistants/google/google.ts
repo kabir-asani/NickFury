@@ -1,13 +1,11 @@
-import { Either, Empty, failure, success } from "../../utils/typescriptx/typescriptx";
 import { Network } from "../network/network";
-import { Person } from "./types";
+import { GoogleProfile } from "./types";
 
+export class Google {
+    private static _shared = new Google();
+    public static shared = (): Google => this._shared;
 
-class Google {
-    private _shared = new Google();
-    public shared = (): Google => this._shared;
-
-    async details(parameters: { accessToken: String }): Promise<Either<Person, Empty>> {
+    async details(parameters: { accessToken: String }): Promise<GoogleProfile | null> {
         const person = await Network.shared().get({
             url: `https://www.googleapis.com/plus/v1/people/me`,
             headers: {
@@ -31,13 +29,13 @@ class Google {
                 }[]
             } = person.data;
 
-            return success({
+            return {
                 name: data.name.givenName + ' ' + data.name.familyName,
                 email: data.emails.filter((email) => email.type === 'ACCOUNT')[0].value,
-                profilePictureUrl: data.image.url
-            });
+                imageUrl: data.image.url
+            };
         } else {
-            return failure({});
+            return null;
         }
     }
 }
