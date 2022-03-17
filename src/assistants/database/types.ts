@@ -12,20 +12,6 @@ export enum DatabaseWriteFailureReason {
     documentCannotBeOverwritten
 }
 
-// Read
-export interface DatabaseReadSuccess {
-    data: any;
-}
-
-export interface DatabaseReadFailure {
-    reason: DatabaseReadFailureReason;
-}
-
-export enum DatabaseReadFailureReason {
-    unknown,
-    documentNotFound
-}
-
 // Delete
 export interface DatabaseDeleteSuccess {
 
@@ -40,7 +26,31 @@ export enum DatabaseDeleteFailureReason {
     documentNotFound
 }
 
+export interface DatabaseDeleteAllSuccess {
+
+}
+
+export interface DatabaseDeleteAllFailure {
+    reason: DatabaseDeleteAllFailureReason;
+}
+
+export enum DatabaseDeleteAllFailureReason {
+    unknown,
+    documentNotFound
+}
+
 export type ReadAllQueryOperator = | '<'
+    | '<='
+    | '=='
+    | '!='
+    | '>='
+    | '>'
+    | 'array-contains'
+    | 'in'
+    | 'not-in'
+    | 'array-contains-any';
+
+export type DeleteAllQueryOperator = | '<'
     | '<='
     | '=='
     | '!='
