@@ -1,11 +1,4 @@
-import { Session } from "../sessionManager/types";
-
-// MODELS
-export enum AuthProvider {
-    google = 'google',
-    apple = 'apple'
-}
-
+import { Session } from "../sessionManager/models";
 // SUCCESS, FAILURE
 
 // Log In
@@ -14,12 +7,21 @@ export interface LogInSuccess {
 }
 
 export interface LogInFailure {
-    reason: LogInFailureReason
+    reason: LogInFailureReason;
 }
 
 export enum LogInFailureReason {
     unknown,
-    authProviderUnknown
+    authProviderUnknown,
+}
+
+// Google Log In
+export interface GoogleLogInSuccess extends LogInSuccess {
+
+}
+
+export interface GoogleLogInFailure extends LogInFailure {
+
 }
 
 // Log Out
