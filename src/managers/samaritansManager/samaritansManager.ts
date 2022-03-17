@@ -4,9 +4,10 @@ import uuid from 'uuid';
 import { Database } from "../../assistants/database/database";
 import { DatabaseWriteFailureReason } from '../../assistants/database/types';
 import { Either, failure, success } from '../../utils/typescriptx/typescriptx';
-import { SamaritanCreateFailure, SamaritanCreateFailureReason, SamaritanCreateSuccess, SamaritanReadFailure, Samaritan, SamaritanReadSuccess, SamaritanReadFailureReason } from './types';
+import { Samaritan } from './models';
+import { SamaritanCreateFailure, SamaritanCreateFailureReason, SamaritanCreateSuccess } from './types';
 
-class SamaritansManager {
+export class SamaritansManager {
     private static _shared = new SamaritansManager();
     public static shared = (): SamaritansManager => this._shared;
 
@@ -17,11 +18,14 @@ class SamaritansManager {
         email: String;
         imageUrl: String;
     }): Promise<Either<SamaritanCreateSuccess, SamaritanCreateFailure>> {
+        const sid = uuid.v4();
+        const username = details.email.split('@')[0] + uuid.v4().substring(4);
+
         const samaritan: Samaritan = {
-            sid: uuid.v4(),
+            sid,
             name: details.name,
             email: details.email,
-            username: details.email.split('@')[0] + uuid.v4().substring(4),
+            username,
             image: details.imageUrl,
             creationDate: Date.now(),
             socialDetails: {
@@ -32,7 +36,7 @@ class SamaritansManager {
                 tweetsCount: 0,
                 retweetsCount: 0
             }
-        }
+        };
 
         const writeResult = await Database.shared().write({
             collection: SamaritansManager.collection,
@@ -43,7 +47,7 @@ class SamaritansManager {
         return writeResult.resolve({
             onSuccess: (s) => {
                 return success({
-                    samaritan: samaritan
+                    samaritan
                 });
             },
             onFailure: (f) => {
@@ -57,7 +61,6 @@ class SamaritansManager {
                             reason: SamaritanCreateFailureReason.unknown
                         });
                 }
-
             }
         });
     }
@@ -66,26 +69,54 @@ class SamaritansManager {
         id?: String,
         username?: String,
         email?: String,
-    }): Promise<Either<SamaritanReadSuccess, SamaritanReadFailure>> {
+    }): Promise<Samaritan | null> {
         assert(
             parameters.id !== undefined || parameters.username !== undefined || parameters.email !== undefined,
-            "Either id, username or email have to be present"
+            "One of id, username or email has to be present"
         );
 
         if (parameters.id !== undefined) {
-            // TODO: Fetch via id
+            const samaritan = await Database.shared().read<Samaritan>({
+                collection: SamaritansManager.collection,
+                document: parameters.id,
+            });
+
+            return samaritan;
         }
 
         if (parameters.username !== undefined) {
-            // TODO: Fetch via username
+            const samaritans = await Database.shared().readAll<Samaritan>({
+                collection: SamaritansManager.collection,
+                where: {
+                    operandOne: "username",
+                    operator: "==",
+                    operandTwo: parameters.username,
+                }
+            });
+
+            if (samaritans !== null) {
+                return samaritans[0];
+            } else {
+                return null;
+            }
         }
 
         if (parameters.email !== undefined) {
-            // TODO: Fetch via email
+            const samaritans = await Database.shared().readAll<Samaritan>({
+                collection: SamaritansManager.collection,
+                where: {
+                    operandOne: "email",
+                    operator: "==",
+                    operandTwo: parameters.email,
+                }
+            });
+            if (samaritans !== null) {
+                return samaritans[0];
+            } else {
+                return null;
+            }
         }
 
-        return failure({
-            reason: SamaritanReadFailureReason.unknwon
-        });
+        return null;
     }
 }

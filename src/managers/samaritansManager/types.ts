@@ -1,22 +1,4 @@
-// MODELS
-export interface Samaritan {
-    sid: String,
-    name: String,
-    email: String;
-    username: String,
-    image: String,
-    creationDate: Number,
-    socialDetails: {
-        followersCount: Number,
-        followingCount: Number,
-    },
-    tweetsDetails: {
-        tweetsCount: Number,
-        retweetsCount: Number,
-    },
-}
-
-// SUCCESS, FAILURE
+import { Samaritan } from "./models";
 
 // Create Samaritan
 export interface SamaritanCreateSuccess {
@@ -30,17 +12,4 @@ export interface SamaritanCreateFailure {
 export enum SamaritanCreateFailureReason {
     unknown,
     samaritanAlreadyPresent
-}
-
-// Read Samaritan
-export interface SamaritanReadSuccess {
-    samaritan: Samaritan;
-}
-
-export interface SamaritanReadFailure {
-    reason: SamaritanReadFailureReason;
-}
-
-export enum SamaritanReadFailureReason {
-    unknwon
 }
