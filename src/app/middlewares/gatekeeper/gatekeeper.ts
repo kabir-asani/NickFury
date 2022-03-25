@@ -1,4 +1,5 @@
 import Joi from "joi";
+import { SessionsManager } from "../../../managers/sessionManager/sessionsManager";
 import { RouteFailure } from "../../core/types";
 import { TxMiddleware } from "../core/types";
 import { soldier, GroundZero } from "../soldier/soldier";
@@ -11,16 +12,26 @@ export const gatekeeper = (): TxMiddleware[] => [
         groundZero: GroundZero.headers
     }),
     async (req, res, next) => {
-        // TODO: Add a more complete implementation of GateKeeper with 
-        // appropriate checks with DB.
-        const isAuthentic = true;
-
-        if (isAuthentic) {
-            const failure = new RouteFailure("\"access-token\" is invalid");
+        if (req.headers.authorization === undefined || req.headers.authorization === null) {
+            const failure = new RouteFailure("\"access-token\" is missing");
 
             res.status(401).json(failure);
-        } else {
-            next();
+            return;
         }
+
+        const accessToken = (req.headers["Authorization"] || req.headers["authorization"]) as String;
+
+        const isSesssionPresent = await SessionsManager.shared.exists({
+            accessToken: accessToken,
+        });
+
+        if (!isSesssionPresent) {
+            const failure = new RouteFailure("Illegal access token");
+
+            res.status(401).json(failure);
+            return;
+        }
+
+        next();
     }
 ];
