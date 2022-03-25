@@ -1,93 +1,106 @@
 import { firestore } from "firebase-admin";
-import { Either, Empty, failure, success } from "../../utils/typescriptx/typescriptx";
 import { Firebase } from "../firebase/firebase";
-import { DatabaseDeleteAllFailure, DatabaseDeleteAllSuccess, DatabaseDeleteFailure, DatabaseDeleteFailureReason, DatabaseDeleteSuccess, DatabaseWriteFailure, DatabaseWriteFailureReason, DatabaseWriteSuccess, ReadAllQueryOperator, DeleteAllQueryOperator, DatabaseDeleteAllFailureReason } from "./types";
+import {
+    BatchDeleteFailure,
+    BatchDeleteSuccess,
+    BatchWriteFailure,
+    BatchWriteSuccess,
+    DeleteFailure,
+    DeleteParameters,
+    DeleteSuccess,
+    ExistingDocumentCannotBeOverwritten,
+    ExistsAnyParameters,
+    ExistsParameters,
+    MissingDocumentCannotBeDeleted,
+    ReadParameters,
+    WriteFailure,
+    WriteParameters,
+    WriteSuccess,
+    BatchReadParameters,
+    BatchDeleteParameters,
+    BatchWriteParameters,
+} from "./types";
 
 export class Database {
-    private static _shared = new Database();
-    public static shared = (): Database => this._shared;
+    public static readonly shared = new Database();
 
     private db = firestore(Firebase.shared().app());
 
-    async exists(parameters: {
-        collection: String,
-        document: String
-    }): Promise<Boolean> {
+    async exists(parameters: ExistsParameters): Promise<Boolean> {
         const collectionRef = this.db.collection(parameters.collection.valueOf());
         const documentRef = collectionRef.doc(parameters.document.valueOf());
 
         const doc = await documentRef.get();
 
-        return doc.exists;
+        if (doc.exists) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    async existsAny(parameters: {
-        collection: String,
-        where: {
-            operandOne: String,
-            operator: ReadAllQueryOperator,
-            operandTwo: String,
-        },
-    }): Promise<Boolean> {
+    async existsAny(parameters: ExistsAnyParameters): Promise<Boolean> {
         const collectionRef = this.db.collection(parameters.collection.valueOf());
-
         const query = collectionRef.where(
             parameters.where.operandOne.valueOf(),
             parameters.where.operator,
-            parameters.where.operandTwo
+            parameters.where.operandTwo,
         );
 
         const querySnapshot = await query.get();
 
-        return querySnapshot.empty;
-    }
-
-    async write<T>(parameters: {
-        collection: String,
-        document: String,
-        data: T,
-        overwrite?: Boolean
-    }): Promise<Either<DatabaseWriteSuccess, DatabaseWriteFailure>> {
-        // Check if we can create or overwrite this document
-        const isWriteable = await (async () => {
-            const isDocumentExisting = await this.exists({
-                collection: parameters.collection,
-                document: parameters.document!,
-            });
-
-            if (isDocumentExisting) {
-                return parameters.overwrite || false;
-            } else {
-                return true;
-            }
-        })();
-
-        if (isWriteable) {
-            try {
-                const collectionRef = this.db.collection(parameters.collection.valueOf());
-                const documentRef = collectionRef.doc(parameters.document!.valueOf());
-
-                await documentRef.set(parameters.data);
-
-                return success({
-                    id: parameters.document,
-                });
-            } catch {
-                return failure({
-                    reason: DatabaseWriteFailureReason.unknown
-                });
-            }
+        if (querySnapshot.empty) {
+            return false;
         } else {
-            return failure({
-                reason: DatabaseWriteFailureReason.documentCannotBeOverwritten
-            });
+            return true;
         }
     }
 
-    async read<T>(parameters: {
-        collection: String,
-        document: String
-    }): Promise<T | null> {
+    async write(parameters: WriteParameters): Promise<WriteSuccess | WriteFailure> {
+        const isDocumentAlreadyExisting = await this.exists({
+            collection: parameters.collection,
+            document: parameters.document!,
+        });
+
+        if (isDocumentAlreadyExisting) {
+            const reply = new ExistingDocumentCannotBeOverwritten();
+            return reply;
+        }
+
+        const collectionRef = this.db.collection(parameters.collection.valueOf());
+        const documentRef = collectionRef.doc(parameters.document.valueOf());
+
+        await documentRef.set(parameters.data);
+
+        const reply = new WriteSuccess();
+        return reply;
+    }
+
+    async writeAll(parameters: BatchWriteParameters): Promise<BatchWriteSuccess | BatchWriteFailure> {
+        try {
+            const batch = this.db.batch();
+
+            for (const writeDetails of parameters.writes) {
+                const collectionRef = this.db.collection(writeDetails.collection.valueOf());
+                const documentRef = collectionRef.doc(writeDetails.document.valueOf());
+
+                batch.create(
+                    documentRef,
+                    writeDetails.data
+                );
+            }
+
+            await batch.commit();
+
+            const reply = new BatchWriteSuccess();
+            return reply;
+        } catch {
+            const reply = new BatchWriteFailure();
+            return reply;
+        }
+    }
+
+    async read<T>(parameters: ReadParameters): Promise<T | null> {
         const collectionRef = this.db.collection(parameters.collection.valueOf());
         const documentRef = collectionRef.doc(parameters.document.valueOf());
 
@@ -95,26 +108,18 @@ export class Database {
 
         if (document.exists) {
             const documentData = document.data as unknown as T;
-
             return documentData;
         } else {
             return null;
         }
     }
 
-    async readAll<T>(parameters: {
-        collection: String,
-        where: {
-            operandOne: String,
-            operator: ReadAllQueryOperator,
-            operandTwo: String,
-        }
-    }): Promise<T[] | null> {
+    async readAll<T>(parameters: BatchReadParameters): Promise<T[] | null> {
         const collectionRef = this.db.collection(parameters.collection.valueOf());
         const queryRef = collectionRef.where(
             parameters.where.operandOne.valueOf(),
             parameters.where.operator,
-            parameters.where.operandTwo
+            parameters.where.operandTwo,
         );
 
         const querySnapshot = await queryRef.get();
@@ -128,58 +133,51 @@ export class Database {
         }
     }
 
-    async delete(parameters: {
-        collection: String,
-        document: String,
-    }): Promise<Either<DatabaseDeleteSuccess, DatabaseDeleteFailure>> {
+    async delete(parameters: DeleteParameters): Promise<DeleteSuccess | DeleteFailure> {
         const isDocumentExisting = await this.exists({
             collection: parameters.collection,
             document: parameters.document,
         });
 
         if (isDocumentExisting) {
-            try {
-                const collectionRef = this.db.collection(parameters.collection.valueOf());
-                const documentRef = collectionRef.doc(parameters.document.valueOf());
+            const collectionRef = this.db.collection(parameters.collection.valueOf());
+            const documentRef = collectionRef.doc(parameters.document.valueOf());
 
-                await documentRef.delete();
+            await documentRef.delete();
 
-                return success({});
-            } catch {
-                return failure({
-                    reason: DatabaseDeleteFailureReason.unknown
-                });
-            }
+            const reply = new DeleteSuccess();
+            return reply;
         } else {
-            return failure({
-                reason: DatabaseDeleteFailureReason.documentNotFound
-            });
+            const reply = new MissingDocumentCannotBeDeleted();
+            return reply;
         }
     }
 
-    async deleteAll(parameters: {
-        collection: String,
-        where: {
-            operandOne: String,
-            operator: DeleteAllQueryOperator,
-            operandTwo: String,
+    async deleteAll(parameters: BatchDeleteParameters): Promise<BatchDeleteSuccess | BatchDeleteFailure> {
+        try {
+            const collectionRef = this.db.collection(parameters.collection.valueOf());
+            const queryRef = collectionRef.where(
+                parameters.where.operandOne.valueOf(),
+                parameters.where.operator,
+                parameters.where.operandTwo,
+            );
+
+            const querySnapshot = await queryRef.get();
+            const documentRefs = querySnapshot.docs.map((document) => document.ref);
+
+            const batch = this.db.batch();
+
+            for (const documentRef of documentRefs) {
+                batch.delete(documentRef);
+            }
+
+            await batch.commit();
+
+            const reply = new BatchDeleteSuccess();
+            return reply;
+        } catch {
+            const reply = new BatchDeleteFailure();
+            return reply;
         }
-    }): Promise<Either<DatabaseDeleteAllSuccess, DatabaseDeleteAllFailure>> {
-        const collectionRef = this.db.collection(parameters.collection.valueOf());
-
-        const queryRef = collectionRef.where(
-            parameters.where.operandOne.valueOf(),
-            parameters.where.operator,
-            parameters.where.operandTwo
-        );
-
-        const querySnapshot = await queryRef.get();
-        const documents = querySnapshot.docs;
-
-        for (const document of documents) {
-            await document.ref.delete();
-        }
-
-        return success({});
     }
 }
