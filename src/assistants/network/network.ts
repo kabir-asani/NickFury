@@ -13,9 +13,9 @@ export class NetworkResult {
     }
 }
 
-export class Network {
-    private static _shared = new Network();
-    public static shared = (): Network => this._shared;
+export class NetworkAssistant {
+    private static _shared = new NetworkAssistant();
+    public static shared = (): NetworkAssistant => this._shared;
 
     async get(parameters: {
         url: String,
