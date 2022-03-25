@@ -1,15 +1,23 @@
 import { Samaritan } from "./models";
 
+class SamaritanSuccess { }
+class SamaritanFailure { }
+
+
 // Create Samaritan
-export interface SamaritanCreateSuccess {
+export class CreateSamaritanSuccess extends SamaritanSuccess {
     samaritan: Samaritan;
+
+    constructor(parameters: {
+        samaritan: Samaritan;
+    }) {
+        super();
+        this.samaritan = parameters.samaritan;
+    }
 }
 
-export interface SamaritanCreateFailure {
-    reason: SamaritanCreateFailureReason;
-}
+export abstract class CreateSamaritanFailure extends SamaritanFailure { }
 
-export enum SamaritanCreateFailureReason {
-    unknown,
-    samaritanAlreadyPresent
-}
+export class UnkownCreateSamritanFailure extends CreateSamaritanFailure { }
+
+export class SamaritanAlreadyExists extends CreateSamaritanFailure { }

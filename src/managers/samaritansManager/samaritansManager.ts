@@ -1,23 +1,19 @@
 import { assert } from 'console';
 import uuid from 'uuid';
 
-import { Database } from "../../assistants/database/database";
-import { DatabaseWriteFailureReason } from '../../assistants/database/types';
-import { Either, failure, success } from '../../utils/typescriptx/typescriptx';
+import { DatabaseAssistant } from "../../assistants/database/database";
+import { TxDatabaseCollections } from '../core/collections';
 import { Samaritan } from './models';
-import { SamaritanCreateFailure, SamaritanCreateFailureReason, SamaritanCreateSuccess } from './types';
+import { SamaritanAlreadyExists, CreateSamaritanFailure, CreateSamaritanSuccess } from './types';
 
 export class SamaritansManager {
-    private static _shared = new SamaritansManager();
-    public static shared = (): SamaritansManager => this._shared;
-
-    private static collection = "samaritans";
+    public static readonly shared = new SamaritansManager();
 
     async createSamaritan(details: {
         name: String;
         email: String;
-        imageUrl: String;
-    }): Promise<Either<SamaritanCreateSuccess, SamaritanCreateFailure>> {
+        image: String;
+    }): Promise<CreateSamaritanSuccess | CreateSamaritanFailure> {
         const sid = uuid.v4();
         const username = details.email.split('@')[0] + uuid.v4().substring(4);
 
@@ -26,7 +22,7 @@ export class SamaritansManager {
             name: details.name,
             email: details.email,
             username,
-            image: details.imageUrl,
+            image: details.image,
             creationDate: Date.now(),
             socialDetails: {
                 followersCount: 0,
@@ -38,31 +34,20 @@ export class SamaritansManager {
             }
         };
 
-        const writeResult = await Database.shared().write({
-            collection: SamaritansManager.collection,
-            document: samaritan.sid,
-            data: samaritan,
-        });
+        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
+        const documentRef = collectionRef.doc(samaritan.sid.valueOf());
 
-        return writeResult.resolve({
-            onSuccess: (s) => {
-                return success({
-                    samaritan
-                });
-            },
-            onFailure: (f) => {
-                switch (f.reason) {
-                    case DatabaseWriteFailureReason.documentCannotBeOverwritten:
-                        return failure({
-                            reason: SamaritanCreateFailureReason.samaritanAlreadyPresent
-                        });
-                    default:
-                        return failure({
-                            reason: SamaritanCreateFailureReason.unknown
-                        });
-                }
-            }
-        });
+        try {
+            await documentRef.create(samaritan);
+
+            const result = new CreateSamaritanSuccess({
+                samaritan: samaritan
+            });
+            return result;
+        } catch {
+            const result = new SamaritanAlreadyExists();
+            return result;
+        }
     }
 
     async samaritan(parameters: {
@@ -76,44 +61,55 @@ export class SamaritansManager {
         );
 
         if (parameters.id !== undefined) {
-            const samaritan = await Database.shared().read<Samaritan>({
-                collection: SamaritansManager.collection,
-                document: parameters.id,
-            });
+            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
+            const documentRef = collectionRef.doc(parameters.id.valueOf());
 
-            return samaritan;
+            const samaritan = await documentRef.get();
+
+            if (samaritan.exists) {
+                const result = samaritan.data as unknown as Samaritan;
+                return result;
+            } else {
+                const result = null;
+                return result;
+            }
         }
 
         if (parameters.username !== undefined) {
-            const samaritans = await Database.shared().readAll<Samaritan>({
-                collection: SamaritansManager.collection,
-                where: {
-                    operandOne: "username",
-                    operator: "==",
-                    operandTwo: parameters.username,
-                }
-            });
+            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
+            const query = collectionRef.where(
+                "username",
+                "==",
+                parameters.username.valueOf(),
+            );
 
-            if (samaritans !== null) {
-                return samaritans[0];
+            const querySnapshot = await query.get();
+
+            if (querySnapshot.empty) {
+                const result = null;
+                return result;
             } else {
-                return null;
+                const result = querySnapshot.docs[0].data as unknown as Samaritan;
+                return result;
             }
         }
 
         if (parameters.email !== undefined) {
-            const samaritans = await Database.shared().readAll<Samaritan>({
-                collection: SamaritansManager.collection,
-                where: {
-                    operandOne: "email",
-                    operator: "==",
-                    operandTwo: parameters.email,
-                }
-            });
-            if (samaritans !== null) {
-                return samaritans[0];
+            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
+            const query = collectionRef.where(
+                "email",
+                "==",
+                parameters.email.valueOf(),
+            );
+
+            const querySnapshot = await query.get();
+
+            if (querySnapshot.empty) {
+                const result = null;
+                return result;
             } else {
-                return null;
+                const result = querySnapshot.docs[0].data as unknown as Samaritan;
+                return result;
             }
         }
 
