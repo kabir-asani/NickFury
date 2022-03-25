@@ -1,38 +1,31 @@
 import { Session } from "../sessionManager/models";
-// SUCCESS, FAILURE
+
+class AuthManagerSuccess { }
+class AuthManagerFailure { }
 
 // Log In
-export interface LogInSuccess {
+export class LogInSuccess extends AuthManagerSuccess {
     session: Session;
+
+    constructor(parameters: {
+        session: Session;
+    }) {
+        super();
+        this.session = parameters.session;
+    }
 }
 
-export interface LogInFailure {
-    reason: LogInFailureReason;
-}
+export abstract class LogInFailure extends AuthManagerFailure { }
 
-export enum LogInFailureReason {
-    unknown,
-    authProviderUnknown,
-}
+export class UnknownLogInFailure extends AuthManagerFailure { }
 
-// Google Log In
-export interface GoogleLogInSuccess extends LogInSuccess {
+export class UnknownAuthProvider extends LogInFailure { }
 
-}
-
-export interface GoogleLogInFailure extends LogInFailure {
-
-}
+export class IllegalAccessTokenFailure extends LogInFailure { }
 
 // Log Out
-export interface LogOutSuccess {
+export class LogOutSuccess extends AuthManagerSuccess { }
 
-}
+export abstract class LogOutFailure extends AuthManagerFailure { }
 
-export interface LogOutFailure {
-    reason: LogOutFailureReason;
-}
-
-export enum LogOutFailureReason {
-    unknown
-}
+export class UnknownLogOutFailure extends LogOutFailure { }

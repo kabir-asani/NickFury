@@ -1,151 +1,140 @@
-import { Google } from "../../assistants/google/google";
-import { Either, failure, success } from "../../utils/typescriptx/typescriptx";
+import { GoogleAssistant } from "../../assistants/google/google";
+import { GoogleProfileSuccess, IllegalAccessTokenFailure as IllegalGoogleAccessTokenFailure } from "../../assistants/google/types";
 import { SamaritansManager } from "../samaritansManager/samaritansManager";
+import { CreateSamaritanSuccess } from "../samaritansManager/types";
 import { SessionsManager } from "../sessionManager/sessionsManager";
+import { CreateSessionSuccess, DeleteSessionSuccess } from "../sessionManager/types";
 import { AuthProvider } from "./models";
-import { GoogleLogInFailure, GoogleLogInSuccess, LogInFailure, LogInFailureReason, LogInSuccess, LogOutFailure, LogOutFailureReason, LogOutSuccess } from "./types";
+import {
+    LogInSuccess,
+    LogInFailure,
+    LogOutSuccess,
+    LogOutFailure,
+    UnknownAuthProvider,
+    UnknownLogInFailure,
+    IllegalAccessTokenFailure as IllegalAccessTokenFailure,
+    UnknownLogOutFailure,
+} from "./types";
 
 export class AuthManager {
-    private static _shared = new AuthManager();
-    public static shared = (): AuthManager => this._shared;
+    public static readonly shared = new AuthManager();
 
     async logIn(parameters: {
         provider: AuthProvider,
         accessToken: String
-    }): Promise<Either<LogInSuccess, LogInFailure>> {
-        const session = await SessionsManager.shared().session({
+    }): Promise<LogInSuccess | LogInFailure> {
+        const session = await SessionsManager.shared.session({
             accessToken: parameters.accessToken
         });
 
         if (session !== null) {
-            return success({
-                session,
+            const result = new LogInSuccess({
+                session: session
             });
-        } else {
-            switch (parameters.provider) {
-                case AuthProvider.google: {
-                    const logInResult = this.logInViaGoogle({
-                        accessToken: parameters.accessToken,
-                    });
+            return result;
+        }
 
-                    return logInResult;
-                }
-                default: {
-                    const logInResult = failure({
-                        reason: LogInFailureReason.authProviderUnknown
-                    });
+        switch (parameters.provider) {
+            case AuthProvider.google: {
+                const result = this.logInViaGoogle({
+                    accessToken: parameters.accessToken,
+                });
 
-                    return logInResult;
-                }
+                return result;
+            }
+
+            default: {
+                const result = new UnknownAuthProvider();
+
+                return result;
             }
         }
     }
 
     async logOut(parameters: {
         accessToken: String,
-    }): Promise<Either<LogOutSuccess, LogOutFailure>> {
-        const deleteSessionResult = await SessionsManager.shared().deleteSession({
+    }): Promise<LogOutSuccess | LogOutFailure> {
+        const deleteSessionResult = await SessionsManager.shared.deleteSession({
             accessToken: parameters.accessToken
         });
 
-        const logOutResult = deleteSessionResult.resolve({
-            onSuccess: (s) => {
-                return success({});
-            },
-            onFailure: (f) => {
-                return failure({
-                    reason: LogOutFailureReason.unknown
-                });
-            },
-        });
-        
-        return logOutResult;
+        if (deleteSessionResult instanceof DeleteSessionSuccess) {
+            const result = new LogOutSuccess();
+            return result;
+        }
+
+        const result = new UnknownLogOutFailure();
+        return result;
     }
 
     private async logInViaGoogle(parameters: {
         accessToken: String
-    }): Promise<Either<GoogleLogInSuccess, GoogleLogInFailure>> {
-        const googleProfile = await Google.shared().details({
+    }): Promise<LogInSuccess | LogInFailure> {
+        const profileResult = await GoogleAssistant.shared.profile({
             accessToken: parameters.accessToken,
         });
 
-        if (googleProfile !== null) {
-            const samaritan = await SamaritansManager.shared().samaritan({
-                email: googleProfile.email,
+        if (profileResult instanceof GoogleProfileSuccess) {
+            const profile = profileResult.profile;
+            const samaritan = await SamaritansManager.shared.samaritan({
+                email: profile.email,
             });
 
             if (samaritan !== null) {
-                const createSessionResult = await SessionsManager.shared().createSession({
+                const createSessionResult = await SessionsManager.shared.createSession({
                     sid: samaritan.sid,
                     accessToken: parameters.accessToken,
                 });
 
-                const logInResult = createSessionResult.resolve({
-                    onSuccess: (s) => {
-                        const logInResult = success({
-                            session: s.session
-                        });
+                if (createSessionResult instanceof CreateSessionSuccess) {
+                    const session = createSessionResult.session;
+                    const result = new LogInSuccess({
+                        session: session
+                    });
 
-                        return logInResult;
-                    },
-                    onFailure: (f) => {
-                        const logInResult = failure({
-                            reason: LogInFailureReason.unknown,
-                        });
+                    return result;
+                }
 
-                        return logInResult;
-                    }
-                });
-
-                return logInResult;
+                const result = new UnknownLogInFailure();
+                return result;
             } else {
-                const createSamaritanResult = await SamaritansManager.shared().createSamaritan({
-                    name: googleProfile.name,
-                    email: googleProfile.email,
-                    imageUrl: googleProfile.imageUrl,
+                const createSamaritanResult = await SamaritansManager.shared.createSamaritan({
+                    name: profile.name,
+                    email: profile.email,
+                    image: profile.image,
                 });
 
-                const logInResult = await createSamaritanResult.resolve({
-                    onSuccess: async (s) => {
-                        const createSessionResult = await SessionsManager.shared().createSession({
-                            sid: s.samaritan.sid,
-                            accessToken: parameters.accessToken,
+                if (createSamaritanResult instanceof CreateSamaritanSuccess) {
+                    const samaritan = createSamaritanResult.samaritan;
+                    const createSessionResult = await SessionsManager.shared.createSession({
+                        sid: samaritan.sid,
+                        accessToken: parameters.accessToken,
+                    });
+
+                    if (createSessionResult instanceof CreateSessionSuccess) {
+                        const session = createSessionResult.session;
+                        const result = new LogInSuccess({
+                            session: session
                         });
 
-                        return createSessionResult.resolve({
-                            onSuccess: (s) => {
-                                const logInResult = success({
-                                    session: s.session
-                                });
-
-                                return logInResult;
-                            },
-                            onFailure: (f) => {
-                                const logInResult = failure({
-                                    reason: LogInFailureReason.unknown,
-                                });
-
-                                return logInResult;
-                            }
-                        });
-                    },
-                    onFailure: async (f) => {
-                        const logInResult = failure({
-                            reason: LogInFailureReason.unknown,
-                        });
-
-                        return logInResult;
+                        return result;
                     }
-                });
 
-                return logInResult;
+                    const result = new UnknownLogInFailure();
+                    return result;
+                }
+
+                const result = new UnknownLogInFailure();
+                return result;
             }
-        } else {
-            const logInResult = failure({
-                reason: LogInFailureReason.unknown,
-            });
-
-            return logInResult;
         }
+
+        if (profileResult instanceof IllegalGoogleAccessTokenFailure) {
+            const result = new IllegalAccessTokenFailure();
+            return result;
+        }
+
+        const result = new UnknownLogInFailure();
+        return result;
     }
 }
