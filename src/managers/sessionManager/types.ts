@@ -1,27 +1,29 @@
 import { Session } from "./models";
 
+export class SessionSuccess { }
+export class SessionFailure { }
+
 // Create Session
-export interface CreateSessionSuccess {
+export class CreateSessionSuccess extends SessionSuccess {
     session: Session;
+
+    constructor(parameters: {
+        session: Session
+    }) {
+        super();
+        this.session = parameters.session;
+    }
 }
 
-export interface CreateSessionFailure {
-    reason: CreateSessionFailureReason;
-}
+export abstract class CreateSessionFailure extends SessionFailure { }
 
-export enum CreateSessionFailureReason {
-    unknown
-}
+export class UnknownCreateSessionFailure extends CreateSessionFailure { }
+
+export class SessionAlreadyPresentFailure extends CreateSessionFailure { }
 
 // Delete Session
-export interface DeleteSessionSuccess {
-    
-}
+export class DeleteSessionSuccess extends SessionSuccess { }
 
-export interface DeleteSessionFailure {
-    reason: DeleteSessionFailureReason;
-}
+export abstract class DeleteSessionFailure extends SessionFailure { }
 
-export enum DeleteSessionFailureReason {
-    unknown
-}
+export class UnkknownDeleteSessionFailure extends DeleteSessionFailure { }
