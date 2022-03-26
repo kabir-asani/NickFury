@@ -20,6 +20,7 @@
     "axios": "^0.26.1",
     "express": "^4.17.3",
     "firebase-admin": "^10.0.2",
+    "getstream": "^8.0.0",
     "joi": "^17.6.0",
     "uuid": "^8.3.2"
   }
