@@ -45,8 +45,8 @@ export class SocialsManager {
                 const followeeDocument = await followeeDocumentRef.get();
 
                 if (followerDocument.exists && followeeDocument.exists) {
-                    const follower = followerDocument.data as unknown as Samaritan;
-                    const followee = followeeDocument.data as unknown as Samaritan;
+                    const follower = followerDocument.data() as unknown as Samaritan;
+                    const followee = followeeDocument.data() as unknown as Samaritan;
 
                     transaction.create(
                         followerDataDocumentRef,
@@ -106,8 +106,8 @@ export class SocialsManager {
                 const followeeDocument = await followeeDocumentRef.get();
 
                 if (followerDocument.exists && followeeDocument.exists) {
-                    const follower = followerDocument.data as unknown as Samaritan;
-                    const followee = followeeDocument.data as unknown as Samaritan;
+                    const follower = followerDocument.data() as unknown as Samaritan;
+                    const followee = followeeDocument.data() as unknown as Samaritan;
 
                     transaction.delete(followerDataDocumentRef);
                     transaction.delete(followeeDataDocumentRef);

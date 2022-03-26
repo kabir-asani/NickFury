@@ -1,5 +1,5 @@
 import { assert } from 'console';
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 
 import { DatabaseAssistant } from "../../assistants/database/database";
 import { TxDatabaseCollections } from '../core/collections';
@@ -67,7 +67,7 @@ export class SamaritansManager {
             const samaritan = await documentRef.get();
 
             if (samaritan.exists) {
-                const result = samaritan.data as unknown as Samaritan;
+                const result = samaritan.data() as unknown as Samaritan;
                 return result;
             } else {
                 const result = null;
@@ -89,7 +89,7 @@ export class SamaritansManager {
                 const result = null;
                 return result;
             } else {
-                const result = querySnapshot.docs[0].data as unknown as Samaritan;
+                const result = querySnapshot.docs[0].data() as unknown as Samaritan;
                 return result;
             }
         }
@@ -108,7 +108,7 @@ export class SamaritansManager {
                 const result = null;
                 return result;
             } else {
-                const result = querySnapshot.docs[0].data as unknown as Samaritan;
+                const result = querySnapshot.docs[0].data() as unknown as Samaritan;
                 return result;
             }
         }

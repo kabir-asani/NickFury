@@ -58,7 +58,7 @@ authentication.post(
         ...gatekeeper()
     ],
     async (req: Request, res: Response) => {
-        const { accessToken } = req.body;
+        const { authorization: accessToken } = req.headers;
 
         const logOutResult = await AuthManager.shared.logOut({
             accessToken: accessToken as String,
