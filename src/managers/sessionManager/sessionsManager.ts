@@ -1,5 +1,6 @@
 import { assert } from "console";
 import { DatabaseAssistant } from "../../assistants/database/database";
+import { StreamAssistant } from "../../assistants/stream/stream";
 import { TxDatabaseCollections } from "../core/collections";
 import { Session } from "./models";
 import {
@@ -54,16 +55,32 @@ export class SessionsManager {
         sid: String,
         accessToken: String
     }): Promise<CreateSessionSuccess | CreateSessionFailure> {
+        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
+        const documentRef = collectionRef.doc(parameters.sid.valueOf());
+
+        const document = await documentRef.get();
+
+        if (document.exists) {
+            const session = document.data() as unknown as Session;
+
+            if (session.accessToken === parameters.accessToken) {
+                const result = new CreateSessionSuccess({
+                    session: session,
+                });
+                return result;
+            }
+        }
+
         const session: Session = {
             sid: parameters.sid,
             accessToken: parameters.accessToken,
+            feedToken: StreamAssistant.shared.token({
+                sid: parameters.sid
+            }),
             creationDate: Date.now(),
         };
 
         try {
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
-            const documentRef = collectionRef.doc(parameters.sid.valueOf());
-
             await documentRef.create(session);
 
             const result = new CreateSessionSuccess({
@@ -92,7 +109,7 @@ export class SessionsManager {
             const document = await documentRef.get();
 
             if (document.exists) {
-                const result = document.data as unknown as Session;
+                const result = document.data() as unknown as Session;
                 return result;
             } else {
                 const result = null;
@@ -114,7 +131,7 @@ export class SessionsManager {
                 const result = null;
                 return result;
             } else {
-                const result = querySnapshot.docs[0].data as unknown as Session;
+                const result = querySnapshot.docs[0].data() as unknown as Session;
                 return result;
             }
         }
