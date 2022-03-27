@@ -7,10 +7,10 @@ import { RouteFailure, RouteSuccess } from '../../core/types';
 import { gatekeeper } from '../../middlewares/gatekeeper/gatekeeper';
 import { GroundZero, soldier } from '../../middlewares/soldier/soldier';
 
-const authentication = Router();
+const sessions = Router();
 
-authentication.post(
-    '/logIn',
+sessions.post(
+    '/',
     [
         soldier({
             schema: Joi.object({
@@ -52,8 +52,8 @@ authentication.post(
 );
 
 
-authentication.post(
-    '/logOut',
+sessions.delete(
+    '/',
     [
         ...gatekeeper()
     ],
@@ -75,4 +75,4 @@ authentication.post(
     }
 );
 
-export = authentication;
+export = sessions;
