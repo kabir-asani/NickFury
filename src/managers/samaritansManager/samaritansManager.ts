@@ -15,7 +15,7 @@ export class SamaritansManager {
         image: String;
     }): Promise<CreateSamaritanSuccess | CreateSamaritanFailure> {
         const sid = uuid.v4();
-        const username = details.email.split('@')[0] + uuid.v4().substring(4);
+        const username = details.email.split('@')[0] + uuid.v4().substring(0, 5);
 
         const samaritan: Samaritan = {
             sid,
@@ -51,18 +51,18 @@ export class SamaritansManager {
     }
 
     async samaritan(parameters: {
-        id?: String,
+        sid?: String,
         username?: String,
         email?: String,
     }): Promise<Samaritan | null> {
         assert(
-            parameters.id !== undefined || parameters.username !== undefined || parameters.email !== undefined,
+            parameters.sid !== undefined || parameters.username !== undefined || parameters.email !== undefined,
             "One of id, username or email has to be present"
         );
 
-        if (parameters.id !== undefined) {
+        if (parameters.sid !== undefined) {
             const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
-            const documentRef = collectionRef.doc(parameters.id.valueOf());
+            const documentRef = collectionRef.doc(parameters.sid.valueOf());
 
             const samaritan = await documentRef.get();
 
