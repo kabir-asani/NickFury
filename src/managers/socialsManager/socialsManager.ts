@@ -12,8 +12,7 @@ import {
 } from "./types";
 
 export class SocialsManager {
-    private static _shared = new SocialsManager();
-    public static shared = (): SocialsManager => this._shared;
+    public static readonly shared = new SocialsManager();
 
     async follow(parameters: {
         followeeSid: String,
@@ -21,7 +20,7 @@ export class SocialsManager {
     }): Promise<SocialsFollowSuccess | SocialsFollowFailure> {
         // References
         const samaritansCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
-        const followerDocumentRef = samaritansCollectionRef.doc(parameters.followeeSid.valueOf());
+        const followerDocumentRef = samaritansCollectionRef.doc(parameters.followerSid.valueOf());
         const followeeDocumentRef = samaritansCollectionRef.doc(parameters.followeeSid.valueOf());
 
         const followersCollectionRef = followeeDocumentRef.collection(TxDatabaseCollections.followers);
@@ -29,6 +28,12 @@ export class SocialsManager {
 
         const followerDataDocumentRef = followersCollectionRef.doc(parameters.followerSid.valueOf());
         const followeeDataDocumentRef = followeesCollectionRef.doc(parameters.followeeSid.valueOf());
+
+        // Storage pattern is as follows:--
+        // FollowerDocument -> FolloweesCollection
+        // FolloweeDocument -> FollowersCollection
+        // Follower needs to keep track of who she is following
+        // Followee needs to keep track of who is following her
 
         // Data
         const followerData: FollowerData = {
@@ -91,7 +96,7 @@ export class SocialsManager {
     }): Promise<SocialsUnfollowSuccess | SocialsUnfollowFailure> {
         // References
         const samaritansCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
-        const followerDocumentRef = samaritansCollectionRef.doc(parameters.followeeSid.valueOf());
+        const followerDocumentRef = samaritansCollectionRef.doc(parameters.followerSid.valueOf());
         const followeeDocumentRef = samaritansCollectionRef.doc(parameters.followeeSid.valueOf());
 
         const followersCollectionRef = followeeDocumentRef.collection(TxDatabaseCollections.followers);
@@ -143,6 +148,44 @@ export class SocialsManager {
         } catch {
             const result = new UnknownSocialsUnfollowFailure();
             return result;
+        }
+    }
+
+    async isFollowing(parameters: {
+        followeeSid: String,
+        followerSid: String, 
+    }): Promise<Boolean> {
+        // References
+        const samaritansCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
+        const followerDocumentRef = samaritansCollectionRef.doc(parameters.followeeSid.valueOf());
+        const followeesCollectionRef = followerDocumentRef.collection(TxDatabaseCollections.followings);
+        const followeeDataDocumentRef = followeesCollectionRef.doc(parameters.followeeSid.valueOf());
+
+        const document = await followeeDataDocumentRef.get();
+
+        if (document.exists) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    async isFollower(parameters: {
+        followeeSid: String,
+        followerSid: String,
+    }): Promise<Boolean> {
+        // References
+        const samaritansCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
+        const followeeDocumentRef = samaritansCollectionRef.doc(parameters.followeeSid.valueOf());
+        const followersCollectionRef = followeeDocumentRef.collection(TxDatabaseCollections.followers);
+        const followerDataDocumentRef = followersCollectionRef.doc(parameters.followerSid.valueOf());
+
+        const document = await followerDataDocumentRef.get();
+
+        if (document.exists) {
+            return true;
+        } else {
+            return false;
         }
     }
 }
