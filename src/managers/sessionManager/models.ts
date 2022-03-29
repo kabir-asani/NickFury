@@ -1,6 +1,6 @@
 export interface Session {
-    sid: String;
-    accessToken: String;
-    feedToken: String;
-    creationDate: Number;
+    readonly sid: String;
+    readonly accessToken: String;
+    readonly feedToken: String;
+    readonly creationDate: Number;
 }

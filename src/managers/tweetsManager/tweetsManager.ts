@@ -1,12 +1,11 @@
-import { assert } from 'console';
 import * as uuid from 'uuid';
 
 import { DatabaseAssistant } from "../../assistants/database/database";
+import { AddTweetSuccess } from '../../assistants/stream/feeds/samaritanFeed/types';
 import { StreamAssistant } from '../../assistants/stream/stream';
-import { AddActivitySuccess } from '../../assistants/stream/types';
 import { TxDatabaseCollections } from "../core/collections";
 import { SamaritansManager } from "../samaritansManager/samaritansManager";
-import { Meta, Tweet } from "./models";
+import { Tweet } from "./models";
 import { CreateTweetFailure, CreateTweetSuccess, UnkownCreateTweetFailure } from "./types";
 
 class TweetsManager {
@@ -48,7 +47,7 @@ class TweetsManager {
                     authorSid: parameters.authorSid,
                 });
 
-            if (tweetCreationResult instanceof AddActivitySuccess) {
+            if (tweetCreationResult instanceof AddTweetSuccess) {
                 const tweet: Tweet = {
                     tid: tweetCreationResult.tid.valueOf(),
                     fid: fid,

@@ -1,7 +1,7 @@
 export interface FollowerData {
-    follower: String;
+    readonly follower: String;
 }
 
 export interface FolloweeData {
-    followee: String;
+    readonly followee: String;
 }

@@ -5,7 +5,7 @@ class TweetFailure { }
 
 // Create Tweet
 export class CreateTweetSuccess extends TweetSuccess {
-    tweet: Tweet;
+    readonly tweet: Tweet;
 
     constructor(parameters: {
         tweet: Tweet;

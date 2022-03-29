@@ -1,8 +1,21 @@
-import { StreamAssistantSuccess, StreamAssistantFailure, Activity } from "../../types";
+import { StreamAssistantSuccess, StreamAssistantFailure } from "../../types";
+
+export class TweetActivity {
+    readonly tid: String;
+    readonly sid: String;
+
+    constructor(parameters: {
+        tid: String;
+        sid: String;
+    }) {
+        this.tid = parameters.tid;
+        this.sid = parameters.sid;
+    }
+}
 
 // Add Activity
 export class AddTweetSuccess extends StreamAssistantSuccess {
-    tid: String;
+    readonly tid: String;
 
     constructor(parameters: {
         tid: String

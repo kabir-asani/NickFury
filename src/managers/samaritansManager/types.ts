@@ -6,7 +6,7 @@ class SamaritanFailure { }
 
 // Create Samaritan
 export class CreateSamaritanSuccess extends SamaritanSuccess {
-    samaritan: Samaritan;
+    readonly samaritan: Samaritan;
 
     constructor(parameters: {
         samaritan: Samaritan;

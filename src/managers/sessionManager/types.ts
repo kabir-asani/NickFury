@@ -5,7 +5,7 @@ export class SessionFailure { }
 
 // Create Session
 export class CreateSessionSuccess extends SessionSuccess {
-    session: Session;
+    readonly session: Session;
 
     constructor(parameters: {
         session: Session

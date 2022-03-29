@@ -1,16 +1,16 @@
 export interface Samaritan {
-    sid: String,
-    name: String,
-    email: String;
-    username: String,
-    image: String,
-    creationDate: Number,
-    socialDetails: {
-        followersCount: Number,
-        followingCount: Number,
+    readonly sid: String,
+    readonly name: String,
+    readonly email: String;
+    readonly username: String,
+    readonly image: String,
+    readonly creationDate: Number,
+    readonly socialDetails: {
+        readonly followersCount: Number,
+        readonly followingCount: Number,
     },
-    tweetsDetails: {
-        tweetsCount: Number,
-        retweetsCount: Number,
+    readonly tweetsDetails: {
+        readonly tweetsCount: Number,
+        readonly retweetsCount: Number,
     },
 }

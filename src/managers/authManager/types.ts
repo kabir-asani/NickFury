@@ -5,7 +5,7 @@ class AuthManagerFailure { }
 
 // Log In
 export class LogInSuccess extends AuthManagerSuccess {
-    session: Session;
+    readonly session: Session;
 
     constructor(parameters: {
         session: Session;

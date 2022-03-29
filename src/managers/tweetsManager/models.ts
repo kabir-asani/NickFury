@@ -1,12 +1,12 @@
 export interface Tweet {
-    tid: String;
-    fid: String;
-    text: String;
-    creationDate: Number;
-    authorSid: String;
-    meta: Meta
+    readonly tid: String;
+    readonly fid: String;
+    readonly text: String;
+    readonly creationDate: Number;
+    readonly authorSid: String;
+    readonly meta: Meta
 }
 
 export interface Meta {
-    likesCount: Number;
+    readonly likesCount: Number;
 }
