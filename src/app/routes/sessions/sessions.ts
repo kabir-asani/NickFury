@@ -2,10 +2,11 @@ import { Request, Response, Router } from 'express';
 import Joi from 'joi';
 import { AuthManager } from '../../../managers/authManager/authManager';
 import { authProvider, AuthProvider } from '../../../managers/authManager/models';
-import { IllegalAccessTokenFailure, LogInSuccess, LogOutSuccess } from '../../../managers/authManager/types';
-import { RouteFailure, RouteSuccess } from '../../core/types';
+import { IncorrectAccessTokenFailure, LogInSuccess, LogOutSuccess } from '../../../managers/authManager/types';
+import { IncorrectAccessTokenRouteFailure, RouteFailure, RouteSuccess, InternalRouteFailure } from '../../core/types';
 import { gatekeeper } from '../../middlewares/gatekeeper/gatekeeper';
 import { GroundZero, soldier } from '../../middlewares/soldier/soldier';
+import { LogInRouteSuccess, LogOutRouteSuccess } from './types';
 
 const sessions = Router();
 
@@ -26,28 +27,38 @@ sessions.post(
     async (req: Request, res: Response) => {
         const { accessToken, provider } = req.body;
 
-        const logInResult = await AuthManager.shared.logIn({
+        const result = await AuthManager.shared.logIn({
             accessToken: accessToken as String,
             provider: authProvider(provider)!,
         });
 
-        if (logInResult instanceof LogInSuccess) {
-            const session = logInResult.session;
-            const result = new RouteSuccess(session);
+        if (result instanceof LogInSuccess) {
+            const session = result.session;
+            const response = new LogInRouteSuccess(session);
 
-            res.status(201).json(result);
+            res
+                .status(LogInRouteSuccess.statusCode)
+                .json(response);
+
             return;
         }
 
 
-        if (logInResult instanceof IllegalAccessTokenFailure) {
-            const result = new RouteFailure('Incorrect access token');
-            res.status(400).json(result);
+        if (result instanceof IncorrectAccessTokenFailure) {
+            const response = new IncorrectAccessTokenRouteFailure();
+
+            res
+                .status(IncorrectAccessTokenRouteFailure.statusCode)
+                .json(response);
+
             return;
         }
 
-        const result = new RouteFailure('Something went wrong');
-        res.status(500).json(result);
+        const response = new InternalRouteFailure();
+
+        res
+            .status(InternalRouteFailure.statusCode)
+            .json(response);
     }
 );
 
@@ -60,18 +71,25 @@ sessions.delete(
     async (req: Request, res: Response) => {
         const { authorization: accessToken } = req.headers;
 
-        const logOutResult = await AuthManager.shared.logOut({
+        const result = await AuthManager.shared.logOut({
             accessToken: accessToken as String,
         });
 
-        if (logOutResult instanceof LogOutSuccess) {
-            const result = new RouteSuccess('Successfully logged out');
-            res.status(200).json(result);
+        if (result instanceof LogOutSuccess) {
+            const response = new LogOutRouteSuccess();
+
+            res
+                .status(LogOutRouteSuccess.statusCode)
+                .json(response);
+
             return;
         }
 
-        const result = new RouteFailure('Something went wrong');
-        res.status(500).json(result);
+        const response = new InternalRouteFailure();
+
+        res
+            .status(InternalRouteFailure.statusCode)
+            .json(response);
     }
 );
 

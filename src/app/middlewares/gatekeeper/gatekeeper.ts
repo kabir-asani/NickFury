@@ -1,6 +1,6 @@
 import Joi from "joi";
 import { SessionsManager } from "../../../managers/sessionManager/sessionsManager";
-import { RouteFailure } from "../../core/types";
+import { IllegalAccessTokenRouteFailure, MissingAccessTokenRouteFailure, RouteFailure } from "../../core/types";
 import { TxMiddleware } from "../core/types";
 import { soldier, GroundZero } from "../soldier/soldier";
 
@@ -12,23 +12,29 @@ export const gatekeeper = (): TxMiddleware[] => [
         groundZero: GroundZero.headers
     }),
     async (req, res, next) => {
-        if (req.headers.authorization === undefined || req.headers.authorization === null) {
-            const failure = new RouteFailure("\"access-token\" is missing");
+        const accessToken = req.headers.authorization;
 
-            res.status(401).json(failure);
+        if (accessToken === undefined || accessToken === null) {
+            const failure = new MissingAccessTokenRouteFailure();
+
+            res
+                .status(MissingAccessTokenRouteFailure.statusCode)
+                .json(failure);
+
             return;
         }
-
-        const accessToken = (req.headers["Authorization"] || req.headers["authorization"]) as String;
 
         const isSesssionPresent = await SessionsManager.shared.exists({
             accessToken: accessToken,
         });
 
         if (!isSesssionPresent) {
-            const failure = new RouteFailure("Illegal access token");
+            const failure = new IllegalAccessTokenRouteFailure();
 
-            res.status(401).json(failure);
+            res
+                .status(IllegalAccessTokenRouteFailure.statusCode)
+                .json(failure);
+
             return;
         }
 

@@ -12,7 +12,7 @@ import {
     LogOutFailure,
     UnknownAuthProvider,
     UnknownLogInFailure,
-    IllegalAccessTokenFailure as IllegalAccessTokenFailure,
+    IncorrectAccessTokenFailure,
     UnknownLogOutFailure,
 } from "./types";
 
@@ -130,7 +130,7 @@ export class AuthManager {
         }
 
         if (profileResult instanceof IllegalGoogleAccessTokenFailure) {
-            const result = new IllegalAccessTokenFailure();
+            const result = new IncorrectAccessTokenFailure();
             return result;
         }
 

@@ -21,7 +21,7 @@ export class UnknownLogInFailure extends AuthManagerFailure { }
 
 export class UnknownAuthProvider extends LogInFailure { }
 
-export class IllegalAccessTokenFailure extends LogInFailure { }
+export class IncorrectAccessTokenFailure extends LogInFailure { }
 
 // Log Out
 export class LogOutSuccess extends AuthManagerSuccess { }

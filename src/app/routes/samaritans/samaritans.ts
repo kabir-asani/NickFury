@@ -2,9 +2,10 @@ import { Request, Response, Router } from 'express';
 import Joi from 'joi';
 import { SamaritansManager } from '../../../managers/samaritansManager/samaritansManager';
 import { SessionsManager } from '../../../managers/sessionManager/sessionsManager';
-import { RouteFailure, RouteSuccess } from '../../core/types';
+import { MissingResourceRouteFailure, InternalRouteFailure } from '../../core/types';
 import { gatekeeper } from '../../middlewares/gatekeeper/gatekeeper';
 import { GroundZero, soldier } from '../../middlewares/soldier/soldier';
+import { SamaritanRouteSuccess } from './types';
 
 const samaritans = Router();
 
@@ -21,8 +22,8 @@ samaritans.get('/me',
 
 
         if (session === null) {
-            const result = new RouteFailure("Something went wrong");
-            res.status(500).json(result);
+            const response = new InternalRouteFailure();
+            res.status(500).json(response);
 
             return;
         }
@@ -34,15 +35,20 @@ samaritans.get('/me',
         });
 
         if (samaritan === null) {
-            const result = new RouteFailure("Samaritan not found");
-            res.status(404).json(result);
+            const response = new MissingResourceRouteFailure();
+
+            res
+                .status(MissingResourceRouteFailure.statusCode)
+                .json(response);
 
             return;
         }
 
-        const result = new RouteSuccess(samaritan);
+        const response = new SamaritanRouteSuccess(samaritan);
 
-        res.status(200).json(result);
+        res
+            .status(SamaritanRouteSuccess.statusCode)
+            .json(response);
     }
 );
 
@@ -65,15 +71,20 @@ samaritans.get(
         });
 
         if (samaritan === null) {
-            const result = new RouteFailure("Samaritan not found");
-            res.status(404).json(result);
+            const response = new MissingResourceRouteFailure();
+
+            res
+                .status(MissingResourceRouteFailure.statusCode)
+                .json(response);
 
             return;
         }
 
-        const result = new RouteSuccess(samaritan);
+        const response = new SamaritanRouteSuccess(samaritan);
 
-        res.status(200).json(result);
+        res
+            .status(SamaritanRouteSuccess.statusCode)
+            .json(response);
     }
 );
 
