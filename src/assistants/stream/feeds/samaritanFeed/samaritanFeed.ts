@@ -1,6 +1,8 @@
+import { assert } from "console";
 import {
     StreamClient,
-    NewActivity
+    NewActivity,
+    FlatActivity
 } from "getstream";
 import { FeedAssistant } from "../feed";
 import {
@@ -9,11 +11,14 @@ import {
     UnknownAddTweetFailure,
     RemoveTweetSuccess,
     RemoveTweetFailure,
-    UnknownRemoveTweetFailure
+    UnknownRemoveTweetFailure,
+    TweetActivity,
+    Tweets
 } from "./types";
 
 export class SamaritanFeedAssistant extends FeedAssistant {
     private static feed = "samaritan";
+    private static verb = "tweet";
 
     constructor(parameters: {
         client: StreamClient;
@@ -25,25 +30,25 @@ export class SamaritanFeedAssistant extends FeedAssistant {
     }
 
     async addTweet(parameters: {
-        authorSid: String;
-        foreignId: String;
+        sid: String;
+        fid: String;
     }): Promise<AddTweetSuccess | AddTweetFailure> {
         const feed = this.client.feed(
             this.type.valueOf(),
-            parameters.authorSid.valueOf()
+            parameters.sid.valueOf()
         );
 
         const newActivity: NewActivity = {
-            actor: parameters.authorSid.valueOf(),
-            verb: "tweet",
-            object: parameters.foreignId.valueOf(),
+            actor: parameters.sid.valueOf(),
+            verb: SamaritanFeedAssistant.verb,
+            object: parameters.fid.valueOf(),
         };
 
         try {
-            const activityResult = await feed.addActivity(newActivity);
+            const addActivityResult = await feed.addActivity(newActivity);
 
             const result = new AddTweetSuccess({
-                tid: activityResult.id
+                tid: addActivityResult.id
             });
             return result;
         } catch {
@@ -53,23 +58,68 @@ export class SamaritanFeedAssistant extends FeedAssistant {
     }
 
     async removeTweet(parameters: {
-        authorSid: String;
-        tweetSid: String;
+        sid: String;
+        fid: String;
     }): Promise<RemoveTweetSuccess | RemoveTweetFailure> {
         const feed = this.client.feed(
             this.type.valueOf(),
-            parameters.authorSid.valueOf()
+            parameters.sid.valueOf()
         );
 
         try {
             await feed.removeActivity({
-                foreignId: parameters.tweetSid.valueOf()
+                foreignId: parameters.fid.valueOf()
             });
 
             const result = new RemoveTweetSuccess();
             return result;
         } catch {
             const result = new UnknownRemoveTweetFailure();
+            return result;
+        }
+    }
+
+    async tweets(parameters: {
+        sid: String;
+        nextToken?: String;
+    }): Promise<Tweets | null> {
+        const feed = this.client.feed(
+            this.type.valueOf(),
+            parameters.sid.valueOf(),
+        );
+
+        try {
+            const feedResult = await feed.get({
+                id_lt: parameters.nextToken?.valueOf(),
+            });
+
+            const feedActivities = feedResult.results as FlatActivity[];
+
+            const tweets = feedActivities
+                .map((feedActivity) => {
+                    const activity: TweetActivity = new TweetActivity({
+                        sid: feedActivity.actor,
+                        tid: feedActivity.object as String
+                    });
+
+                    return activity;
+                });
+
+            if (tweets.length > 0) {
+                const result = new Tweets({
+                    tweets: tweets,
+                    nextToken:
+                        feedResult.next !== undefined || feedResult.next !== null
+                            ? tweets[tweets.length - 1].tid
+                            : undefined,
+                });
+                return result;
+            }
+
+            const result = null;
+            return result;
+        } catch {
+            const result = null;
             return result;
         }
     }

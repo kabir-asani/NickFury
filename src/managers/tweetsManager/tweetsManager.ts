@@ -30,10 +30,10 @@ class TweetsManager {
 
     async createTweet(parameters: {
         text: String;
-        authorSid: String;
+        sid: String;
     }): Promise<CreateTweetSuccess | CreateTweetFailure> {
         const isSamaritanPresent = await SamaritansManager.shared.exists({
-            sid: parameters.authorSid
+            sid: parameters.sid
         });
 
         if (isSamaritanPresent) {
@@ -43,8 +43,8 @@ class TweetsManager {
                 .shared
                 .samaritanFeed
                 .addTweet({
-                    foreignId: fid,
-                    authorSid: parameters.authorSid,
+                    fid: fid,
+                    sid: parameters.sid,
                 });
 
             if (tweetCreationResult instanceof AddTweetSuccess) {
@@ -53,7 +53,7 @@ class TweetsManager {
                     fid: fid,
                     text: parameters.text,
                     creationDate: Date.now(),
-                    authorSid: parameters.authorSid.valueOf(),
+                    authorSid: parameters.sid.valueOf(),
                     meta: {
                         likesCount: 0
                     },

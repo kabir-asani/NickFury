@@ -74,9 +74,6 @@ export class SessionsManager {
         const session: Session = {
             sid: parameters.sid,
             accessToken: parameters.accessToken,
-            feedToken: StreamAssistant.shared.token({
-                sid: parameters.sid
-            }),
             creationDate: Date.now(),
         };
 

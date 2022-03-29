@@ -26,11 +26,4 @@ export class StreamAssistant {
             client: this.client
         });
     }
-
-    token(parameters: {
-        sid: String;
-    }): String {
-        const token = this.client.createUserToken(parameters.sid.valueOf());
-        return token;
-    }
 }

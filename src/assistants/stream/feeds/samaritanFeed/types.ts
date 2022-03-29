@@ -13,7 +13,7 @@ export class TweetActivity {
     }
 }
 
-// Add Activity
+// Add Tweet
 export class AddTweetSuccess extends StreamAssistantSuccess {
     readonly tid: String;
 
@@ -29,9 +29,24 @@ export class AddTweetFailure extends StreamAssistantFailure { }
 
 export class UnknownAddTweetFailure extends AddTweetFailure { }
 
-// Remove Activity
+// Remove Tweet
 export class RemoveTweetSuccess extends StreamAssistantSuccess { }
 
 export class RemoveTweetFailure extends StreamAssistantFailure { }
 
 export class UnknownRemoveTweetFailure extends RemoveTweetFailure { }
+
+
+// Tweets
+export class Tweets {
+    tweets: TweetActivity[];
+    nextToken?: String;
+
+    constructor(parameters: {
+        tweets: TweetActivity[];
+        nextToken?: String;
+    }) {
+        this.tweets = parameters.tweets;
+        this.nextToken = parameters.nextToken;
+    }
+}
