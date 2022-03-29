@@ -1,5 +1,4 @@
 import express, { json } from 'express';
-import { RouteSuccess } from './core/types';
 import { caseme } from './middlewares/caseme/caseme';
 import storyteller from './middlewares/storyteller/storyteller';
 import samaritans from './routes/samaritans/samaritans';

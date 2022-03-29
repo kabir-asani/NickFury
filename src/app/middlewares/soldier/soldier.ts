@@ -1,5 +1,5 @@
-import Joi, { ObjectSchema, ValidationError } from "joi";
-import { BadRequestRouteFailure, RouteFailure } from "../../core/types";
+import { ObjectSchema, ValidationError } from "joi";
+import { BadRequestRouteFailure } from "../../core/types";
 import { TxMiddleware } from "../core/types";
 
 export enum GroundZero {
