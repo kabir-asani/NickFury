@@ -1,6 +1,6 @@
 import { StreamAssistantSuccess, StreamAssistantFailure } from "../../types";
 
-export class TweetActivity {
+export class PartialTweet {
     readonly tid: String;
     readonly sid: String;
 
@@ -38,15 +38,15 @@ export class UnknownRemoveTweetFailure extends RemoveTweetFailure { }
 
 
 // Tweets
-export class Tweets {
-    tweets: TweetActivity[];
+export class Feed {
+    partialTweets: PartialTweet[];
     nextToken?: String;
 
     constructor(parameters: {
-        tweets: TweetActivity[];
+        partialTweets: PartialTweet[];
         nextToken?: String;
     }) {
-        this.tweets = parameters.tweets;
+        this.partialTweets = parameters.partialTweets;
         this.nextToken = parameters.nextToken;
     }
 }

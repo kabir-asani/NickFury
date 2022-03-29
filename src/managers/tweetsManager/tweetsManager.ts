@@ -1,31 +1,49 @@
 import * as uuid from 'uuid';
 
 import { DatabaseAssistant } from "../../assistants/database/database";
-import { AddTweetSuccess } from '../../assistants/stream/feeds/samaritanFeed/types';
+import { AddTweetSuccess, RemoveTweetSuccess } from '../../assistants/stream/feeds/samaritanFeed/types';
 import { StreamAssistant } from '../../assistants/stream/stream';
 import { TxDatabaseCollections } from "../core/collections";
 import { SamaritansManager } from "../samaritansManager/samaritansManager";
 import { Tweet } from "./models";
-import { CreateTweetFailure, CreateTweetSuccess, UnkownCreateTweetFailure } from "./types";
+import { CreateTweetFailure, CreateTweetSuccess, DeleteTweetFailure, DeleteTweetSuccess, Feed, UnknownDeleteTweetFailure, UnkownCreateTweetFailure } from "./types";
 
-class TweetsManager {
+export class TweetsManager {
     public static readonly shared = new TweetsManager();
 
-    async tweet(parameters: {
-        tid: String;
-    }): Promise<Tweet | null> {
-        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.tweets);
-        const documentRef = collectionRef.doc(parameters.tid.valueOf());
+    async feed(parameters: {
+        sid: String;
+        limit?: Number;
+        nextToken?: String;
+    }): Promise<Feed | null> {
+        const feed = await StreamAssistant.shared.samaritanFeed.feed({
+            sid: parameters.sid,
+            nextToken: parameters.nextToken,
+            limit: parameters.limit,
+        });
 
-        const document = await documentRef.get();
+        if (feed !== null) {
+            const tweets = Array<Tweet>();
+            const partialTweets = feed.partialTweets;
 
-        if (document.exists) {
-            const result = document.data() as unknown as Tweet;
-            return result;
-        } else {
-            const result = null;
+            for (const partialTweet of partialTweets) {
+                const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.tweets);
+                const documentRef = collectionRef.doc(partialTweet.tid.valueOf());
+                const document = await documentRef.get();
+
+                const tweet = document.data() as unknown as Tweet;
+                tweets.push(tweet);
+            }
+
+            const result = new Feed({
+                tweets: tweets,
+                nextToken: feed.nextToken
+            });
             return result;
         }
+
+        const result = null;
+        return result;
     }
 
     async createTweet(parameters: {
@@ -70,12 +88,39 @@ class TweetsManager {
                     });
                     return result;
                 } catch {
-                    // Let it fall through
+                    const result = new UnkownCreateTweetFailure();
+                    return result;
                 }
             }
         }
 
         const result = new UnkownCreateTweetFailure();
+        return result;
+    }
+
+    async deleteTweet(parameters: {
+        tid: String;
+        sid: String;
+    }): Promise<DeleteTweetSuccess | DeleteTweetFailure> {
+        const isSamaritanPresent = await SamaritansManager.shared.exists({
+            sid: parameters.sid
+        });
+
+        if (isSamaritanPresent) {
+            const remoteTweetResult = await StreamAssistant.shared.samaritanFeed.removeTweet({
+                sid: parameters.sid,
+                tid: parameters.tid
+            });
+
+            if (remoteTweetResult instanceof RemoveTweetSuccess) {
+                // Not deleting tweet from DB.
+                // Data might be useful later on.
+                const result = new DeleteTweetSuccess();
+                return result;
+            }
+        }
+
+        const result = new UnknownDeleteTweetFailure();
         return result;
     }
 }

@@ -12,8 +12,8 @@ import {
     RemoveTweetSuccess,
     RemoveTweetFailure,
     UnknownRemoveTweetFailure,
-    TweetActivity,
-    Tweets
+    PartialTweet,
+    Feed
 } from "./types";
 
 export class SamaritanFeedAssistant extends FeedAssistant {
@@ -59,7 +59,7 @@ export class SamaritanFeedAssistant extends FeedAssistant {
 
     async removeTweet(parameters: {
         sid: String;
-        fid: String;
+        tid: String;
     }): Promise<RemoveTweetSuccess | RemoveTweetFailure> {
         const feed = this.client.feed(
             this.type.valueOf(),
@@ -67,9 +67,7 @@ export class SamaritanFeedAssistant extends FeedAssistant {
         );
 
         try {
-            await feed.removeActivity({
-                foreignId: parameters.fid.valueOf()
-            });
+            await feed.removeActivity(parameters.tid.valueOf());
 
             const result = new RemoveTweetSuccess();
             return result;
@@ -79,10 +77,11 @@ export class SamaritanFeedAssistant extends FeedAssistant {
         }
     }
 
-    async tweets(parameters: {
+    async feed(parameters: {
         sid: String;
+        limit?: Number;
         nextToken?: String;
-    }): Promise<Tweets | null> {
+    }): Promise<Feed | null> {
         const feed = this.client.feed(
             this.type.valueOf(),
             parameters.sid.valueOf(),
@@ -91,13 +90,17 @@ export class SamaritanFeedAssistant extends FeedAssistant {
         try {
             const feedResult = await feed.get({
                 id_lt: parameters.nextToken?.valueOf(),
+                limit: Math.min(
+                    parameters.limit?.valueOf() || 25,
+                    100,
+                ),
             });
 
             const feedActivities = feedResult.results as FlatActivity[];
 
             const tweets = feedActivities
                 .map((feedActivity) => {
-                    const activity: TweetActivity = new TweetActivity({
+                    const activity: PartialTweet = new PartialTweet({
                         sid: feedActivity.actor,
                         tid: feedActivity.object as String
                     });
@@ -106,8 +109,8 @@ export class SamaritanFeedAssistant extends FeedAssistant {
                 });
 
             if (tweets.length > 0) {
-                const result = new Tweets({
-                    tweets: tweets,
+                const result = new Feed({
+                    partialTweets: tweets,
                     nextToken:
                         feedResult.next !== undefined || feedResult.next !== null
                             ? tweets[tweets.length - 1].tid
