@@ -1,8 +1,8 @@
 import * as Stream from 'getstream';
 import { StreamClient } from 'getstream';
 import Secrets from '../../secrets.json';
-import { SamaritanFeedAssistant, TimelineFeedAssistant } from './feed';
-
+import { SamaritanFeedAssistant } from './feeds/samaritanFeed/samaritanFeed';
+import { TimelineFeedAssistant } from './feeds/timelineFeed/timelineFeed';
 
 export class StreamAssistant {
     public static readonly shared = new StreamAssistant();
