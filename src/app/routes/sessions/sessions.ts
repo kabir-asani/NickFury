@@ -12,18 +12,16 @@ const sessions = Router();
 
 sessions.post(
     '/',
-    [
-        soldier({
-            schema: Joi.object({
-                accessToken: Joi.string().required(),
-                provider: Joi.string().valid(
-                    AuthProvider.apple.valueOf(),
-                    AuthProvider.google.valueOf(),
-                ),
-            }),
-            groundZero: GroundZero.body
-        })
-    ],
+    soldier({
+        schema: Joi.object({
+            accessToken: Joi.string().required(),
+            provider: Joi.string().valid(
+                AuthProvider.apple.valueOf(),
+                AuthProvider.google.valueOf(),
+            ),
+        }),
+        groundZero: GroundZero.body,
+    }),
     async (req: Request, res: Response) => {
         const { accessToken, provider } = req.body;
 
@@ -59,15 +57,13 @@ sessions.post(
         res
             .status(InternalRouteFailure.statusCode)
             .json(response);
-    }
+    },
 );
 
 
 sessions.delete(
     '/',
-    [
-        ...gatekeeper()
-    ],
+    gatekeeper(),
     async (req: Request, res: Response) => {
         const { authorization: accessToken } = req.headers;
 
@@ -90,7 +86,7 @@ sessions.delete(
         res
             .status(InternalRouteFailure.statusCode)
             .json(response);
-    }
+    },
 );
 
 export = sessions;
