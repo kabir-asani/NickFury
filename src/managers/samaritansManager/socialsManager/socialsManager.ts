@@ -1,6 +1,6 @@
-import { DatabaseAssistant } from "../../assistants/database/database";
-import { TxDatabaseCollections } from "../core/collections";
-import { Samaritan } from "../samaritansManager/models";
+import { DatabaseAssistant } from "../../../assistants/database/database";
+import { TxDatabaseCollections } from "../../core/collections";
+import { Samaritan } from "../models";
 import { FolloweeData, FollowerData } from "./models";
 import {
     SocialsFollowFailure,
