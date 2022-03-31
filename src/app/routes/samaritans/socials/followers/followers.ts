@@ -4,7 +4,6 @@ const followers = Router({
     mergeParams: true
 });
 
-
 followers.get(
     "/",
     async (req: Request, res: Response) => {

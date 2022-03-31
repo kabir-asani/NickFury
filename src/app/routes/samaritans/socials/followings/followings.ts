@@ -19,7 +19,7 @@ followings.put(
     "/",
     soldier({
         schema: Joi.object({
-            sid: Joi.string().required(),
+            samaritanId: Joi.string().required(),
         }),
         groundZero: GroundZero.body,
     }),
@@ -30,12 +30,12 @@ followings.put(
 );
 
 followings.delete(
-    "/:fid",
+    "/",
     soldier({
         schema: Joi.object({
-            fid: Joi.string().required(),
+            samaritanId: Joi.string().required(),
         }),
-        groundZero: GroundZero.parameters,
+        groundZero: GroundZero.body,
     }),
     async (req: Request, res: Response) => {
         // TODO: Implement this route

@@ -58,16 +58,16 @@ export class SamaritanFeedAssistant extends FeedAssistant {
     }
 
     async removeTweet(parameters: {
-        sid: String;
-        tid: String;
+        samaritanId: String;
+        tweetId: String;
     }): Promise<RemoveTweetSuccess | RemoveTweetFailure> {
         const feed = this.client.feed(
             this.type.valueOf(),
-            parameters.sid.valueOf()
+            parameters.samaritanId.valueOf()
         );
 
         try {
-            await feed.removeActivity(parameters.tid.valueOf());
+            await feed.removeActivity(parameters.tweetId.valueOf());
 
             const result = new RemoveTweetSuccess();
             return result;

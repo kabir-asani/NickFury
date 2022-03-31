@@ -23,17 +23,6 @@ export class AuthManager {
         provider: AuthProvider,
         accessToken: String
     }): Promise<LogInSuccess | LogInFailure> {
-        const session = await SessionsManager.shared.session({
-            accessToken: parameters.accessToken
-        });
-
-        if (session !== null) {
-            const result = new LogInSuccess({
-                session: session
-            });
-            return result;
-        }
-
         switch (parameters.provider) {
             case AuthProvider.google: {
                 const result = this.logInViaGoogle({
@@ -52,10 +41,10 @@ export class AuthManager {
     }
 
     async logOut(parameters: {
-        accessToken: String,
+        sessionId: String,
     }): Promise<LogOutSuccess | LogOutFailure> {
         const deleteSessionResult = await SessionsManager.shared.deleteSession({
-            accessToken: parameters.accessToken
+            sessionId: parameters.sessionId
         });
 
         if (deleteSessionResult instanceof DeleteSessionSuccess) {
@@ -82,8 +71,7 @@ export class AuthManager {
 
             if (samaritan !== null) {
                 const createSessionResult = await SessionsManager.shared.createSession({
-                    samaritanId: samaritan.sid,
-                    accessToken: parameters.accessToken,
+                    samaritanId: samaritan.id,
                 });
 
                 if (createSessionResult instanceof CreateSessionSuccess) {
@@ -107,8 +95,7 @@ export class AuthManager {
                 if (createSamaritanResult instanceof CreateSamaritanSuccess) {
                     const samaritan = createSamaritanResult.samaritan;
                     const createSessionResult = await SessionsManager.shared.createSession({
-                        samaritanId: samaritan.sid,
-                        accessToken: parameters.accessToken,
+                        samaritanId: samaritan.id,
                     });
 
                     if (createSessionResult instanceof CreateSessionSuccess) {

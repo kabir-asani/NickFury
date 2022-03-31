@@ -2,9 +2,10 @@ import { assert } from 'console';
 import * as uuid from 'uuid';
 
 import { DatabaseAssistant } from "../../assistants/database/database";
+import { Dately } from '../../utils/dately/dately';
 import { TxDatabaseCollections } from '../core/collections';
 import { Samaritan } from './models';
-import { SamaritanAlreadyExists, CreateSamaritanFailure, CreateSamaritanSuccess } from './types';
+import { SamaritanAlreadyExists, CreateSamaritanFailure, CreateSamaritanSuccess, UnkownCreateSamritanFailure } from './types';
 
 export class SamaritansManager {
     public static readonly shared = new SamaritansManager();
@@ -75,28 +76,33 @@ export class SamaritansManager {
         email: String;
         image: String;
     }): Promise<CreateSamaritanSuccess | CreateSamaritanFailure> {
-        const sid = uuid.v4();
-        const username = parameters.email.split('@')[0] + uuid.v4().substring(0, 5);
+        const isSamaritanAlreadyPresent = await this.exists({
+            email: parameters.email
+        });
+
+        if (isSamaritanAlreadyPresent) {
+            const result = new SamaritanAlreadyExists();
+            return result; 
+        }
 
         const samaritan: Samaritan = {
-            sid,
+            id: uuid.v4(),
             name: parameters.name,
             email: parameters.email,
-            username,
+            username: parameters.email.split('@')[0] + uuid.v4().substring(0, 5),
             image: parameters.image,
-            creationDate: Date.now(),
+            creationDate: Dately.shared.now(),
             socialDetails: {
                 followersCount: 0,
                 followingCount: 0,
             },
             tweetsDetails: {
                 tweetsCount: 0,
-                retweetsCount: 0
             }
         };
 
         const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
-        const documentRef = collectionRef.doc(samaritan.sid.valueOf());
+        const documentRef = collectionRef.doc(samaritan.id.valueOf());
 
         try {
             await documentRef.create(samaritan);
@@ -106,24 +112,24 @@ export class SamaritansManager {
             });
             return result;
         } catch {
-            const result = new SamaritanAlreadyExists();
+            const result = new UnkownCreateSamritanFailure();
             return result;
         }
     }
 
     async samaritan(parameters: {
-        sid?: String,
+        samaritanId?: String,
         username?: String,
         email?: String,
     }): Promise<Samaritan | null> {
         assert(
-            parameters.sid !== undefined || parameters.username !== undefined || parameters.email !== undefined,
+            parameters.samaritanId !== undefined || parameters.username !== undefined || parameters.email !== undefined,
             "One of id, username or email has to be present"
         );
 
-        if (parameters.sid !== undefined) {
+        if (parameters.samaritanId !== undefined) {
             const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
-            const documentRef = collectionRef.doc(parameters.sid.valueOf());
+            const documentRef = collectionRef.doc(parameters.samaritanId.valueOf());
 
             const samaritan = await documentRef.get();
 

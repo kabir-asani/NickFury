@@ -3,49 +3,15 @@ import * as uuid from 'uuid';
 import { DatabaseAssistant } from "../../assistants/database/database";
 import { AddTweetSuccess, RemoveTweetSuccess } from '../../assistants/stream/feeds/samaritanFeed/types';
 import { StreamAssistant } from '../../assistants/stream/stream';
+import { Dately } from '../../utils/dately/dately';
 import { TxDatabaseCollections } from "../core/collections";
 import { SamaritansManager } from "../samaritansManager/samaritansManager";
-import { Tweet } from "./models";
+import { EnrichedTweet, Tweet } from "./models";
 import { CreateTweetFailure, CreateTweetSuccess, DeleteTweetFailure, DeleteTweetSuccess, Feed, UnknownDeleteTweetFailure, UnkownCreateTweetFailure } from "./types";
 
 export class TweetsManager {
     public static readonly shared = new TweetsManager();
-
-    async feed(parameters: {
-        sid: String;
-        limit?: Number;
-        nextToken?: String;
-    }): Promise<Feed | null> {
-        const feed = await StreamAssistant.shared.samaritanFeed.feed({
-            sid: parameters.sid,
-            nextToken: parameters.nextToken,
-            limit: parameters.limit,
-        });
-
-        if (feed !== null) {
-            const tweets = Array<Tweet>();
-            const partialTweets = feed.partialTweets;
-
-            for (const partialTweet of partialTweets) {
-                const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.tweets);
-                const documentRef = collectionRef.doc(partialTweet.tid.valueOf());
-                const document = await documentRef.get();
-
-                const tweet = document.data() as unknown as Tweet;
-                tweets.push(tweet);
-            }
-
-            const result = new Feed({
-                tweets: tweets,
-                nextToken: feed.nextToken
-            });
-            return result;
-        }
-
-        const result = null;
-        return result;
-    }
-
+    
     async createTweet(parameters: {
         text: String;
         sid: String;
@@ -70,7 +36,7 @@ export class TweetsManager {
                     tweetId: tweetCreationResult.tid.valueOf(),
                     foreignId: fid,
                     text: parameters.text,
-                    creationDate: Date.now(),
+                    creationDate: Dately.shared.now(),
                     authorSid: parameters.sid.valueOf(),
                     meta: {
                         likesCount: 0
@@ -99,17 +65,17 @@ export class TweetsManager {
     }
 
     async deleteTweet(parameters: {
-        tid: String;
-        sid: String;
+        tweetId: String;
+        samaritanId: String;
     }): Promise<DeleteTweetSuccess | DeleteTweetFailure> {
         const isSamaritanPresent = await SamaritansManager.shared.exists({
-            sid: parameters.sid
+            sid: parameters.samaritanId
         });
 
         if (isSamaritanPresent) {
             const remoteTweetResult = await StreamAssistant.shared.samaritanFeed.removeTweet({
-                sid: parameters.sid,
-                tid: parameters.tid
+                samaritanId: parameters.samaritanId,
+                tweetId: parameters.tweetId
             });
 
             if (remoteTweetResult instanceof RemoveTweetSuccess) {
@@ -121,6 +87,14 @@ export class TweetsManager {
         }
 
         const result = new UnknownDeleteTweetFailure();
+        return result;
+    }
+
+    async tweet(parameters: {
+        tweetId: String;
+        enriched?: Boolean;
+    }): Promise<Tweet | EnrichedTweet | null> {
+        const result = null;
         return result;
     }
 }

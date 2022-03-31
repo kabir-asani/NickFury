@@ -14,6 +14,7 @@ import {
     DeleteAllExistingSessionsFailure,
     UnknownDeleteAllExistingSessionsFailure
 } from "./types";
+import { Dately } from "../../utils/dately/dately";
 
 export class SessionsManager {
     public static readonly shared = new SessionsManager();
@@ -41,7 +42,7 @@ export class SessionsManager {
             const session: Session = {
                 sessionId: uuid.v4(),
                 samaritanId: parameters.samaritanId,
-                creationDate: Date.now(),
+                creationDate: Dately.shared.now(),
             };
     
             const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);

@@ -19,6 +19,7 @@ import timeline from "./timeline/timeline";
 import { SamaritanRouteSuccess } from "./types";
 import followers from "./socials/followers/followers";
 import followings from "./socials/followings/followings";
+import tweets from "../tweets/tweets";
 
 const samaritans = Router();
 
@@ -45,10 +46,10 @@ samaritans.use(
 samaritans.get(
     "/",
     async (req: Request, res: Response) => {
-        const accessToken = req.headers.authorization;
+        const sessionId = req.headers.authorization;
 
         const session = await SessionsManager.shared.session({
-            accessToken: accessToken
+            sessionId: sessionId as String,
         });
 
 
@@ -59,10 +60,10 @@ samaritans.get(
             return;
         }
 
-        const sid = session.sessionId;
+        const samaritanId = session.sessionId;
 
         const samaritan = await SamaritansManager.shared.samaritan({
-            sid: sid
+            samaritanId: samaritanId
         });
 
         if (samaritan === null) {
@@ -101,17 +102,29 @@ samaritans.patch(
 );
 
 samaritans.use(
-    "/:sid/followers",
+    "/:samaritanId/followers",
+    soldier({
+        schema: Joi.object({
+            samaritanId: Joi.string().required(),
+        }),
+        groundZero: GroundZero.parameters,
+    }),
     followers,
 );
 
 samaritans.use(
-    "/:sid/followings",
+    "/:samaritanId/followings",
+    soldier({
+        schema: Joi.object({
+            samaritanId: Joi.string().required(),
+        }),
+        groundZero: GroundZero.parameters,
+    }),
     followings,
 );
 
 samaritans.get(
-    "/:sid",
+    "/:samaritanId",
     soldier({
         schema: Joi.object({
             sid: Joi.string().required(),
@@ -119,10 +132,10 @@ samaritans.get(
         groundZero: GroundZero.parameters
     }),
     async (req: Request, res: Response) => {
-        const sid = req.params.sid as String;
+        const samaritanId = req.params.samaritanId as String;
 
         const samaritan = await SamaritansManager.shared.samaritan({
-            sid: sid
+            samaritanId: samaritanId
         });
 
         if (samaritan === null) {

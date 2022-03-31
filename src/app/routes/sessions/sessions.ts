@@ -65,10 +65,10 @@ sessions.delete(
     '/',
     gatekeeper(),
     async (req: Request, res: Response) => {
-        const { authorization: accessToken } = req.headers;
+        const { authorization: sessionId } = req.headers;
 
         const result = await AuthManager.shared.logOut({
-            accessToken: accessToken as String,
+            sessionId: sessionId as String,
         });
 
         if (result instanceof LogOutSuccess) {

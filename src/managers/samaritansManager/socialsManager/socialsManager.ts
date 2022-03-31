@@ -1,7 +1,7 @@
 import { DatabaseAssistant } from "../../../assistants/database/database";
 import { TxDatabaseCollections } from "../../core/collections";
 import { Samaritan } from "../models";
-import { FolloweeData, FollowerData } from "./models";
+import { Following, Follower } from "./models";
 import {
     SocialsFollowFailure,
     SocialsFollowSuccess,
@@ -15,51 +15,51 @@ export class SocialsManager {
     public static readonly shared = new SocialsManager();
 
     async follow(parameters: {
-        followeeSid: String,
+        followingSid: String,
         followerSid: String,
     }): Promise<SocialsFollowSuccess | SocialsFollowFailure> {
         // References
         const samaritansCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
         const followerDocumentRef = samaritansCollectionRef.doc(parameters.followerSid.valueOf());
-        const followeeDocumentRef = samaritansCollectionRef.doc(parameters.followeeSid.valueOf());
+        const followingDocumentRef = samaritansCollectionRef.doc(parameters.followingSid.valueOf());
 
-        const followersCollectionRef = followeeDocumentRef.collection(TxDatabaseCollections.followers);
-        const followeesCollectionRef = followerDocumentRef.collection(TxDatabaseCollections.followings);
+        const followersCollectionRef = followingDocumentRef.collection(TxDatabaseCollections.followers);
+        const followingsCollectionRef = followerDocumentRef.collection(TxDatabaseCollections.followings);
 
         const followerDataDocumentRef = followersCollectionRef.doc(parameters.followerSid.valueOf());
-        const followeeDataDocumentRef = followeesCollectionRef.doc(parameters.followeeSid.valueOf());
+        const followingDataDocumentRef = followingsCollectionRef.doc(parameters.followingSid.valueOf());
 
         // Storage pattern is as follows:--
-        // FollowerDocument -> FolloweesCollection
-        // FolloweeDocument -> FollowersCollection
+        // FollowerDocument -> followingsCollection
+        // followingDocument -> FollowersCollection
         // Follower needs to keep track of who she is following
-        // Followee needs to keep track of who is following her
+        // following needs to keep track of who is following her
 
         // Data
-        const followerData: FollowerData = {
-            follower: parameters.followerSid,
+        const followerData: Follower = {
+            followerId: parameters.followerSid,
         };
 
-        const followeeData: FolloweeData = {
-            followee: parameters.followeeSid
+        const followingData: Following = {
+            followingId: parameters.followingSid
         };
 
         try {
             await DatabaseAssistant.shared.runTransaction(async (transaction) => {
                 const followerDocument = await followerDocumentRef.get();
-                const followeeDocument = await followeeDocumentRef.get();
+                const followingDocument = await followingDocumentRef.get();
 
-                if (followerDocument.exists && followeeDocument.exists) {
+                if (followerDocument.exists && followingDocument.exists) {
                     const follower = followerDocument.data() as unknown as Samaritan;
-                    const followee = followeeDocument.data() as unknown as Samaritan;
+                    const following = followingDocument.data() as unknown as Samaritan;
 
                     transaction.create(
                         followerDataDocumentRef,
                         followerData
                     );
                     transaction.create(
-                        followeeDataDocumentRef,
-                        followeeData,
+                        followingDataDocumentRef,
+                        followingData,
                     );
 
                     transaction.update(
@@ -70,9 +70,9 @@ export class SocialsManager {
                     );
 
                     transaction.update(
-                        followeeDocumentRef,
+                        followingDocumentRef,
                         {
-                            "socialDetails.followersCount": followee.socialDetails.followersCount.valueOf() + 1
+                            "socialDetails.followersCount": following.socialDetails.followersCount.valueOf() + 1
                         }
                     )
 
@@ -91,31 +91,31 @@ export class SocialsManager {
     }
 
     async unfollow(parameters: {
-        followeeSid: String,
+        followingSid: String,
         followerSid: String,
     }): Promise<SocialsUnfollowSuccess | SocialsUnfollowFailure> {
         // References
         const samaritansCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
         const followerDocumentRef = samaritansCollectionRef.doc(parameters.followerSid.valueOf());
-        const followeeDocumentRef = samaritansCollectionRef.doc(parameters.followeeSid.valueOf());
+        const followingDocumentRef = samaritansCollectionRef.doc(parameters.followingSid.valueOf());
 
-        const followersCollectionRef = followeeDocumentRef.collection(TxDatabaseCollections.followers);
-        const followeesCollectionRef = followerDocumentRef.collection(TxDatabaseCollections.followings);
+        const followersCollectionRef = followingDocumentRef.collection(TxDatabaseCollections.followers);
+        const followingsCollectionRef = followerDocumentRef.collection(TxDatabaseCollections.followings);
 
         const followerDataDocumentRef = followersCollectionRef.doc(parameters.followerSid.valueOf());
-        const followeeDataDocumentRef = followeesCollectionRef.doc(parameters.followeeSid.valueOf());
+        const followingDataDocumentRef = followingsCollectionRef.doc(parameters.followingSid.valueOf());
 
         try {
             await DatabaseAssistant.shared.runTransaction(async (transaction) => {
                 const followerDocument = await followerDocumentRef.get();
-                const followeeDocument = await followeeDocumentRef.get();
+                const followingDocument = await followingDocumentRef.get();
 
-                if (followerDocument.exists && followeeDocument.exists) {
+                if (followerDocument.exists && followingDocument.exists) {
                     const follower = followerDocument.data() as unknown as Samaritan;
-                    const followee = followeeDocument.data() as unknown as Samaritan;
+                    const following = followingDocument.data() as unknown as Samaritan;
 
                     transaction.delete(followerDataDocumentRef);
-                    transaction.delete(followeeDataDocumentRef);
+                    transaction.delete(followingDataDocumentRef);
 
                     transaction.update(
                         followerDocumentRef,
@@ -128,10 +128,10 @@ export class SocialsManager {
                     );
 
                     transaction.update(
-                        followeeDocumentRef,
+                        followingDocumentRef,
                         {
                             "socialDetails.followersCount": Math.max(
-                                followee.socialDetails.followersCount.valueOf() - 1,
+                                following.socialDetails.followersCount.valueOf() - 1,
                                 0
                             ),
                         }
@@ -152,16 +152,16 @@ export class SocialsManager {
     }
 
     async isFollowing(parameters: {
-        followeeSid: String,
+        followingSid: String,
         followerSid: String, 
     }): Promise<Boolean> {
         // References
         const samaritansCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
-        const followerDocumentRef = samaritansCollectionRef.doc(parameters.followeeSid.valueOf());
-        const followeesCollectionRef = followerDocumentRef.collection(TxDatabaseCollections.followings);
-        const followeeDataDocumentRef = followeesCollectionRef.doc(parameters.followeeSid.valueOf());
+        const followerDocumentRef = samaritansCollectionRef.doc(parameters.followingSid.valueOf());
+        const followingsCollectionRef = followerDocumentRef.collection(TxDatabaseCollections.followings);
+        const followingDataDocumentRef = followingsCollectionRef.doc(parameters.followingSid.valueOf());
 
-        const document = await followeeDataDocumentRef.get();
+        const document = await followingDataDocumentRef.get();
 
         if (document.exists) {
             return true;
@@ -171,13 +171,13 @@ export class SocialsManager {
     }
 
     async isFollower(parameters: {
-        followeeSid: String,
+        followingSid: String,
         followerSid: String,
     }): Promise<Boolean> {
         // References
         const samaritansCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.samaritans);
-        const followeeDocumentRef = samaritansCollectionRef.doc(parameters.followeeSid.valueOf());
-        const followersCollectionRef = followeeDocumentRef.collection(TxDatabaseCollections.followers);
+        const followingDocumentRef = samaritansCollectionRef.doc(parameters.followingSid.valueOf());
+        const followersCollectionRef = followingDocumentRef.collection(TxDatabaseCollections.followers);
         const followerDataDocumentRef = followersCollectionRef.doc(parameters.followerSid.valueOf());
 
         const document = await followerDataDocumentRef.get();

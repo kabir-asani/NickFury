@@ -32,12 +32,12 @@ bookmarks.post(
 );
 
 bookmarks.delete(
-    "/:bid",
+    "/",
     soldier({
         schema: Joi.object({
-            bid: Joi.string().required(),
+            tweetId: Joi.string().required(),
         }),
-        groundZero: GroundZero.parameters,
+        groundZero: GroundZero.query,
     }),
     async (req: Request, res: Response) => {
         // TODO: Implement this route
