@@ -12,20 +12,10 @@ export const gatekeeper = (): TxMiddleware[] => [
         groundZero: GroundZero.headers
     }),
     async (req, res, next) => {
-        const accessToken = req.headers.authorization;
-
-        if (accessToken === undefined || accessToken === null) {
-            const failure = new MissingAccessTokenRouteFailure();
-
-            res
-                .status(MissingAccessTokenRouteFailure.statusCode)
-                .json(failure);
-
-            return;
-        }
+        const sessionId = req.headers.authorization;
 
         const isSesssionPresent = await SessionsManager.shared.exists({
-            accessToken: accessToken,
+            sessionId: sessionId as String,
         });
 
         if (!isSesssionPresent) {

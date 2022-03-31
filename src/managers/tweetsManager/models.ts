@@ -1,6 +1,6 @@
 export interface Tweet {
-    readonly tid: String;
-    readonly fid: String;
+    readonly tweetId: String;
+    readonly foreignId: String;
     readonly text: String;
     readonly creationDate: Number;
     readonly authorSid: String;

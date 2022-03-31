@@ -1,5 +1,5 @@
 export interface Session {
-    readonly sid: String;
-    readonly accessToken: String;
+    readonly sessionId: String;
+    readonly samaritanId: String;
     readonly creationDate: Number;
 }

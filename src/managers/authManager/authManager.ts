@@ -82,7 +82,7 @@ export class AuthManager {
 
             if (samaritan !== null) {
                 const createSessionResult = await SessionsManager.shared.createSession({
-                    sid: samaritan.sid,
+                    samaritanId: samaritan.sid,
                     accessToken: parameters.accessToken,
                 });
 
@@ -107,7 +107,7 @@ export class AuthManager {
                 if (createSamaritanResult instanceof CreateSamaritanSuccess) {
                     const samaritan = createSamaritanResult.samaritan;
                     const createSessionResult = await SessionsManager.shared.createSession({
-                        sid: samaritan.sid,
+                        samaritanId: samaritan.sid,
                         accessToken: parameters.accessToken,
                     });
 

@@ -59,7 +59,7 @@ samaritans.get(
             return;
         }
 
-        const sid = session.sid;
+        const sid = session.sessionId;
 
         const samaritan = await SamaritansManager.shared.samaritan({
             sid: sid

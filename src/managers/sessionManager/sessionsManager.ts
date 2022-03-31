@@ -1,6 +1,6 @@
+import * as uuid from "uuid";
 import { assert } from "console";
 import { DatabaseAssistant } from "../../assistants/database/database";
-import { StreamAssistant } from "../../assistants/stream/stream";
 import { TxDatabaseCollections } from "../core/collections";
 import { Session } from "./models";
 import {
@@ -9,141 +9,105 @@ import {
     DeleteSessionSuccess,
     DeleteSessionFailure,
     UnkknownDeleteSessionFailure,
-    SessionAlreadyPresentFailure
+    UnknownCreateSessionFailure,
+    DeleteAllExistingSessionsSuccess,
+    DeleteAllExistingSessionsFailure,
+    UnknownDeleteAllExistingSessionsFailure
 } from "./types";
 
 export class SessionsManager {
     public static readonly shared = new SessionsManager();
 
     async exists(parameters: {
-        sid?: String,
-        accessToken?: String,
+        sessionId: String,
     }): Promise<Boolean> {
-        assert(
-            parameters.sid !== undefined || parameters.accessToken !== undefined,
-            "Either one of sid or accessToken should be present"
-        );
+        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
+        const documentRef = collectionRef.doc(parameters.sessionId.valueOf());
 
-        if (parameters.sid !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
-            const documentRef = collectionRef.doc(parameters.sid.valueOf());
+        const sesison = await documentRef.get();
 
-            const sesison = await documentRef.get();
-
-            const isSessionExisting = sesison.exists;
-            return isSessionExisting;
-        }
-
-        if (parameters.accessToken !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
-            const query = collectionRef.where(
-                "accessToken",
-                "==",
-                parameters.accessToken.valueOf()
-            );
-
-            const querySnapshot = await query.get();
-
-            const isSessionExisting = !querySnapshot.empty;
-            return isSessionExisting;
-        }
-
-        return false;
+        const isSessionExists = sesison.exists;
+        return isSessionExists;
     }
 
     async createSession(parameters: {
-        sid: String,
-        accessToken: String
+        samaritanId: String,
     }): Promise<CreateSessionSuccess | CreateSessionFailure> {
+        const existingSessionsDeleteResult = await this.deleteAllExistingSessions({
+            samaritanId: parameters.samaritanId
+        });
+
+        if (existingSessionsDeleteResult instanceof DeleteAllExistingSessionsSuccess) {
+            const session: Session = {
+                sessionId: uuid.v4(),
+                samaritanId: parameters.samaritanId,
+                creationDate: Date.now(),
+            };
+    
+            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
+            const documentRef = collectionRef.doc(session.sessionId.valueOf());
+    
+            try {
+                await documentRef.create(session);
+    
+                const result = new CreateSessionSuccess({
+                    session: session
+                });
+                return result;
+            } catch {
+                const result = new UnknownCreateSessionFailure();
+                return result;
+            }
+        }
+
+
+        const result = new UnknownCreateSessionFailure();
+        return result;
+    }
+
+    async session(parameters: {
+        sessionId: String,
+    }): Promise<Session | null> {
         const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
-        const documentRef = collectionRef.doc(parameters.sid.valueOf());
+        const documentRef = collectionRef.doc(parameters.sessionId.valueOf());
 
         const document = await documentRef.get();
 
         if (document.exists) {
-            const session = document.data() as unknown as Session;
-
-            if (session.accessToken === parameters.accessToken) {
-                const result = new CreateSessionSuccess({
-                    session: session,
-                });
-                return result;
-            }
-        }
-
-        const session: Session = {
-            sid: parameters.sid,
-            accessToken: parameters.accessToken,
-            creationDate: Date.now(),
-        };
-
-        try {
-            await documentRef.create(session);
-
-            const result = new CreateSessionSuccess({
-                session: session
-            });
+            const result = document.data() as unknown as Session;
             return result;
-        } catch {
-            const result = new SessionAlreadyPresentFailure();
+        } else {
+            const result = null;
             return result;
         }
-    }
-
-    async session(parameters: {
-        sid?: String,
-        accessToken?: String,
-    }): Promise<Session | null> {
-        assert(
-            parameters.sid !== undefined || parameters.accessToken !== undefined,
-            "Either one of sid or accessToken should be present"
-        );
-
-        if (parameters.sid !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
-            const documentRef = collectionRef.doc(parameters.sid.valueOf());
-
-            const document = await documentRef.get();
-
-            if (document.exists) {
-                const result = document.data() as unknown as Session;
-                return result;
-            } else {
-                const result = null;
-                return result;
-            }
-        }
-
-        if (parameters.accessToken !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
-            const query = collectionRef.where(
-                "accessToken",
-                "==",
-                parameters.accessToken.valueOf(),
-            );
-
-            const querySnapshot = await query.get();
-
-            if (querySnapshot.empty) {
-                const result = null;
-                return result;
-            } else {
-                const result = querySnapshot.docs[0].data() as unknown as Session;
-                return result;
-            }
-        }
-
-        return null;
     }
 
     async deleteSession(parameters: {
-        accessToken: String,
+        sessionId: String,
     }): Promise<DeleteSessionSuccess | DeleteSessionFailure> {
         const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
+        const documentRef = collectionRef.doc(parameters.sessionId.valueOf());
+
+        try {
+            await documentRef.delete();
+
+            const result = new DeleteSessionSuccess();
+            return result;
+        } catch {
+            const result = new UnkknownDeleteSessionFailure();
+            return result;
+        }
+    }
+
+    private async deleteAllExistingSessions(parameters: {
+        samaritanId: String
+    }): Promise<DeleteAllExistingSessionsSuccess | DeleteAllExistingSessionsFailure > {
+        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
+
         const query = collectionRef.where(
-            "accessToken",
+            "samaritanId",
             "==",
-            parameters.accessToken.valueOf(),
+            parameters.samaritanId.valueOf()
         );
 
         const querySnapshot = await query.get();
@@ -151,16 +115,18 @@ export class SessionsManager {
         try {
             const batch = DatabaseAssistant.shared.batch();
 
-            querySnapshot.docs.forEach((queryDocumentSnapshotRef) => {
-                batch.delete(queryDocumentSnapshotRef.ref);
-            });
+            for (const queryDocument of querySnapshot.docs) {
+                const documentRef = queryDocument.ref;
+
+                batch.delete(documentRef);
+            }
 
             await batch.commit();
-
-            const result = new DeleteSessionSuccess();
+            
+            const result = new DeleteAllExistingSessionsSuccess();
             return result;
         } catch {
-            const result = new UnkknownDeleteSessionFailure();
+            const result = new UnknownDeleteAllExistingSessionsFailure();
             return result;
         }
     }

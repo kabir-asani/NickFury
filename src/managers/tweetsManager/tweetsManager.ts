@@ -67,8 +67,8 @@ export class TweetsManager {
 
             if (tweetCreationResult instanceof AddTweetSuccess) {
                 const tweet: Tweet = {
-                    tid: tweetCreationResult.tid.valueOf(),
-                    fid: fid,
+                    tweetId: tweetCreationResult.tid.valueOf(),
+                    foreignId: fid,
                     text: parameters.text,
                     creationDate: Date.now(),
                     authorSid: parameters.sid.valueOf(),
