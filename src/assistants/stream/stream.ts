@@ -14,8 +14,8 @@ export class StreamAssistant {
 
     constructor() {
         this.client = Stream.connect(
-            Secrets.stream.key,
-            Secrets.stream.secret
+            process.env.STREAM_KEY || Secrets.stream.key,
+            process.env.STREAM_SECRET || Secrets.stream.secret,
         );
 
         this.samaritanFeed = new SamaritanFeedAssistant({

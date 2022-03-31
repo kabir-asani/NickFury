@@ -11,9 +11,9 @@ export class FirebaseAssistant {
 
     constructor() {
         const serviceAccount = {
-            projectId: Secrets.firebase.projectId,
-            clientEmail: Secrets.firebase.clientEmail,
-            privateKey: Secrets.firebase.privateKey
+            projectId: process.env.FIREBASE_PROJECT_ID || Secrets.firebase.projectId,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL || Secrets.firebase.clientEmail,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY || Secrets.firebase.privateKey,
         };
 
         this._app = admin.initializeApp({
