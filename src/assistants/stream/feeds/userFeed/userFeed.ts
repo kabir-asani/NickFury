@@ -1,77 +1,86 @@
-import { FlatActivity, StreamClient } from "getstream";
+import { assert } from "console";
+import {
+    StreamClient,
+    NewActivity,
+    FlatActivity
+} from "getstream";
 import { Paginated } from "../../../../managers/core/types";
 import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
 import { FeedAssistant } from "../feed";
-import { UserFeedAssistant } from "../userFeed/userFeed";
 import { PartialTweet } from "../types";
-import { FollowFeedFailure, UnfollowFeedFailure } from "./types";
+import {
+    AddTweetActivityFailure,
+    RemoveTweetActivityFailure,
+    TweetActivity,
+} from "./types";
 
-export class TimelineFeedAssistant extends FeedAssistant {
-    private static feed = "timeline";
+export class UserFeedAssistant extends FeedAssistant {
+    static readonly feed = "user";
+    private static readonly verb = "tweet";
 
     constructor(parameters: {
         client: StreamClient;
     }) {
         super({
-            type: TimelineFeedAssistant.feed,
+            type: UserFeedAssistant.feed,
             client: parameters.client
         });
     }
 
-    async follow(parameters: {
-        followerUserId: String;
-        followingUserId: String;
-    }): Promise<Success<Empty> | Failure<FollowFeedFailure>> {
-        const timelineFeed = this.client.feed(
+    async createTweetActivity(parameters: {
+        authorId: String;
+        complimentaryTweetId: String;
+    }): Promise<Success<TweetActivity> | Failure<AddTweetActivityFailure>> {
+        const feed = this.client.feed(
             this.type.valueOf(),
-            parameters.followerUserId.valueOf(),
+            parameters.authorId.valueOf(),
         );
 
         try {
-            await timelineFeed.follow(
-                UserFeedAssistant.feed,
-                parameters.followingUserId.valueOf(),
-            );
+            const tweetActivity = await feed.addActivity({
+                actor: parameters.authorId.valueOf(),
+                verb: UserFeedAssistant.verb,
+                object: parameters.complimentaryTweetId.valueOf(),
+            });
 
-            const result = new Success<Empty>({});
+            const result = new Success<TweetActivity>({
+                id: tweetActivity.id,
+            });
             return result;
         } catch {
-            const result = new Failure<FollowFeedFailure>(FollowFeedFailure.UNKNOWN);
+            const result = new Failure<AddTweetActivityFailure>(AddTweetActivityFailure.UNKNOWN);
             return result;
         }
     }
 
-    async unfollow(parameters: {
-        followerUserId: String;
-        followingUserId: String;
-    }): Promise<Success<Empty> | Failure<UnfollowFeedFailure>> {
-        const timelineFeed = this.client.feed(
+    async remoteTweetActivity(parameters: {
+        authorId: String;
+        tweetId: String;
+    }): Promise<Success<Empty> | Failure<RemoveTweetActivityFailure>> {
+        const feed = this.client.feed(
             this.type.valueOf(),
-            parameters.followerUserId.valueOf(),
+            parameters.authorId.valueOf()
         );
 
         try {
-            await timelineFeed.unfollow(
-                UserFeedAssistant.feed,
-                parameters.followingUserId.valueOf(),
-            );
+            await feed.removeActivity(parameters.tweetId.valueOf());
 
             const result = new Success<Empty>({});
             return result;
         } catch {
-            const result = new Failure<UnfollowFeedFailure>(UnfollowFeedFailure.UNKNOWN);
+            const result = new Failure<RemoveTweetActivityFailure>(RemoveTweetActivityFailure.UNKNOWN);
             return result;
         }
     }
 
     async tweets(parameters: {
-        userId: String;
+        authorId: String;
         limit?: Number;
         nextToken?: String;
     }): Promise<Paginated<PartialTweet> | null> {
         const feed = this.client.feed(
             this.type.valueOf(),
-            parameters.userId.valueOf(),
+            parameters.authorId.valueOf(),
         );
 
         try {

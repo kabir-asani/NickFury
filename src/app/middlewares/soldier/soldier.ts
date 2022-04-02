@@ -1,5 +1,5 @@
 import { ObjectSchema, ValidationError } from "joi";
-import { BadRequestRouteFailure } from "../../core/types";
+import { IncorrectArgumentsRouteFailure } from "../../core/types";
 import { TxMiddleware } from "../core/types";
 
 export enum GroundZero {
@@ -34,10 +34,10 @@ export const soldier = (parameters: {
         next();
     } else {
         const details = (validation.error as ValidationError).details.map((detail) => detail.message);
-        const failure = new BadRequestRouteFailure(details);
+        const failure = new IncorrectArgumentsRouteFailure(details);
 
         res
-            .status(BadRequestRouteFailure.statusCode)
+            .status(IncorrectArgumentsRouteFailure.statusCode)
             .json(failure);
     }
 };

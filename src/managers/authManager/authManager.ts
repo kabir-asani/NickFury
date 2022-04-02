@@ -1,9 +1,7 @@
 import { GoogleAssistant } from "../../assistants/google/google";
 import { GoogleProfileSuccess, IllegalAccessTokenFailure as IllegalGoogleAccessTokenFailure } from "../../assistants/google/types";
-import { SamaritansManager } from "../samaritansManager/samaritansManager";
-import { CreateSamaritanSuccess } from "../samaritansManager/types";
+import { UsersManager } from "../usersManager/usersManager";
 import { SessionsManager } from "../sessionManager/sessionsManager";
-import { CreateSessionSuccess, DeleteSessionSuccess } from "../sessionManager/types";
 import { AuthProvider } from "./models";
 import {
     LogInSuccess,
@@ -15,6 +13,7 @@ import {
     IncorrectAccessTokenFailure,
     UnknownLogOutFailure,
 } from "./types";
+import { Success } from "../../utils/typescriptx/typescriptx";
 
 export class AuthManager {
     public static readonly shared = new AuthManager();
@@ -47,7 +46,7 @@ export class AuthManager {
             sessionId: parameters.sessionId
         });
 
-        if (deleteSessionResult instanceof DeleteSessionSuccess) {
+        if (deleteSessionResult instanceof Success) {
             const result = new LogOutSuccess();
             return result;
         }
@@ -65,17 +64,17 @@ export class AuthManager {
 
         if (profileResult instanceof GoogleProfileSuccess) {
             const profile = profileResult.profile;
-            const samaritan = await SamaritansManager.shared.samaritan({
+            const user = await UsersManager.shared.user({
                 email: profile.email,
             });
 
-            if (samaritan !== null) {
+            if (user !== null) {
                 const createSessionResult = await SessionsManager.shared.createSession({
-                    samaritanId: samaritan.id,
+                    userId: user.id,
                 });
 
-                if (createSessionResult instanceof CreateSessionSuccess) {
-                    const session = createSessionResult.session;
+                if (createSessionResult instanceof Success) {
+                    const session = createSessionResult.data;
                     const result = new LogInSuccess({
                         session: session
                     });
@@ -86,20 +85,20 @@ export class AuthManager {
                 const result = new UnknownLogInFailure();
                 return result;
             } else {
-                const createSamaritanResult = await SamaritansManager.shared.createSamaritan({
+                const createUserResult = await UsersManager.shared.createUser({
                     name: profile.name,
                     email: profile.email,
                     image: profile.image,
                 });
 
-                if (createSamaritanResult instanceof CreateSamaritanSuccess) {
-                    const samaritan = createSamaritanResult.samaritan;
+                if (createUserResult instanceof Success) {
+                    const user = createUserResult.data;
                     const createSessionResult = await SessionsManager.shared.createSession({
-                        samaritanId: samaritan.id,
+                        userId: user.id,
                     });
 
-                    if (createSessionResult instanceof CreateSessionSuccess) {
-                        const session = createSessionResult.session;
+                    if (createSessionResult instanceof Success) {
+                        const session = createSessionResult.data;
                         const result = new LogInSuccess({
                             session: session
                         });

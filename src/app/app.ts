@@ -2,7 +2,7 @@ import express, { json } from "express";
 import { caseme } from "./middlewares/caseme/caseme";
 import { gatekeeper } from "./middlewares/gatekeeper/gatekeeper";
 import storyteller from "./middlewares/storyteller/storyteller";
-import samaritans from "./routes/samaritans/samaritans";
+import users from "./routes/users/users";
 import sessions from "./routes/sessions/sessions";
 import tweets from "./routes/tweets/tweets";
 
@@ -20,9 +20,9 @@ app.use(
 );
 
 app.use(
-    "/samaritans",
+    "/users",
     gatekeeper(),
-    samaritans,
+    users,
 );
 
 app.use(

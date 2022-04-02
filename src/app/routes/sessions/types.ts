@@ -1,8 +1,8 @@
 import { Session } from "../../../managers/sessionManager/models";
-import { RouteSuccess } from "../../core/types";
+import { OkRouteSuccess } from "../../core/types";
 
 // Log In
-export class LogInRouteSuccess extends RouteSuccess {
+export class LogInRouteSuccess extends OkRouteSuccess {
     static readonly statusCode: 200;
 
     constructor(session: Session) {
@@ -11,7 +11,7 @@ export class LogInRouteSuccess extends RouteSuccess {
 }
 
 // Log Out
-export class LogOutRouteSuccess extends RouteSuccess {
+export class LogOutRouteSuccess extends OkRouteSuccess {
     static readonly statusCode: 200;
 
     constructor(data?: Object) {

@@ -5,16 +5,10 @@ import { TxDatabaseCollections } from "../core/collections";
 import { Session } from "./models";
 import {
     CreateSessionFailure,
-    CreateSessionSuccess,
-    DeleteSessionSuccess,
     DeleteSessionFailure,
-    UnkknownDeleteSessionFailure,
-    UnknownCreateSessionFailure,
-    DeleteAllExistingSessionsSuccess,
-    DeleteAllExistingSessionsFailure,
-    UnknownDeleteAllExistingSessionsFailure
 } from "./types";
 import { Dately } from "../../utils/dately/dately";
+import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
 
 export class SessionsManager {
     public static readonly shared = new SessionsManager();
@@ -27,42 +21,42 @@ export class SessionsManager {
 
         const sesison = await documentRef.get();
 
-        const isSessionExists = sesison.exists;
-        return isSessionExists;
+        if (sesison.exists) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     async createSession(parameters: {
-        samaritanId: String,
-    }): Promise<CreateSessionSuccess | CreateSessionFailure> {
-        const existingSessionsDeleteResult = await this.deleteAllExistingSessions({
-            samaritanId: parameters.samaritanId
+        userId: String,
+    }): Promise<Success<Session> | Failure<CreateSessionFailure>> {
+        const deleteSessionResult = await this.deleteSessions({
+            userId: parameters.userId
         });
 
-        if (existingSessionsDeleteResult instanceof DeleteAllExistingSessionsSuccess) {
+        if (deleteSessionResult instanceof Success) {
             const session: Session = {
                 sessionId: uuid.v4(),
-                samaritanId: parameters.samaritanId,
+                userId: parameters.userId,
                 creationDate: Dately.shared.now(),
             };
-    
+
             const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
             const documentRef = collectionRef.doc(session.sessionId.valueOf());
-    
+
             try {
                 await documentRef.create(session);
-    
-                const result = new CreateSessionSuccess({
-                    session: session
-                });
+
+                const result = new Success<Session>(session);
                 return result;
             } catch {
-                const result = new UnknownCreateSessionFailure();
+                const result = new Failure<CreateSessionFailure>(CreateSessionFailure.UNKNOWN);
                 return result;
             }
         }
 
-
-        const result = new UnknownCreateSessionFailure();
+        const result = new Failure<CreateSessionFailure>(CreateSessionFailure.UNKNOWN);
         return result;
     }
 
@@ -84,31 +78,31 @@ export class SessionsManager {
     }
 
     async deleteSession(parameters: {
-        sessionId: String,
-    }): Promise<DeleteSessionSuccess | DeleteSessionFailure> {
+        sessionId: String
+    }): Promise<Success<Empty> | Failure<DeleteSessionFailure>> {
         const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
         const documentRef = collectionRef.doc(parameters.sessionId.valueOf());
 
+        
         try {
             await documentRef.delete();
 
-            const result = new DeleteSessionSuccess();
+            const result = new Success<Empty>({});
             return result;
         } catch {
-            const result = new UnkknownDeleteSessionFailure();
+            const result = new Failure<DeleteSessionFailure>(DeleteSessionFailure.UNKNOWN);
             return result;
         }
     }
 
-    private async deleteAllExistingSessions(parameters: {
-        samaritanId: String
-    }): Promise<DeleteAllExistingSessionsSuccess | DeleteAllExistingSessionsFailure > {
+    async deleteSessions(parameters: {
+        userId: String,
+    }): Promise<Success<Empty> | Failure<DeleteSessionFailure>> {
         const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
-
         const query = collectionRef.where(
-            "samaritanId",
+            "userId",
             "==",
-            parameters.samaritanId.valueOf()
+            parameters.userId.valueOf()
         );
 
         const querySnapshot = await query.get();
@@ -118,16 +112,15 @@ export class SessionsManager {
 
             for (const queryDocument of querySnapshot.docs) {
                 const documentRef = queryDocument.ref;
-
                 batch.delete(documentRef);
             }
 
             await batch.commit();
-            
-            const result = new DeleteAllExistingSessionsSuccess();
+
+            const result = new Success<Empty>({});
             return result;
         } catch {
-            const result = new UnknownDeleteAllExistingSessionsFailure();
+            const result = new Failure<DeleteSessionFailure>(DeleteSessionFailure.UNKNOWN);
             return result;
         }
     }

@@ -1,4 +1,4 @@
-import { Samaritan } from "../../samaritansManager/models";
+import { User } from "../../usersManager/models";
 
 export interface Like {
     readonly likeId: String;
@@ -6,5 +6,5 @@ export interface Like {
 }
 
 export interface EnrichedLike extends Like {
-    author: Samaritan;
+    author: User;
 }

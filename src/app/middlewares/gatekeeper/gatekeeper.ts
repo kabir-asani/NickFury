@@ -1,6 +1,6 @@
 import Joi from "joi";
 import { SessionsManager } from "../../../managers/sessionManager/sessionsManager";
-import { IllegalAccessTokenRouteFailure, MissingAccessTokenRouteFailure, RouteFailure } from "../../core/types";
+import { IncorrectArgumentsRouteFailure, UnauthenticatedRouteFailure } from "../../core/types";
 import { TxMiddleware } from "../core/types";
 import { soldier, GroundZero } from "../soldier/soldier";
 
@@ -19,10 +19,10 @@ export const gatekeeper = (): TxMiddleware[] => [
         });
 
         if (!isSesssionPresent) {
-            const failure = new IllegalAccessTokenRouteFailure();
+            const failure = new UnauthenticatedRouteFailure();
 
             res
-                .status(IllegalAccessTokenRouteFailure.statusCode)
+                .status(UnauthenticatedRouteFailure.statusCode)
                 .json(failure);
 
             return;

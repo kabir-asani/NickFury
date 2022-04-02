@@ -1,2 +1,2 @@
-export class StreamAssistantSuccess { }
-export class StreamAssistantFailure { }
+export class StreamAssistantSuccess extends Success { }
+export class StreamAssistantFailure extends Failure { }

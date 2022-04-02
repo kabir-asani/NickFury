@@ -3,7 +3,7 @@ import Joi from 'joi';
 import { AuthManager } from '../../../managers/authManager/authManager';
 import { authProvider, AuthProvider } from '../../../managers/authManager/models';
 import { IncorrectAccessTokenFailure, LogInSuccess, LogOutSuccess } from '../../../managers/authManager/types';
-import { IncorrectAccessTokenRouteFailure, InternalRouteFailure } from '../../core/types';
+import { IncorrectArgumentsRouteFailure, InternalRouteFailure } from '../../core/types';
 import { gatekeeper } from '../../middlewares/gatekeeper/gatekeeper';
 import { GroundZero, soldier } from '../../middlewares/soldier/soldier';
 import { LogInRouteSuccess, LogOutRouteSuccess } from './types';
@@ -43,10 +43,10 @@ sessions.post(
 
 
         if (result instanceof IncorrectAccessTokenFailure) {
-            const response = new IncorrectAccessTokenRouteFailure();
+            const response = new IncorrectArgumentsRouteFailure();
 
             res
-                .status(IncorrectAccessTokenRouteFailure.statusCode)
+                .status(IncorrectArgumentsRouteFailure.statusCode)
                 .json(response);
 
             return;

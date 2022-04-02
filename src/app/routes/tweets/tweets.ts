@@ -8,10 +8,8 @@ const tweets = Router({
     mergeParams: true
 });
 
-
-// Tag alone the "likes" sub-resource
 tweets.use(
-    "/likes",
+    "/:tweetId/likes",
     likes
 );
 
@@ -32,22 +30,6 @@ tweets.post(
         }),
         groundZero: GroundZero.body,
     }),
-    async (req: Request, res: Response) => {
-        // TODO: Implement this route
-        throw Error("Unimplemented");
-    }
-);
-
-tweets.get(
-    "/:tid",
-    async (req: Request, res: Response) => {
-        // TODO: Implement this route
-        throw Error("Unimplemented");
-    }
-);
-
-tweets.delete(
-    "/:tid",
     async (req: Request, res: Response) => {
         // TODO: Implement this route
         throw Error("Unimplemented");
