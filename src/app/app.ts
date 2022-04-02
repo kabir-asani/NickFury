@@ -4,7 +4,7 @@ import { gatekeeper } from "./middlewares/gatekeeper/gatekeeper";
 import storyteller from "./middlewares/storyteller/storyteller";
 import users from "./routes/users/users";
 import sessions from "./routes/sessions/sessions";
-import tweets from "./routes/tweets/tweets";
+import tweets from "./routes/users/tweets/tweets";
 
 const app = express();
 

@@ -1,7 +1,9 @@
 import { Router, Request, Response } from "express";
-import { SessionsManager } from "../../../../managers/sessionManager/sessionsManager";
+import { Paginated } from "../../../../managers/core/types";
 import { TimelineManager } from "../../../../managers/usersManager/timelinesManager/timelineManager";
-import { UsersManager } from "../../../../managers/usersManager/usersManager";
+import { EnrichedTweet } from "../../../../managers/usersManager/tweetsManager/models";
+import { Failure } from "../../../../utils/typescriptx/typescriptx";
+import { SessionizedRequest } from "../../../core/override";
 import { InternalRouteFailure, OkRouteSuccess } from "../../../core/types";
 import paginated from "../../../middlewares/paginated/paginated";
 const timeline = Router();
@@ -10,41 +12,36 @@ timeline.get(
     "/",
     paginated(),
     async (req: Request, res: Response) => {
-        const { authorization: sessionId } = req.headers;
-        const { nextToken, limit } = req.params;
+        const session = (req as SessionizedRequest).session;
+        const { nextToken, limit } = req.query;
 
-        const session = await SessionsManager.shared.session({
-            sessionId: sessionId as String,
-        });
-
-        if (session === null) {
-            const response = new InternalRouteFailure();
-
-            res
-                .status(InternalRouteFailure.statusCode)
-                .json(response);
-
-            return;
-        }
-
-        const tweets = await TimelineManager.shared.tweets({
+        const feedResult = await TimelineManager.shared.feed({
             userId: session.userId,
             limit: limit !== undefined ? limit as unknown as Number : undefined,
             nextToken: nextToken !== undefined ? nextToken as unknown as String : undefined,
         });
 
-        if (tweets === null) {
-            const response = new InternalRouteFailure();
+        if (feedResult instanceof Failure) {
+            switch (feedResult.reason) {
+                default: {
+                    const response = new InternalRouteFailure();
 
-            res
-                .status(InternalRouteFailure.statusCode)
-                .json(response);
+                    res
+                        .status(InternalRouteFailure.statusCode)
+                        .json(response);
 
-            return;
+                    return;
+                }
+            }
         }
 
-        // TODO: Enrich
-        const response = new OkRouteSuccess(tweets);
+        // TODO: Make viewable
+        const paginatedFeed = new Paginated<EnrichedTweet>({
+            page: feedResult.data.page,
+            nextToken: feedResult.data.nextToken,
+        });
+
+        const response = new OkRouteSuccess(paginatedFeed);
 
         res
             .status(OkRouteSuccess.statusCode)

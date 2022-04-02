@@ -1,5 +1,5 @@
 import { FlatActivity, StreamClient } from "getstream";
-import { Paginated } from "../../../../managers/core/types";
+import { Paginated, PaginationQuery } from "../../../../managers/core/types";
 import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
 import { FeedAssistant } from "../feed";
 import { UserFeedAssistant } from "../userFeed/userFeed";
@@ -7,7 +7,7 @@ import { PartialTweet } from "../types";
 import { FollowFeedFailure, UnfollowFeedFailure } from "./types";
 
 export class TimelineFeedAssistant extends FeedAssistant {
-    private static feed = "timeline";
+    public static readonly feed = "timeline";
 
     constructor(parameters: {
         client: StreamClient;
@@ -64,11 +64,9 @@ export class TimelineFeedAssistant extends FeedAssistant {
         }
     }
 
-    async tweets(parameters: {
+    async activities(parameters: {
         userId: String;
-        limit?: Number;
-        nextToken?: String;
-    }): Promise<Paginated<PartialTweet> | null> {
+    } & PaginationQuery): Promise<Paginated<PartialTweet> | null> {
         const feed = this.client.feed(
             this.type.valueOf(),
             parameters.userId.valueOf(),

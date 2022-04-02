@@ -1,47 +1,59 @@
 import { StreamAssistant } from "../../../assistants/stream/stream";
-import { Paginated } from "../../core/types";
-import { Tweet } from "../../tweetsManager/models";
-import { TweetsManager } from "../../tweetsManager/tweetsManager";
+import { Failure, Success } from "../../../utils/typescriptx/typescriptx";
+import { Paginated, PaginationQuery } from "../../core/types";
+import { EnrichedTweet, Tweet } from "../tweetsManager/models";
+import { TweetsManager } from "../tweetsManager/tweetsManager";
+import { UsersManager } from "../usersManager";
+import { TimelineFeedFailure as TimelineFeedFailure } from "./types";
 
 export class TimelineManager {
     public static readonly shared = new TimelineManager();
 
-    // TODO: Revisit to reply with Success and Failure
-    async tweets(parameters: {
+    async feed(parameters: {
         userId: String;
-        limit?: Number;
-        nextToken?: String;
-    }): Promise<Paginated<Tweet> | null> {
-        const paginated = await StreamAssistant.shared.timelineFeed.tweets({
+    } & PaginationQuery): Promise<Success<Paginated<EnrichedTweet>> | Failure<TimelineFeedFailure>> {
+        const isUserExists = await UsersManager.shared.exists({
+            userId: parameters.userId
+        });
+
+        if (!isUserExists) {
+            const result = new Failure<TimelineFeedFailure>(TimelineFeedFailure.USER_DOES_NOT_EXISTS);
+            return result;
+        }
+
+        const activities = await StreamAssistant.shared.timelineFeed.activities({
             userId: parameters.userId,
             limit: parameters.limit,
             nextToken: parameters.nextToken,
         });
 
-        if (paginated !== null) {
-            const tweets: Tweet[] = [];
+        if (activities !== null) {
+            const tweets: EnrichedTweet[] = [];
 
-            for (const partialTweet of paginated.page) {
-                const tweet = await TweetsManager.shared.tweet({
+            for (const partialTweet of activities.page) {
+                const tweetResult = await TweetsManager.shared.tweet({
+                    authorId: partialTweet.authorId,
                     tweetId: partialTweet.tweetId,
                 });
 
-                if (tweet == null) {
-                    const result = null;
+                if (tweetResult instanceof Failure) {
+                    const result = new Failure<TimelineFeedFailure>(TimelineFeedFailure.UNKNOWN);
                     return result;
                 }
 
-                tweets.push(tweet);
+                tweets.push(tweetResult.data);
             }
 
-            const result = new Paginated<Tweet>({
+            const timeline = new Paginated<EnrichedTweet>({
                 page: tweets,
-                nextToken: paginated?.nextToken,
+                nextToken: activities?.nextToken,
             });
+
+            const result = new Success<Paginated<EnrichedTweet>>(timeline);
             return result;
         }
 
-        const result = null;
+        const result = new Failure<TimelineFeedFailure>(TimelineFeedFailure.UNKNOWN);
         return result;
     }
 }

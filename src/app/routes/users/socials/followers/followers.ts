@@ -1,8 +1,15 @@
 import { Router, Request, Response } from "express";
+import Joi from "joi";
+import { Paginated } from "../../../../../managers/core/types";
 import { SessionsManager } from "../../../../../managers/sessionManager/sessionsManager";
+import { Follower } from "../../../../../managers/usersManager/socialsManager/models";
 import { SocialsManager } from "../../../../../managers/usersManager/socialsManager/socialsManager";
-import { UsersManager } from "../../../../../managers/usersManager/usersManager";
-import { InternalRouteFailure } from "../../../../core/types";
+import { FollowersFeedFailure } from "../../../../../managers/usersManager/socialsManager/types";
+import { Failure } from "../../../../../utils/typescriptx/typescriptx";
+import { SessionizedRequest } from "../../../../core/override";
+import { InternalRouteFailure, NoResourceRouteFailure, OkRouteSuccess } from "../../../../core/types";
+import paginated from "../../../../middlewares/paginated/paginated";
+import { soldier, GroundZero } from "../../../../middlewares/soldier/soldier";
 
 const followers = Router({
     mergeParams: true
@@ -10,44 +17,85 @@ const followers = Router({
 
 followers.get(
     "/",
+    paginated(),
     async (req: Request, res: Response) => {
-        const { authorization: sessionId } = req.headers;
+        const session = (req as SessionizedRequest).session;
         const { userId } = req.params;
+        const { nextToken, limit } = req.query;
 
-        if (userId !== undefined) {
-            const user = await UsersManager.shared.user({
-                userId: userId as String
-            });
+        const followersResult = await SocialsManager.shared.followers({
+            userId: userId || session.userId,
+            limit: limit !== undefined ? limit as unknown as Number : undefined,
+            nextToken: nextToken !== undefined ? nextToken as unknown as String : undefined,
+        });
 
-            if (user === null) {
-                const response = new InternalRouteFailure();
 
-                res
-                    .status(InternalRouteFailure.statusCode)
-                    .json(response);
+        if (followersResult instanceof Failure) {
+            switch (followersResult.reason) {
+                case FollowersFeedFailure.USER_DOES_NOT_EXISTS: {
+                    if (userId !== undefined) {
+                        const response = new NoResourceRouteFailure();
 
-                return;
+                        res
+                            .status(NoResourceRouteFailure.statusCode)
+                            .json(response);
+
+                        return;
+                    }
+                }
+                default: {
+                    const response = new InternalRouteFailure();
+
+                    res
+                        .status(InternalRouteFailure.statusCode)
+                        .json(response);
+
+                    return;
+                }
             }
-
-            // TODO: Respond with enriched followers
-        } else {
-            const session = await SessionsManager.shared.session({
-                sessionId: sessionId as String
-            });
-
-            if (session === null) {
-                const response = new InternalRouteFailure();
-
-                res
-                    .status(InternalRouteFailure.statusCode)
-                    .json(response);
-
-                return;
-            }
-            
-            // TODO: Respond with enriched followers
         }
+
+        // TODO: Make viewable
+        const paginatedFollowers = new Paginated<Follower>({
+            page: followersResult.data.page,
+            nextToken: followersResult.data.nextToken,
+        });
+
+        const response = new OkRouteSuccess(paginatedFollowers);
+
+        res
+            .status(OkRouteSuccess.statusCode)
+            .json(response);
     },
 );
+
+followers.delete(
+    "/:userId",
+    soldier({
+        schema: Joi.object({
+            userId: Joi.string().required(),
+        }),
+        groundZero: GroundZero.parameters,
+    }),
+    async (req: Request, res: Response) => {
+        const { authorization: sessionId } = req.headers;
+
+        const session = await SessionsManager.shared.session({
+            sessionId: sessionId as String
+        });
+
+        if (session === null) {
+            const response = new InternalRouteFailure();
+
+            res
+                .status(InternalRouteFailure.statusCode)
+                .json(response);
+
+            return;
+        }
+
+        // TODO: Remove follower
+    }
+)
 
 export = followers;

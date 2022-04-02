@@ -1,8 +1,12 @@
 import Joi from "joi";
+import { Request, Response } from "express";
 import { SessionsManager } from "../../../managers/sessionManager/sessionsManager";
-import { IncorrectArgumentsRouteFailure, UnauthenticatedRouteFailure } from "../../core/types";
+import { SessionFailure } from "../../../managers/sessionManager/types";
+import { Failure } from "../../../utils/typescriptx/typescriptx";
+import { InternalRouteFailure, UnauthenticatedRouteFailure } from "../../core/types";
 import { TxMiddleware } from "../core/types";
 import { soldier, GroundZero } from "../soldier/soldier";
+import { SessionizedRequest } from "../../core/override";
 
 export const gatekeeper = (): TxMiddleware[] => [
     soldier({
@@ -11,22 +15,38 @@ export const gatekeeper = (): TxMiddleware[] => [
         }),
         groundZero: GroundZero.headers
     }),
-    async (req, res, next) => {
+    async (req: Request, res: Response, next) => {
         const sessionId = req.headers.authorization;
 
-        const isSesssionPresent = await SessionsManager.shared.exists({
+        const sessionResult = await SessionsManager.shared.session({
             sessionId: sessionId as String,
         });
 
-        if (!isSesssionPresent) {
-            const failure = new UnauthenticatedRouteFailure();
+        if (sessionResult instanceof Failure) {
+            switch (sessionResult.reason) {
+                case SessionFailure.SESSION_DOES_NOT_EXISTS: {
+                    const response = new UnauthenticatedRouteFailure();
 
-            res
-                .status(UnauthenticatedRouteFailure.statusCode)
-                .json(failure);
+                    res
+                        .status(UnauthenticatedRouteFailure.statusCode)
+                        .json(response);
 
-            return;
+                    return;
+                }
+                default: {
+                    const response = new InternalRouteFailure();
+
+                    res
+                        .status(InternalRouteFailure.statusCode)
+                        .json(response);
+
+                    return;
+                }
+            }
         }
+
+        const sessionizedRequest = req as unknown as SessionizedRequest;
+        sessionizedRequest.session = sessionResult.data;
 
         next();
     }

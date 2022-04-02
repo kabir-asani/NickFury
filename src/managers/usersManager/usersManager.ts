@@ -4,9 +4,10 @@ import * as uuid from 'uuid';
 import { DatabaseAssistant } from "../../assistants/database/database";
 import { Dately } from '../../utils/dately/dately';
 import { Empty, Failure, Success } from '../../utils/typescriptx/typescriptx';
-import { TxDatabaseCollections } from '../core/collections';
-import { User } from './models';
-import { CreateUserFailure, UpdateUserFailure } from './types';
+import { DatabaseCollections } from '../core/collections';
+import { ViewableUser, User, UserViewerMeta } from './models';
+import { SocialsManager } from './socialsManager/socialsManager';
+import { CreateUserFailure, UpdateUserFailure, UserExternalsFailure, UserFailure } from './types';
 
 export class UsersManager {
     public static readonly shared = new UsersManager();
@@ -22,7 +23,7 @@ export class UsersManager {
         );
 
         if (parameters.userId !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
             const documentRef = collectionRef.doc(parameters.userId.valueOf());
             const document = await documentRef.get();
 
@@ -34,7 +35,7 @@ export class UsersManager {
         }
 
         if (parameters.username !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
             const query = collectionRef.where(
                 "username",
                 "==",
@@ -51,7 +52,7 @@ export class UsersManager {
         }
 
         if (parameters.email !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
             const query = collectionRef.where(
                 "email",
                 "==",
@@ -76,13 +77,13 @@ export class UsersManager {
         email: String;
         image: String;
     }): Promise<Success<User> | Failure<CreateUserFailure>> {
-        const isExists = await this.exists({
+        const isUserExists = await this.exists({
             email: parameters.email
         });
 
-        if (isExists) {
+        if (isUserExists) {
             const result = new Failure<CreateUserFailure>(
-                CreateUserFailure.ALREADY_EXISTS
+                CreateUserFailure.USER_ALREADY_EXISTS
             );
             return result;
         }
@@ -103,7 +104,7 @@ export class UsersManager {
             },
         };
 
-        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+        const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
         const documentRef = collectionRef.doc(user.id.valueOf());
 
         try {
@@ -125,30 +126,31 @@ export class UsersManager {
         userId?: String;
         username?: String;
         email?: String;
-    }): Promise<User | null> {
+    }): Promise<Success<User> | Failure<UserFailure>> {
         assert(
             parameters.userId !== undefined || parameters.username !== undefined || parameters.email !== undefined,
             "One of id, username or email has to be present"
         );
 
+
         if (parameters.userId !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
             const documentRef = collectionRef.doc(parameters.userId.valueOf());
             const document = await documentRef.get();
 
             if (document.exists) {
                 const user = document.data() as unknown as User;
 
-                const result = user;
+                const result = new Success<User>(user);
                 return result;
             } else {
-                const result = null;
+                const result = new Failure<UserFailure>(UserFailure.USER_DOES_NOT_EXISTS);
                 return result;
             }
         }
 
         if (parameters.username !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
             const query = collectionRef.where(
                 "username",
                 "==",
@@ -158,18 +160,18 @@ export class UsersManager {
             const querySnapshot = await query.get();
 
             if (querySnapshot.empty) {
-                const result = null;
+                const result = new Failure<UserFailure>(UserFailure.USER_DOES_NOT_EXISTS);
                 return result;
             } else {
                 const user = querySnapshot.docs[0].data() as unknown as User;
 
-                const result = user;
+                const result = new Success<User>(user);
                 return result;
             }
         }
 
         if (parameters.email !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
             const query = collectionRef.where(
                 "email",
                 "==",
@@ -179,43 +181,70 @@ export class UsersManager {
             const querySnapshot = await query.get();
 
             if (querySnapshot.empty) {
-                const result = null;
+                const result = new Failure<UserFailure>(UserFailure.USER_DOES_NOT_EXISTS);
                 return result;
             } else {
                 const user = querySnapshot.docs[0].data() as unknown as User;
 
-                const result = user;
+                const result = new Success<User>(user);
                 return result;
             }
         }
 
-        return null;
+        const result = new Failure<UserFailure>(UserFailure.UNKNOWN);
+        return result;
     }
 
     async updateUser(parameters: {
         userId: String;
         update: (currentUser: User) => User;
     }): Promise<Success<User> | Failure<UpdateUserFailure>> {
-        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+        const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
         const documentRef = collectionRef.doc(parameters.userId.valueOf());
         const document = await documentRef.get();
 
         if (document.exists) {
             const currentUser = document.data() as unknown as User;
-            const udpatedUser = parameters.update(currentUser);
+            const updatedUser = parameters.update(currentUser);
 
             try {
-                await documentRef.update(udpatedUser);
+                await documentRef.update(updatedUser);
 
-                const result = new Success<User>(udpatedUser);
+                const result = new Success<User>(updatedUser);
                 return result;
             } catch {
-                const result = new Failure<UpdateUserFailure>(UpdateUserFailure.UNKNOWN);
+                const result = new Failure<UpdateUserFailure>(UpdateUserFailure.USER_DOES_NOT_EXISTS);
                 return result;
             }
         }
 
         const result = new Failure<UpdateUserFailure>(UpdateUserFailure.UNKNOWN);
+        return result;
+    }
+
+    async externals(parameters: {
+        userId: String;
+        viewerId: String;
+    }): Promise<Success<UserViewerMeta> | Failure<UserExternalsFailure>> {
+        const isViewerExists = await this.exists({
+            userId: parameters.viewerId
+        });
+
+        if (!isViewerExists) {
+            const result = new Failure<UserExternalsFailure>(UserExternalsFailure.VIEWER_DOES_NOT_EXISTS);
+            return result;
+        }
+
+        const isViewerFollower = await SocialsManager.shared.isFollower({
+            followingUserId: parameters.userId,
+            followerUserId: parameters.viewerId,
+        });
+
+        const externals: UserViewerMeta = {
+            follower: isViewerFollower
+        }
+
+        const result = new Success<UserViewerMeta>(externals);
         return result;
     }
 }

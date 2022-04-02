@@ -1,8 +1,8 @@
 export interface BookmarkActivity {
-    readonly id: String; 
+    readonly id: String;
 }
 
-export enum AddBookmarkActivityFailure  {
+export enum AddBookmarkActivityFailure {
     UNKNOWN
 }
 

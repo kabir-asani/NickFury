@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import Joi from "joi";
-import paginated from "../../middlewares/paginated/paginated";
-import { GroundZero, soldier } from "../../middlewares/soldier/soldier";
+import paginated from "../../../middlewares/paginated/paginated";
+import { GroundZero, soldier } from "../../../middlewares/soldier/soldier";
 import likes from "./likes";
 
 const tweets = Router({
@@ -35,5 +35,19 @@ tweets.post(
         throw Error("Unimplemented");
     }
 );
+
+tweets.delete(
+    "/:tweetId",
+    soldier({
+        schema: Joi.object({
+            tweetId: Joi.string().required(),
+        }),
+        groundZero: GroundZero.parameters
+    }),
+    async (req: Request, res: Response) => {
+        // TODO: Implement this route
+        throw Error("Unimplemented");
+    }
+)
 
 export = tweets;

@@ -1,5 +1,5 @@
 import { FlatActivity, StreamClient } from "getstream";
-import { Paginated } from "../../../../managers/core/types";
+import { Paginated, PaginationQuery } from "../../../../managers/core/types";
 import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
 import { FeedAssistant } from "../feed";
 import { UserFeedAssistant } from "../userFeed/userFeed";
@@ -7,7 +7,7 @@ import { PartialBookmark } from "../types";
 import { AddBookmarkActivityFailure, BookmarkActivity, RemoveBookmarkActivityFailure } from "./types";
 
 export class BookmarkFeedAssistant extends FeedAssistant {
-    static readonly feed = "bookmark";
+    public static readonly feed = "bookmark";
     private static readonly verb = "bookmark";
 
     constructor(parameters: {
@@ -44,7 +44,7 @@ export class BookmarkFeedAssistant extends FeedAssistant {
             return result;
         }
     }
-    
+
     async removeBookmarkActivity(parameters: {
         authorId: String;
         bookmarkId: String;
@@ -65,11 +65,9 @@ export class BookmarkFeedAssistant extends FeedAssistant {
         }
     }
 
-    async bookmarks(parameters: {
+    async activities(parameters: {
         authorId: String;
-        limit?: Number;
-        nextToken?: String;
-    }): Promise<Paginated<PartialBookmark> | null> {
+    } & PaginationQuery): Promise<Paginated<PartialBookmark> | null> {
         const feed = this.client.feed(
             this.type.valueOf(),
             parameters.authorId.valueOf(),

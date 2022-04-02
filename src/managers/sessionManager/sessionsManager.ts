@@ -1,11 +1,12 @@
 import * as uuid from "uuid";
 import { assert } from "console";
 import { DatabaseAssistant } from "../../assistants/database/database";
-import { TxDatabaseCollections } from "../core/collections";
+import { DatabaseCollections } from "../core/collections";
 import { Session } from "./models";
 import {
     CreateSessionFailure,
     DeleteSessionFailure,
+    SessionFailure,
 } from "./types";
 import { Dately } from "../../utils/dately/dately";
 import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
@@ -16,7 +17,7 @@ export class SessionsManager {
     async exists(parameters: {
         sessionId: String,
     }): Promise<Boolean> {
-        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
+        const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.sessions);
         const documentRef = collectionRef.doc(parameters.sessionId.valueOf());
 
         const sesison = await documentRef.get();
@@ -37,13 +38,13 @@ export class SessionsManager {
 
         if (deleteSessionResult instanceof Success) {
             const session: Session = {
-                sessionId: uuid.v4(),
+                id: uuid.v4(),
                 userId: parameters.userId,
                 creationDate: Dately.shared.now(),
             };
 
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
-            const documentRef = collectionRef.doc(session.sessionId.valueOf());
+            const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.sessions);
+            const documentRef = collectionRef.doc(session.id.valueOf());
 
             try {
                 await documentRef.create(session);
@@ -62,17 +63,24 @@ export class SessionsManager {
 
     async session(parameters: {
         sessionId: String,
-    }): Promise<Session | null> {
-        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
+    }): Promise<Success<Session> | Failure<SessionFailure>> {
+        const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.sessions);
         const documentRef = collectionRef.doc(parameters.sessionId.valueOf());
 
-        const document = await documentRef.get();
+        try {
+            const document = await documentRef.get();
 
-        if (document.exists) {
-            const result = document.data() as unknown as Session;
-            return result;
-        } else {
-            const result = null;
+            if (document.exists) {
+                const session = document.data() as unknown as Session;
+
+                const result = new Success<Session>(session);
+                return result;
+            } else {
+                const result = new Failure<SessionFailure>(SessionFailure.SESSION_DOES_NOT_EXISTS);
+                return result;
+            }
+        } catch {
+            const result = new Failure<SessionFailure>(SessionFailure.UNKNOWN);
             return result;
         }
     }
@@ -80,10 +88,10 @@ export class SessionsManager {
     async deleteSession(parameters: {
         sessionId: String
     }): Promise<Success<Empty> | Failure<DeleteSessionFailure>> {
-        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
+        const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.sessions);
         const documentRef = collectionRef.doc(parameters.sessionId.valueOf());
 
-        
+
         try {
             await documentRef.delete();
 
@@ -98,7 +106,7 @@ export class SessionsManager {
     async deleteSessions(parameters: {
         userId: String,
     }): Promise<Success<Empty> | Failure<DeleteSessionFailure>> {
-        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
+        const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.sessions);
         const query = collectionRef.where(
             "userId",
             "==",

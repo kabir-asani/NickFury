@@ -1,3 +1,8 @@
+export interface PaginationQuery {
+    nextToken?: String;
+    limit?: Number;
+}
+
 export class Paginated<T> {
     readonly page: T[];
     readonly nextToken?: String;

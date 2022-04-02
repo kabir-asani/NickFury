@@ -1,4 +1,4 @@
-export class TxDatabaseCollections {
+export class DatabaseCollections {
     static readonly sessions = "sessions";
 
     static readonly tweets = "tweets";

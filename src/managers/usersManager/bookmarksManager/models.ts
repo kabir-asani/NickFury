@@ -1,7 +1,11 @@
-import { EnrichedTweet } from "../../tweetsManager/models";
+import { ViewableTweet } from "../tweetsManager/models";
 
 export interface Bookmark {
     readonly id: String;
-    readonly tweetId: String;
     readonly authorId: String;
+    readonly tweetId: String;
+}
+
+export interface ViewableBookmark {
+    readonly tweet: ViewableTweet;
 }

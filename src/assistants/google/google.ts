@@ -1,10 +1,11 @@
+import { Failure, Success } from "../../utils/typescriptx/typescriptx";
 import { NetworkAssistant } from "../network/network";
-import { GoogleProfile, GoogleProfileFailure, GoogleProfileSuccess, IllegalAccessTokenFailure as IllegalAccessTokenFailure, UnknownGoogleProfileFailure } from "./types";
+import { GoogleProfile, GoogleProfileFailure } from "./types";
 
 export class GoogleAssistant {
     public static readonly shared = new GoogleAssistant();
 
-    async profile(parameters: { accessToken: String }): Promise<GoogleProfileSuccess | GoogleProfileFailure> {
+    async profile(parameters: { accessToken: String }): Promise<Success<GoogleProfile> | Failure<GoogleProfileFailure>> {
         const person = await NetworkAssistant.shared().get({
             url: `https://www.googleapis.com/plus/v1/people/me`,
             headers: {
@@ -14,7 +15,7 @@ export class GoogleAssistant {
 
 
         if (person.statusCode >= 400 && person.statusCode < 500) {
-            const result = new IllegalAccessTokenFailure();
+            const result = new Failure<GoogleProfileFailure>(GoogleProfileFailure.INCORECT_ACCESS_TOKEN);
             return result;
         }
 
@@ -40,15 +41,13 @@ export class GoogleAssistant {
                 image: data.image.url
             });
 
-            const result = new GoogleProfileSuccess({
-                profile: profile
-            });
+            const result = new Success<GoogleProfile>(profile);
 
             return result;
         }
 
 
-        const result = new UnknownGoogleProfileFailure();
+        const result = new Failure<GoogleProfileFailure>(GoogleProfileFailure.UNKNOWN);
         return result;
     }
 }

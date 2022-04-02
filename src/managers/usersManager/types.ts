@@ -1,11 +1,23 @@
+// User
+export enum UserFailure {
+    UNKNOWN,
+    USER_DOES_NOT_EXISTS
+}
+
 // Create
 export enum CreateUserFailure {
     UNKNOWN,
-    ALREADY_EXISTS
+    USER_ALREADY_EXISTS
 }
 
 // Update
 export enum UpdateUserFailure {
     UNKNOWN,
-    DOES_NOT_EXISTS
+    USER_DOES_NOT_EXISTS
+}
+
+// ExternalizeUser
+export enum UserExternalsFailure {
+    UNKNOWN,
+    VIEWER_DOES_NOT_EXISTS
 }

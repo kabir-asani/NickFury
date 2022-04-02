@@ -2,11 +2,12 @@ import { Request, Response, Router } from 'express';
 import Joi from 'joi';
 import { AuthManager } from '../../../managers/authManager/authManager';
 import { authProvider, AuthProvider } from '../../../managers/authManager/models';
-import { IncorrectAccessTokenFailure, LogInSuccess, LogOutSuccess } from '../../../managers/authManager/types';
-import { IncorrectArgumentsRouteFailure, InternalRouteFailure } from '../../core/types';
+import { LogInFailure } from '../../../managers/authManager/types';
+import { Failure } from '../../../utils/typescriptx/typescriptx';
+import { SessionizedRequest } from '../../core/override';
+import { IncorrectArgumentsRouteFailure, InternalRouteFailure, NoContentRouteSuccess, OkRouteSuccess } from '../../core/types';
 import { gatekeeper } from '../../middlewares/gatekeeper/gatekeeper';
 import { GroundZero, soldier } from '../../middlewares/soldier/soldier';
-import { LogInRouteSuccess, LogOutRouteSuccess } from './types';
 
 const sessions = Router();
 
@@ -25,67 +26,80 @@ sessions.post(
     async (req: Request, res: Response) => {
         const { accessToken, provider } = req.body;
 
-        const result = await AuthManager.shared.logIn({
+        const logInResult = await AuthManager.shared.logIn({
             accessToken: accessToken as String,
             provider: authProvider(provider)!,
         });
 
-        if (result instanceof LogInSuccess) {
-            const session = result.session;
-            const response = new LogInRouteSuccess(session);
+        if (logInResult instanceof Failure) {
+            switch (logInResult.reason) {
+                case LogInFailure.INCORRECT_AUTH_PROVIDER:
+                case LogInFailure.INCORECT_ACCESS_TOKEN: {
+                    const response = new IncorrectArgumentsRouteFailure();
 
-            res
-                .status(LogInRouteSuccess.statusCode)
-                .json(response);
+                    res
+                        .status(IncorrectArgumentsRouteFailure.statusCode)
+                        .json(response);
 
-            return;
+                    return;
+                }
+                default: {
+                    const response = new InternalRouteFailure();
+
+                    res
+                        .status(InternalRouteFailure.statusCode)
+                        .json(response);
+
+                    return;
+                }
+            }
         }
 
-
-        if (result instanceof IncorrectAccessTokenFailure) {
-            const response = new IncorrectArgumentsRouteFailure();
-
-            res
-                .status(IncorrectArgumentsRouteFailure.statusCode)
-                .json(response);
-
-            return;
-        }
-
-        const response = new InternalRouteFailure();
+        const session = logInResult.data;
+        const response = new OkRouteSuccess(session);
 
         res
-            .status(InternalRouteFailure.statusCode)
+            .status(OkRouteSuccess.statusCode)
             .json(response);
+
+        return;
     },
 );
 
 
 sessions.delete(
-    '/',
-    gatekeeper(),
+    '/:sessionId',
+    [
+        ...gatekeeper(),
+        soldier({
+            schema: Joi.object({
+                sessionId: Joi.string().required(),
+            }),
+            groundZero: GroundZero.parameters,
+        }),
+    ],
     async (req: Request, res: Response) => {
-        const { authorization: sessionId } = req.headers;
+        const session = (req as SessionizedRequest).session;
 
-        const result = await AuthManager.shared.logOut({
-            sessionId: sessionId as String,
+        const logOutResult = await AuthManager.shared.logOut({
+            sessionId: session.id,
         });
 
-        if (result instanceof LogOutSuccess) {
-            const response = new LogOutRouteSuccess();
+        if (logOutResult instanceof Failure) {
+            const response = new InternalRouteFailure();
 
             res
-                .status(LogOutRouteSuccess.statusCode)
+                .status(InternalRouteFailure.statusCode)
                 .json(response);
-
-            return;
         }
 
-        const response = new InternalRouteFailure();
+        const response = new NoContentRouteSuccess();
 
         res
-            .status(InternalRouteFailure.statusCode)
+            .status(NoContentRouteSuccess.statusCode)
             .json(response);
+
+        return;
     },
 );
 

@@ -1,5 +1,5 @@
 export interface Session {
-    readonly sessionId: String;
+    readonly id: String;
     readonly userId: String;
     readonly creationDate: String;
 }

@@ -1,4 +1,4 @@
-export interface Empty {}
+export interface Empty { }
 
 export class Success<D> {
     data: D;

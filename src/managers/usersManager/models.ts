@@ -13,3 +13,11 @@ export interface User {
         readonly tweetsCount: Number;
     };
 }
+
+export interface UserViewerMeta {
+    follower: Boolean;
+}
+
+export interface ViewableUser {
+    viewerMeta: UserViewerMeta;
+}

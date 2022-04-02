@@ -1,17 +1,19 @@
-import { User } from "../models";
+import { ViewableUser } from "../models";
 
 export interface Follower {
-    readonly followerId: String;
+    readonly id: String;
+    readonly creationDate: String;
 }
 
-export interface EnrichedFollower extends Follower {
-    readonly follower: User;
+export interface ViewableFollower extends Follower {
+    readonly user: ViewableUser;
 }
 
 export interface Following {
-    readonly followingId: String;
+    readonly id: String;
+    readonly creationDate: String;
 }
 
-export interface EnrichedFollowing extends Following {
-    readonly following: User;
+export interface ViewableFollowing extends Following {
+    readonly user: ViewableUser;
 }

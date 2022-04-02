@@ -1,16 +1,18 @@
 import { Router, Request, Response } from "express";
-import Joi, { link } from "joi";
-import { SessionsManager } from "../../../../managers/sessionManager/sessionsManager";
-import { TweetsManager } from "../../../../managers/tweetsManager/tweetsManager";
+import Joi from "joi";
+import { TweetsManager } from "../../../../managers/usersManager/tweetsManager/tweetsManager";
 import { BookmarksManager } from "../../../../managers/usersManager/bookmarksManager/bookmarksManager";
-import { CreateBookmarkFailure, DeleteBookmarkFailure } from "../../../../managers/usersManager/bookmarksManager/types";
-import { Failure, Success } from "../../../../utils/typescriptx/typescriptx";
+import { BookmarksFeedFailure, CreateBookmarkFailure, DeleteBookmarkFailure } from "../../../../managers/usersManager/bookmarksManager/types";
+import { Failure } from "../../../../utils/typescriptx/typescriptx";
 import { CreatedRouteSuccess, InternalRouteFailure, NoContentRouteSuccess, NoResourceRouteFailure, OkRouteSuccess, SemanticRouteFailure } from "../../../core/types";
 import paginated from "../../../middlewares/paginated/paginated";
 import {
     GroundZero,
     soldier
 } from "../../../middlewares/soldier/soldier";
+import { SessionizedRequest } from "../../../core/override";
+import { Paginated } from "../../../../managers/core/types";
+import { Bookmark } from "../../../../managers/usersManager/bookmarksManager/models";
 
 const bookmarks = Router();
 
@@ -18,42 +20,38 @@ bookmarks.get(
     "/",
     paginated(),
     async (req: Request, res: Response) => {
-        const { authorization: sessionId } = req.headers;
+        const session = (req as SessionizedRequest).session;
+        const { nextToken, limit } = req.query;
 
-        const { nextToken, limit } = req.params;
-
-        const session = await SessionsManager.shared.session({
-            sessionId: sessionId as String,
-        });
-
-        if (session === null) {
-            const response = new InternalRouteFailure();
-
-            res
-                .status(InternalRouteFailure.statusCode)
-                .json(response);
-
-            return;
-        }
-
-        const bookmarks = await BookmarksManager.shared.bookmarks({
+        const bookmarksFeedResult = await BookmarksManager.shared.bookmarksFeed({
             authorId: session.userId,
             nextToken: nextToken !== undefined ? nextToken as String : undefined,
             limit: limit !== undefined ? limit as unknown as Number : undefined,
         });
 
-        if (bookmarks === null) {
-            const response = new InternalRouteFailure();
+        if (bookmarksFeedResult instanceof Failure) {
+            switch (bookmarksFeedResult.reason) {
+                default: {
+                    const response = new InternalRouteFailure();
 
-            res
-                .status(InternalRouteFailure.statusCode)
-                .json(response);
+                    res
+                        .status(InternalRouteFailure.statusCode)
+                        .json(response);
 
-            return;
+                    return;
+                }
+            }
+
         }
 
-        // TOOD: Enrich
-        const response = new OkRouteSuccess(bookmarks);
+
+        // TOOD: Make viewable
+        const paginatedBookmarks = new Paginated<Bookmark>({
+            page: bookmarksFeedResult.data.page,
+            nextToken: bookmarksFeedResult.data.nextToken
+        });
+
+        const response = new OkRouteSuccess(paginatedBookmarks);
 
         res
             .status(OkRouteSuccess.statusCode)
@@ -70,61 +68,48 @@ bookmarks.post(
         groundZero: GroundZero.body,
     }),
     async (req: Request, res: Response) => {
-        const { authorization: sessionId } = req.headers;
         const { tweetId } = req.body;
 
-        const session = await SessionsManager.shared.session({
-            sessionId: sessionId as String,
-        });
+        const session = (req as SessionizedRequest).session;
 
-        if (session === null) {
-            const response = new InternalRouteFailure();
-
-            res
-                .status(InternalRouteFailure.statusCode)
-                .json(response);
-
-            return;
-        }
-
-        const isTweetExists = await TweetsManager.shared.exits({
-            tweetId: tweetId
-        });
-
-        if (!isTweetExists) {
-            const response = new NoResourceRouteFailure();
-
-            res
-                .status(NoResourceRouteFailure.statusCode)
-                .json(response);
-
-            return;
-        }
-
-        const result = await BookmarksManager.shared.createBookmark({
+        const createBookmarkResult = await BookmarksManager.shared.createBookmark({
             authorId: session.userId,
             tweetId: tweetId
         });
 
-        if (result instanceof Failure) {
-            if (result.reason === CreateBookmarkFailure.ALREADY_EXISTS) {
-                const response = new SemanticRouteFailure();
+        if (createBookmarkResult instanceof Failure) {
+            switch (createBookmarkResult.reason) {
+                case CreateBookmarkFailure.TWEET_DOES_NOT_EXISTS:
+                case CreateBookmarkFailure.AUTHOR_DOES_NOT_EXISTS: {
+                    const response = new NoResourceRouteFailure();
 
-                res
-                    .status(SemanticRouteFailure.statusCode)
-                    .json(response);
+                    res
+                        .status(NoResourceRouteFailure.statusCode)
+                        .json(response);
+
+                    return;
+                }
+                case CreateBookmarkFailure.BOOKMARK_ALREADY_EXISTS: {
+                    const response = new SemanticRouteFailure();
+
+                    res
+                        .status(SemanticRouteFailure.statusCode)
+                        .json(response);
+
+                    return;
+                }
+                default:
+                    const response = new InternalRouteFailure();
+
+                    res
+                        .status(InternalRouteFailure.statusCode)
+                        .json(response);
+
+                    return;
             }
-
-            const response = new InternalRouteFailure();
-
-            res
-                .status(InternalRouteFailure.statusCode)
-                .json(response);
-
-            return;
         }
 
-        const response = new CreatedRouteSuccess(result.data);
+        const response = new CreatedRouteSuccess(createBookmarkResult.data);
 
         res
             .status(CreatedRouteSuccess.statusCode)
@@ -133,55 +118,40 @@ bookmarks.post(
 );
 
 bookmarks.delete(
-    "/",
+    "/:bookmarkId",
     soldier({
         schema: Joi.object({
             bookmarkId: Joi.string().required(),
         }),
-        groundZero: GroundZero.query,
+        groundZero: GroundZero.parameters,
     }),
     async (req: Request, res: Response) => {
-        const { authorization: sessionId } = req.headers;
+        const session = (req as SessionizedRequest).session;
         const { bookmarkId } = req.body;
 
-        const session = await SessionsManager.shared.session({
-            sessionId: sessionId as String,
-        });
-
-        if (session === null) {
-            const response = new InternalRouteFailure();
-
-            res
-                .status(InternalRouteFailure.statusCode)
-                .json(response);
-
-            return;
-        }
-
-        const result = await BookmarksManager.shared.deleteBookmark({
+        const deleteBookmarkResult = await BookmarksManager.shared.deleteBookmark({
             authorId: session.userId,
             bookmarkId: bookmarkId as String,
         });
 
-        if (result instanceof Failure) {
-            switch (result.reason) {
-                case DeleteBookmarkFailure.DOES_NOT_EXISTS: {
+        if (deleteBookmarkResult instanceof Failure) {
+            switch (deleteBookmarkResult.reason) {
+                case DeleteBookmarkFailure.BOOKMARK_DOES_NOT_EXISTS: {
                     const response = new NoResourceRouteFailure();
 
                     res
                         .status(NoResourceRouteFailure.statusCode)
                         .json(response);
-    
+
                     return;
                 }
                 default: {
-
                     const response = new InternalRouteFailure();
 
                     res
                         .status(InternalRouteFailure.statusCode)
                         .json(response);
-        
+
                     return;
                 }
             }

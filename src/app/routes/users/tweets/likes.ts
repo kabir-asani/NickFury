@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import Joi from "joi";
-import paginated from "../../middlewares/paginated/paginated";
-import { GroundZero, soldier } from "../../middlewares/soldier/soldier";
+import paginated from "../../../middlewares/paginated/paginated";
+import { GroundZero, soldier } from "../../../middlewares/soldier/soldier";
 
 const likes = Router();
 

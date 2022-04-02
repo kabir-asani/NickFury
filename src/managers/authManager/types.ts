@@ -1,31 +1,11 @@
-import { Session } from "../sessionManager/models";
-
-class AuthManagerSuccess { }
-class AuthManagerFailure { }
-
 // Log In
-export class LogInSuccess extends AuthManagerSuccess {
-    readonly session: Session;
-
-    constructor(parameters: {
-        session: Session;
-    }) {
-        super();
-        this.session = parameters.session;
-    }
+export enum LogInFailure {
+    UNKNOWN,
+    INCORRECT_AUTH_PROVIDER,
+    INCORECT_ACCESS_TOKEN,
 }
 
-export abstract class LogInFailure extends AuthManagerFailure { }
-
-export class UnknownLogInFailure extends AuthManagerFailure { }
-
-export class UnknownAuthProvider extends LogInFailure { }
-
-export class IncorrectAccessTokenFailure extends LogInFailure { }
-
 // Log Out
-export class LogOutSuccess extends AuthManagerSuccess { }
-
-export abstract class LogOutFailure extends AuthManagerFailure { }
-
-export class UnknownLogOutFailure extends LogOutFailure { }
+export enum LogOutFailure {
+    UNKNOWN
+}
