@@ -5,6 +5,7 @@ import { BookmarkFeedAssistant } from './feeds/bookmarkFeed/bookmarkFeed';
 import { UserFeedAssistant } from './feeds/userFeed/userFeed';
 import { TimelineFeedAssistant } from './feeds/timelineFeed/timelineFeed';
 import { LikeReactionAssistant } from './reactions/likeReaction/likeReaction';
+import { CommentReactionAssistant } from './reactions/commentReaction/commentReaction';
 
 export class StreamAssistant {
     public static readonly shared = new StreamAssistant();
@@ -16,6 +17,7 @@ export class StreamAssistant {
     readonly bookmarkFeed: BookmarkFeedAssistant;
 
     readonly likeReactions: LikeReactionAssistant;
+    readonly commentReactions: CommentReactionAssistant;
 
     constructor() {
         this.client = Stream.connect(
@@ -36,6 +38,10 @@ export class StreamAssistant {
         });
 
         this.likeReactions = new LikeReactionAssistant({
+            client: this.client
+        });
+
+        this.commentReactions = new CommentReactionAssistant({
             client: this.client
         });
     }
