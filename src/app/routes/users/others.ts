@@ -11,38 +11,11 @@ import tweets from "./tweets/tweets";
 
 const others = Router();
 
-others.use(
-    "/followers",
-    soldier({
-        schema: Joi.object({
-            userId: Joi.string().required(),
-        }),
-        groundZero: GroundZero.parameters,
-    }),
-    followers,
-);
+others.use("/followers", followers);
 
-others.use(
-    "/followings",
-    soldier({
-        schema: Joi.object({
-            userId: Joi.string().required(),
-        }),
-        groundZero: GroundZero.parameters,
-    }),
-    followings,
-);
+others.use("/followings", followings);
 
-others.use(
-    "/tweets",
-    soldier({
-        schema: Joi.object({
-            userId: Joi.string().required(),
-        }),
-        groundZero: GroundZero.parameters,
-    }),
-    tweets,
-);
+others.use("/tweets", tweets);
 
 others.get(
     "/",

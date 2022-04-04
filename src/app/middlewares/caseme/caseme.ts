@@ -8,5 +8,5 @@ export const caseme = (): TxMiddleware => async (req, res, next) => {
     const camelizedBody = camelCasize(req.body);
     req.body = camelizedBody;
 
-    next();
+    return next();
 }

@@ -15,6 +15,28 @@ const followers = Router({
     mergeParams: true
 });
 
+followers.use((req, res, next) => {
+    switch (req.method) {
+        case "DELETE": {
+            const { userId } = req.params;
+
+            if (userId !== undefined) {
+                const response = new NoResourceRouteFailure();
+
+                res
+                    .status(NoResourceRouteFailure.statusCode)
+                    .json(response);
+
+                return;
+            }
+
+            return next();
+        }
+        default:
+            return next();
+    }
+});
+
 followers.get(
     "/",
     paginated(),
@@ -25,7 +47,7 @@ followers.get(
 
         const followersResult = await SocialsManager.shared.followers({
             userId: userId || session.userId,
-            limit: limit !== undefined ? limit as unknown as Number : undefined,
+            limit: limit !== undefined ? Number(limit) : undefined,
             nextToken: nextToken !== undefined ? nextToken as unknown as String : undefined,
         });
 

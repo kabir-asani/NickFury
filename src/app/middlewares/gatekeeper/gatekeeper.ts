@@ -48,6 +48,6 @@ export const gatekeeper = (): TxMiddleware[] => [
         const sessionizedRequest = req as unknown as SessionizedRequest;
         sessionizedRequest.session = sessionResult.data;
 
-        next();
+        return next();
     }
 ];

@@ -1,6 +1,8 @@
 import express, { json } from "express";
+import Joi from "joi";
 import { caseme } from "./middlewares/caseme/caseme";
 import { gatekeeper } from "./middlewares/gatekeeper/gatekeeper";
+import { soldier, GroundZero } from "./middlewares/soldier/soldier";
 import storyteller from "./middlewares/storyteller/storyteller";
 import sessions from "./routes/sessions/sessions";
 import others from "./routes/users/others";
@@ -27,7 +29,15 @@ app.use(
 
 app.use(
     "/users/:userId",
-    gatekeeper(),
+    [
+        ...gatekeeper(),
+        soldier({
+            schema: Joi.object({
+                userId: Joi.string().required(),
+            }),
+            groundZero: GroundZero.parameters,
+        }),
+    ],
     others
 );
 

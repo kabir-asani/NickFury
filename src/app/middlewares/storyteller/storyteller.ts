@@ -14,7 +14,7 @@ const storyteller = (): TxMiddleware => (req, res, next) => {
     logger(details);
     logger('----------------------------');
 
-    next();
+    return next();
 };
 
 export = storyteller;

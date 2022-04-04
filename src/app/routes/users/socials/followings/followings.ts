@@ -14,6 +14,29 @@ const followings = Router({
     mergeParams: true
 });
 
+followings.use((req, res, next) => {
+    switch (req.method) {
+        case "PUT":
+        case "DELETE": {
+            const { userId } = req.params;
+
+            if (userId !== undefined) {
+                const response = new NoResourceRouteFailure();
+
+                res
+                    .status(NoResourceRouteFailure.statusCode)
+                    .json(response);
+
+                return;
+            }
+
+            return next();
+        }
+        default:
+            return next();
+    }
+});
+
 followings.get(
     "/",
     async (req: Request, res: Response) => {
@@ -23,7 +46,7 @@ followings.get(
 
         const followingsResult = await SocialsManager.shared.followings({
             userId: userId || session.userId,
-            limit: limit !== undefined ? limit as unknown as Number : undefined,
+            limit: limit !== undefined ? Number(limit) : undefined,
             nextToken: nextToken !== undefined ? nextToken as unknown as String : undefined,
         });
 

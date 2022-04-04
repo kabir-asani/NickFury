@@ -1,8 +1,7 @@
 import { Router, Request, Response } from "express";
 import Joi from "joi";
-import { TweetsManager } from "../../../../managers/tweetsManager/tweetsManager";
 import { BookmarksManager } from "../../../../managers/usersManager/bookmarksManager/bookmarksManager";
-import { BookmarksFeedFailure, CreateBookmarkFailure, DeleteBookmarkFailure } from "../../../../managers/usersManager/bookmarksManager/types";
+import { CreateBookmarkFailure, DeleteBookmarkFailure } from "../../../../managers/usersManager/bookmarksManager/types";
 import { Failure } from "../../../../utils/typescriptx/typescriptx";
 import { CreatedRouteSuccess, InternalRouteFailure, NoContentRouteSuccess, NoResourceRouteFailure, OkRouteSuccess, SemanticRouteFailure } from "../../../core/types";
 import paginated from "../../../middlewares/paginated/paginated";
@@ -26,7 +25,7 @@ bookmarks.get(
         const bookmarksFeedResult = await BookmarksManager.shared.bookmarksFeed({
             authorId: session.userId,
             nextToken: nextToken !== undefined ? nextToken as String : undefined,
-            limit: limit !== undefined ? limit as unknown as Number : undefined,
+            limit: limit !== undefined ? Number(limit) : undefined,
         });
 
         if (bookmarksFeedResult instanceof Failure) {

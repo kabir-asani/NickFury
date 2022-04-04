@@ -17,7 +17,7 @@ timeline.get(
 
         const feedResult = await TimelineManager.shared.feed({
             userId: session.userId,
-            limit: limit !== undefined ? limit as unknown as Number : undefined,
+            limit: limit !== undefined ? Number(limit) : undefined,
             nextToken: nextToken !== undefined ? nextToken as unknown as String : undefined,
         });
 
