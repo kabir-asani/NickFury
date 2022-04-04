@@ -1,10 +1,9 @@
 import { Router, Request, Response } from "express";
 import Joi from "joi";
-import { AddLikeFailure } from "../../../../assistants/stream/reactions/likeReaction/types";
 import { Paginated } from "../../../../managers/core/types";
 import { LikesManager } from "../../../../managers/tweetsManager/likesManager/likesManager";
 import { Like } from "../../../../managers/tweetsManager/likesManager/models";
-import { CreateLikeFailure, LikeFailure, LikesFeedFailure } from "../../../../managers/tweetsManager/likesManager/types";
+import { AddLikeFailure, LikesFeedFailure } from "../../../../managers/tweetsManager/likesManager/types";
 import { Failure } from "../../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../../core/override";
 import { InternalRouteFailure, NoResourceRouteFailure, OkRouteSuccess, SemanticRouteFailure } from "../../../core/types";
@@ -23,7 +22,7 @@ likes.get(
 
         const likesFeedResult = await LikesManager.shared.likesList({
             tweetId: tweetId,
-            limit: limit !== undefined ? limit as unknown as Number : undefined,
+            limit: limit !== undefined ? Number(limit) : undefined,
             nextToken: nextToken !== undefined ? nextToken as unknown as String : undefined,
         });
 
@@ -64,29 +63,21 @@ likes.get(
     }
 );
 
-likes.post(
+likes.put(
     '/',
     async (req: Request, res: Response) => {
         const session = (req as SessionizedRequest).session;
         const { tweetId } = req.params;
 
-        const addLikeResult = await LikesManager.shared.createLike({
+        const addLikeResult = await LikesManager.shared.addLike({
             authorId: session.userId,
             tweetId: tweetId
         });
 
         if (addLikeResult instanceof Failure) {
             switch (addLikeResult.reason) {
-                case CreateLikeFailure.TWEET_DOES_NOT_EXISTS: {
-                    const response = new NoResourceRouteFailure();
-
-                    res
-                        .status(NoResourceRouteFailure.statusCode)
-                        .json(response);
-
-                    return;
-                }
-                case CreateLikeFailure.LIKE_ALREADY_EXISTS: {
+                case AddLikeFailure.TWEET_DOES_NOT_EXISTS:
+                case AddLikeFailure.LIKE_ALREADY_EXISTS: {
                     const response = new SemanticRouteFailure();
 
                     res

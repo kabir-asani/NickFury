@@ -40,6 +40,11 @@ export class TweetsManager {
         text: String;
         authorId: String;
     }): Promise<Success<Tweet> | Failure<CreateTweetFailure>> {
+        if (parameters.text.length <= 0 || parameters.text.length > 280) {
+            const result = new Failure<CreateTweetFailure>(CreateTweetFailure.MALFORMED_TWEET);
+            return result;
+        }
+
         const isAuthorExists = await UsersManager.shared.exists({
             userId: parameters.authorId
         });
@@ -71,7 +76,8 @@ export class TweetsManager {
             creationDate: Dately.shared.now(),
             authorId: parameters.authorId.valueOf(),
             meta: {
-                likesCount: 0
+                likesCount: 0,
+                commentsCount: 0
             },
         };
 

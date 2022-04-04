@@ -14,6 +14,7 @@ export enum TweetsFeedFailure {
 export enum CreateTweetFailure {
     UNKNOWN,
     AUTHOR_DOES_NOT_EXISTS,
+    MALFORMED_TWEET
 }
 
 // Delete Tweet

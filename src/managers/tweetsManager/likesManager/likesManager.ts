@@ -8,7 +8,7 @@ import { UsersManager } from "../../usersManager/usersManager";
 import { Tweet } from "../models";
 import { TweetsManager } from "../tweetsManager";
 import { Like } from "./models";
-import { CreateLikeFailure, DeleteLikeFailure, LikeFailure, LikesFeedFailure } from "./types";
+import { AddLikeFailure, RemoveLikeFailure, LikeFailure, LikesFeedFailure } from "./types";
 
 export class LikesManager {
     public static readonly shared = new LikesManager();
@@ -77,16 +77,16 @@ export class LikesManager {
         return false;
     }
 
-    async createLike(parameters: {
+    async addLike(parameters: {
         tweetId: String;
         authorId: String;
-    }): Promise<Success<Like> | Failure<CreateLikeFailure>> {
+    }): Promise<Success<Like> | Failure<AddLikeFailure>> {
         const isTweetExists = await TweetsManager.shared.exits({
             tweetId: parameters.tweetId.valueOf(),
         });
 
         if (!isTweetExists) {
-            const result = new Failure<CreateLikeFailure>(CreateLikeFailure.TWEET_DOES_NOT_EXISTS);
+            const result = new Failure<AddLikeFailure>(AddLikeFailure.TWEET_DOES_NOT_EXISTS);
             return result;
         }
 
@@ -95,7 +95,7 @@ export class LikesManager {
         });
 
         if (!isAuthorExists) {
-            const result = new Failure<CreateLikeFailure>(CreateLikeFailure.AUTHOR_DOES_NOT_EXISTS);
+            const result = new Failure<AddLikeFailure>(AddLikeFailure.AUTHOR_DOES_NOT_EXISTS);
             return result;
         }
 
@@ -107,7 +107,7 @@ export class LikesManager {
         });
 
         if (isLikeExists) {
-            const result = new Failure<CreateLikeFailure>(CreateLikeFailure.LIKE_ALREADY_EXISTS);
+            const result = new Failure<AddLikeFailure>(AddLikeFailure.LIKE_ALREADY_EXISTS);
             return result;
         }
 
@@ -116,7 +116,7 @@ export class LikesManager {
         });
 
         if (addLikeResult instanceof Failure) {
-            const result = new Failure<CreateLikeFailure>(CreateLikeFailure.UNKNOWN);
+            const result = new Failure<AddLikeFailure>(AddLikeFailure.UNKNOWN);
             return result;
         }
 
@@ -141,7 +141,8 @@ export class LikesManager {
                 const updatedTweet: Tweet = {
                     ...tweet,
                     meta: {
-                        likesCount: tweet.meta.likesCount.valueOf() + 1
+                        ...tweet.meta,
+                        likesCount: tweet.meta.likesCount.valueOf() + 1,
                     }
                 };
 
@@ -161,7 +162,7 @@ export class LikesManager {
             const result = new Success<Like>(like);
             return result;
         } catch {
-            const result = new Failure<CreateLikeFailure>(CreateLikeFailure.UNKNOWN);
+            const result = new Failure<AddLikeFailure>(AddLikeFailure.UNKNOWN);
             return result;
         }
     }
@@ -245,9 +246,9 @@ export class LikesManager {
         return result;
     }
 
-    async deleteLike(parameters: {
+    async removeLike(parameters: {
         likeId: String;
-    }): Promise<Success<Empty> | Failure<DeleteLikeFailure>> {
+    }): Promise<Success<Empty> | Failure<RemoveLikeFailure>> {
         const likesCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.likes);
 
         const likesQuery = likesCollectionRef.where(
@@ -260,7 +261,7 @@ export class LikesManager {
             const snapshot = await likesQuery.get();
 
             if (snapshot.empty) {
-                const result = new Failure<DeleteLikeFailure>(DeleteLikeFailure.LIKE_DOES_NOT_EXISTS);
+                const result = new Failure<RemoveLikeFailure>(RemoveLikeFailure.LIKE_DOES_NOT_EXISTS);
                 return result;
             }
 
@@ -272,7 +273,7 @@ export class LikesManager {
             });
 
             if (removeLikeResult instanceof Failure) {
-                const result = new Failure<DeleteLikeFailure>(DeleteLikeFailure.UNKNOWN);
+                const result = new Failure<RemoveLikeFailure>(RemoveLikeFailure.UNKNOWN);
                 return result;
             }
 
@@ -286,7 +287,8 @@ export class LikesManager {
                 const updatedTweet: Tweet = {
                     ...tweet,
                     meta: {
-                        likesCount: tweet.meta.likesCount.valueOf() + 1
+                        ...tweet.meta,
+                        likesCount: tweet.meta.likesCount.valueOf() - 1,
                     }
                 };
 
@@ -305,7 +307,7 @@ export class LikesManager {
             const result = new Success<Empty>({});
             return result;
         } catch {
-            const result = new Failure<DeleteLikeFailure>(DeleteLikeFailure.UNKNOWN);
+            const result = new Failure<RemoveLikeFailure>(RemoveLikeFailure.UNKNOWN);
             return result;
         }
     }

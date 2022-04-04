@@ -8,6 +8,7 @@ export interface Tweet {
     readonly authorId: String;
     readonly meta: {
         readonly likesCount: Number;
+        readonly commentsCount: Number;
     }
 }
 
