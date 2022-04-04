@@ -1,7 +1,7 @@
 // Like
 export enum LikeFailure {
     UNKNOWN,
-    LIKE_DOES_NOT_EXISTS
+    LIKE_DOES_NOT_EXISTS,
 }
 
 // LikeFeed
@@ -13,8 +13,8 @@ export enum LikesFeedFailure {
 // CreateLike
 export enum CreateLikeFailure {
     UNKNOWN,
-    AUTHOR_DOES_NOT_EXISTS,
     TWEET_DOES_NOT_EXISTS,
+    AUTHOR_DOES_NOT_EXISTS,
     LIKE_ALREADY_EXISTS,
 }
 

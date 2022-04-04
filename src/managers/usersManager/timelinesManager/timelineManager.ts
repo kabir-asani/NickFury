@@ -1,8 +1,8 @@
 import { StreamAssistant } from "../../../assistants/stream/stream";
 import { Failure, Success } from "../../../utils/typescriptx/typescriptx";
 import { Paginated, PaginationQuery } from "../../core/types";
-import { EnrichedTweet, Tweet } from "../tweetsManager/models";
-import { TweetsManager } from "../tweetsManager/tweetsManager";
+import { Tweet } from "../../tweetsManager/models";
+import { TweetsManager } from "../../tweetsManager/tweetsManager";
 import { UsersManager } from "../usersManager";
 import { TimelineFeedFailure as TimelineFeedFailure } from "./types";
 
@@ -11,7 +11,7 @@ export class TimelineManager {
 
     async feed(parameters: {
         userId: String;
-    } & PaginationQuery): Promise<Success<Paginated<EnrichedTweet>> | Failure<TimelineFeedFailure>> {
+    } & PaginationQuery): Promise<Success<Paginated<Tweet>> | Failure<TimelineFeedFailure>> {
         const isUserExists = await UsersManager.shared.exists({
             userId: parameters.userId
         });
@@ -28,11 +28,10 @@ export class TimelineManager {
         });
 
         if (activities !== null) {
-            const tweets: EnrichedTweet[] = [];
+            const tweets: Tweet[] = [];
 
             for (const partialTweet of activities.page) {
                 const tweetResult = await TweetsManager.shared.tweet({
-                    authorId: partialTweet.authorId,
                     tweetId: partialTweet.tweetId,
                 });
 
@@ -44,12 +43,12 @@ export class TimelineManager {
                 tweets.push(tweetResult.data);
             }
 
-            const timeline = new Paginated<EnrichedTweet>({
+            const timeline = new Paginated<Tweet>({
                 page: tweets,
                 nextToken: activities?.nextToken,
             });
 
-            const result = new Success<Paginated<EnrichedTweet>>(timeline);
+            const result = new Success<Paginated<Tweet>>(timeline);
             return result;
         }
 

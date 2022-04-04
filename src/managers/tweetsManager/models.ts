@@ -1,4 +1,4 @@
-import { User } from "../models";
+import { User, ViewableUser } from "../usersManager/models";
 
 export interface Tweet {
     readonly id: String;
@@ -11,15 +11,12 @@ export interface Tweet {
     }
 }
 
-export interface EnrichedTweet extends Tweet {
-    readonly author: User;
-}
-
 export interface TweetViewerMeta {
     liked: Boolean;
     bookmarked: Boolean;
 }
 
-export interface ViewableTweet extends EnrichedTweet {
+export interface ViewableTweet extends Tweet {
+    readonly author: ViewableUser;
     readonly viewerMeta: TweetViewerMeta;
 }

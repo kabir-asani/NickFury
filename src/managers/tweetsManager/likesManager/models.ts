@@ -1,4 +1,4 @@
-import { ViewableUser } from "../../models";
+import { ViewableUser } from "../../usersManager/models";
 
 export interface Like {
     readonly id: String;

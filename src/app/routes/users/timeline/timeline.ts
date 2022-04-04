@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { Paginated } from "../../../../managers/core/types";
+import { Tweet } from "../../../../managers/tweetsManager/models";
 import { TimelineManager } from "../../../../managers/usersManager/timelinesManager/timelineManager";
-import { EnrichedTweet } from "../../../../managers/usersManager/tweetsManager/models";
 import { Failure } from "../../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../../core/override";
 import { InternalRouteFailure, OkRouteSuccess } from "../../../core/types";
@@ -36,7 +36,7 @@ timeline.get(
         }
 
         // TODO: Make viewable
-        const paginatedFeed = new Paginated<EnrichedTweet>({
+        const paginatedFeed = new Paginated<Tweet>({
             page: feedResult.data.page,
             nextToken: feedResult.data.nextToken,
         });

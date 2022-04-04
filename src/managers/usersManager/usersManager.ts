@@ -4,7 +4,7 @@ import * as uuid from 'uuid';
 import { DatabaseAssistant } from "../../assistants/database/database";
 import { Dately } from '../../utils/dately/dately';
 import { Empty, Failure, Success } from '../../utils/typescriptx/typescriptx';
-import { DatabaseCollections } from '../core/collections';
+import { TxCollections } from '../core/collections';
 import { ViewableUser, User, UserViewerMeta } from './models';
 import { SocialsManager } from './socialsManager/socialsManager';
 import { CreateUserFailure, UpdateUserFailure, UserExternalsFailure, UserFailure } from './types';
@@ -23,7 +23,7 @@ export class UsersManager {
         );
 
         if (parameters.userId !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
             const documentRef = collectionRef.doc(parameters.userId.valueOf());
             const document = await documentRef.get();
 
@@ -35,7 +35,7 @@ export class UsersManager {
         }
 
         if (parameters.username !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
             const query = collectionRef.where(
                 "username",
                 "==",
@@ -52,7 +52,7 @@ export class UsersManager {
         }
 
         if (parameters.email !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
             const query = collectionRef.where(
                 "email",
                 "==",
@@ -104,7 +104,7 @@ export class UsersManager {
             },
         };
 
-        const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+        const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
         const documentRef = collectionRef.doc(user.id.valueOf());
 
         try {
@@ -134,7 +134,7 @@ export class UsersManager {
 
 
         if (parameters.userId !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
             const documentRef = collectionRef.doc(parameters.userId.valueOf());
             const document = await documentRef.get();
 
@@ -150,7 +150,7 @@ export class UsersManager {
         }
 
         if (parameters.username !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
             const query = collectionRef.where(
                 "username",
                 "==",
@@ -171,7 +171,7 @@ export class UsersManager {
         }
 
         if (parameters.email !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
             const query = collectionRef.where(
                 "email",
                 "==",
@@ -199,7 +199,7 @@ export class UsersManager {
         userId: String;
         update: (currentUser: User) => User;
     }): Promise<Success<User> | Failure<UpdateUserFailure>> {
-        const collectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+        const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
         const documentRef = collectionRef.doc(parameters.userId.valueOf());
         const document = await documentRef.get();
 

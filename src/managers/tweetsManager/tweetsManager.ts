@@ -1,15 +1,14 @@
-import { UserMetadata } from 'firebase-admin/lib/auth/user-record';
 import * as uuid from 'uuid';
 
-import { DatabaseAssistant } from "../../../assistants/database/database";
-import { StreamAssistant } from '../../../assistants/stream/stream';
-import { Dately } from '../../../utils/dately/dately';
-import { Empty, Failure, Success } from '../../../utils/typescriptx/typescriptx';
-import { DatabaseCollections } from "../../core/collections";
-import { Paginated, PaginationQuery } from '../../core/types';
-import { User } from '../models';
-import { UsersManager } from '../usersManager';
-import { EnrichedTweet, Tweet } from "./models";
+import { DatabaseAssistant } from "../../assistants/database/database";
+import { StreamAssistant } from '../../assistants/stream/stream';
+import { Dately } from '../../utils/dately/dately';
+import { Empty, Failure, Success } from '../../utils/typescriptx/typescriptx';
+import { TxCollections } from "../core/collections";
+import { Paginated, PaginationQuery } from '../core/types';
+import { User } from '../usersManager/models';
+import { UsersManager } from '../usersManager/usersManager';
+import { Tweet } from "./models";
 import { CreateTweetFailure, DeleteTweetFailure, TweetsFeedFailure as TweetsFeedFailure, TweetFailure } from "./types";
 
 // In all of the functions below, we're assuming that a user 
@@ -19,23 +18,18 @@ export class TweetsManager {
     public static readonly shared = new TweetsManager();
 
     async exits(parameters: {
-        tweetId: String
+        tweetId: String,
     }): Promise<Boolean> {
-        // References
-        const tweetsCollectionRef = DatabaseAssistant.shared.collectionGroup(DatabaseCollections.tweets);
-        const tweetsQuery = tweetsCollectionRef.where(
-            "id",
-            "==",
-            parameters.tweetId
-        ).limit(1);
+        const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxCollections.tweets);
+        const tweetDocumentRef = tweetsCollectionRef.doc(parameters.tweetId.valueOf());
 
         try {
-            const tweetsQuerySnapshot = await tweetsQuery.get();
+            const tweetDocument = await tweetDocumentRef.get();
 
-            if (tweetsQuerySnapshot.empty) {
-                return false;
-            } else {
+            if (tweetDocument.exists) {
                 return true;
+            } else {
+                return false;
             }
         } catch {
             return false;
@@ -61,8 +55,8 @@ export class TweetsManager {
             .shared
             .userFeed
             .createTweetActivity({
-                complimentaryTweetId: complimentaryTweetId,
                 authorId: parameters.authorId,
+                complimentaryTweetId: complimentaryTweetId,
             });
 
         if (createTweetActivityResult instanceof Failure) {
@@ -84,10 +78,10 @@ export class TweetsManager {
         try {
             await DatabaseAssistant.shared.runTransaction(async (transaction) => {
                 // References
-                const usersCollectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+                const usersCollectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
                 const userDocumentRef = usersCollectionRef.doc(parameters.authorId.valueOf());
 
-                const tweetsCollectionRef = userDocumentRef.collection(DatabaseCollections.tweets);
+                const tweetsCollectionRef = userDocumentRef.collection(TxCollections.tweets);
                 const tweetDocumentRef = tweetsCollectionRef.doc(tweet.id.valueOf());
 
                 const userDocument = await userDocumentRef.get();
@@ -120,41 +114,25 @@ export class TweetsManager {
     }
 
     async tweet(parameters: {
-        authorId: String;
         tweetId: String;
-    }): Promise<Success<EnrichedTweet> | Failure<TweetFailure>> {
+    }): Promise<Success<Tweet> | Failure<TweetFailure>> {
         // References
-        const usersCollectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
-        const userDocumentRef = usersCollectionRef.doc(parameters.authorId.valueOf());
-
-        const tweetsCollectionRef = userDocumentRef.collection(DatabaseCollections.tweets);
+        const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxCollections.tweets);
         const tweetDocumentRef = tweetsCollectionRef.doc(parameters.tweetId.valueOf());
 
         // Action
         try {
-            const userDocument = await userDocumentRef.get();
             const tweetDocument = await tweetDocumentRef.get();
 
-            if (userDocument.exists) {
-                if (tweetDocument.exists) {
-                    const tweet = tweetDocument.data() as unknown as Tweet;
-                    const author = userDocument.data() as unknown as User;
-
-                    const enrichedTweet: EnrichedTweet = {
-                        ...tweet,
-                        author: author
-                    }
-
-                    const result = new Success<EnrichedTweet>(enrichedTweet);
-                    return result;
-                } else {
-                    const result = new Failure<TweetFailure>(TweetFailure.TWEET_DOES_NOT_EXISTS);
-                    return result;
-                }
-            } else {
-                const result = new Failure<TweetFailure>(TweetFailure.AUTHOR_DOES_NOT_EXISTS);
+            if (!tweetDocument.exists) {
+                const result = new Failure<TweetFailure>(TweetFailure.TWEET_DOES_NOT_EXISTS);
                 return result;
             }
+
+            const tweet = tweetDocument.data() as unknown as Tweet;
+
+            const result = new Success<Tweet>(tweet);
+            return result;
         } catch {
             const result = new Failure<TweetFailure>(TweetFailure.UNKNOWN);
             return result;
@@ -163,7 +141,7 @@ export class TweetsManager {
 
     async tweetsFeed(parameters: {
         authorId: String;
-    } & PaginationQuery): Promise<Success<Paginated<EnrichedTweet>> | Failure<TweetsFeedFailure>> {
+    } & PaginationQuery): Promise<Success<Paginated<Tweet>> | Failure<TweetsFeedFailure>> {
         const isAuthorExists = await UsersManager.shared.exists({
             userId: parameters.authorId
         });
@@ -173,22 +151,21 @@ export class TweetsManager {
             return result;
         }
 
-        const activities = await StreamAssistant.shared.userFeed.activities({
+        const tweetActivities = await StreamAssistant.shared.userFeed.activities({
             authorId: parameters.authorId,
             limit: parameters.limit,
             nextToken: parameters.nextToken,
         });
 
-        if (activities === null) {
+        if (tweetActivities === null) {
             const result = new Failure<TweetsFeedFailure>(TweetsFeedFailure.UNKNOWN);
             return result;
         }
 
-        const tweets: EnrichedTweet[] = [];
+        const tweets: Tweet[] = [];
 
-        for (const partialTweet of activities.page) {
+        for (const partialTweet of tweetActivities.page) {
             const tweetResult = await this.tweet({
-                authorId: partialTweet.authorId,
                 tweetId: partialTweet.tweetId,
             });
 
@@ -200,12 +177,12 @@ export class TweetsManager {
             tweets.push(tweetResult.data);
         }
 
-        const feed = new Paginated<EnrichedTweet>({
+        const feed = new Paginated<Tweet>({
             page: tweets,
-            nextToken: activities?.nextToken,
+            nextToken: tweetActivities?.nextToken,
         });
 
-        const result = new Success<Paginated<EnrichedTweet>>(feed);
+        const result = new Success<Paginated<Tweet>>(feed);
         return result;
     }
 
@@ -213,26 +190,22 @@ export class TweetsManager {
         tweetId: String;
     }): Promise<Success<Empty> | Failure<DeleteTweetFailure>> {
         // References
-        const tweetsCollectionRef = DatabaseAssistant.shared.collectionGroup(DatabaseCollections.tweets);
-        const tweetsQuery = tweetsCollectionRef.where(
-            "id",
-            "==",
-            parameters.tweetId
-        ).limit(1);
+        const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxCollections.tweets);
+        const tweetDocumentRef = tweetsCollectionRef.doc(parameters.tweetId.valueOf());
 
         try {
-            const tweetsQuerySnapshot = await tweetsQuery.get();
+            const tweetDocument = await tweetDocumentRef.get();
 
-            if (tweetsQuerySnapshot.empty) {
+            if (!tweetDocument.exists) {
                 const result = new Failure<DeleteTweetFailure>(DeleteTweetFailure.TWEET_DOES_NOT_EXISTS);
                 return result;
             }
 
-            const tweet = tweetsQuerySnapshot.docs[0].data() as unknown as Tweet;
+            const tweet = tweetDocument.data() as unknown as Tweet;
 
             const remoteTweetResult = await StreamAssistant.shared.userFeed.remoteTweetActivity({
                 authorId: tweet.authorId,
-                tweetId: tweet.id
+                tweetId: tweet.id,
             });
 
             if (remoteTweetResult instanceof Failure) {
@@ -240,35 +213,35 @@ export class TweetsManager {
                 return result;
             }
 
-            // References
-            const usersCollectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
-            const userDocumentRef = usersCollectionRef.doc(tweet.authorId.valueOf());
+            await DatabaseAssistant.shared.runTransaction(async (transaction) => {
+                const usersCollectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+                const userDocumentRef = usersCollectionRef.doc(tweet.authorId.valueOf());
 
-            try {
                 const userDocument = await userDocumentRef.get();
                 const user = userDocument.data() as unknown as User;
-
-                await userDocumentRef.update({
+                const updatedUser: User = {
+                    ...user,
                     tweetsDetails: {
                         tweetsCount: Math.max(
                             0,
                             user.tweetsDetails.tweetsCount.valueOf() - 1
                         ),
                     },
-                });
+                }
 
-                // * Not deleting tweet from DB. Data might be useful later on. *
+                transaction.update(
+                    userDocumentRef,
+                    updatedUser
+                );
+            });
 
-                const result = new Success<Empty>({});
-                return result;
-            } catch {
-                const result = new Failure<DeleteTweetFailure>(DeleteTweetFailure.UNKNOWN);
-                return result;
-            }
+            // * Not deleting tweet from DB. Data might be useful later on. *
+
+            const result = new Success<Empty>({});
+            return result;
         } catch {
             const result = new Failure<DeleteTweetFailure>(DeleteTweetFailure.UNKNOWN);
             return result;
         }
-
     }
 }

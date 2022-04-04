@@ -1,4 +1,4 @@
-import { ViewableTweet } from "../tweetsManager/models";
+import { ViewableTweet } from "../../tweetsManager/models";
 
 export interface Bookmark {
     readonly id: String;

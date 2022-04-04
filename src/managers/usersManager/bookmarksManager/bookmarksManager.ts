@@ -2,9 +2,9 @@ import { assert } from "console";
 import { DatabaseAssistant } from "../../../assistants/database/database";
 import { StreamAssistant } from "../../../assistants/stream/stream";
 import { Empty, Failure, Success } from "../../../utils/typescriptx/typescriptx";
-import { DatabaseCollections } from "../../core/collections";
+import { TxCollections } from "../../core/collections";
 import { Paginated, PaginationQuery } from "../../core/types";
-import { TweetsManager } from "../tweetsManager/tweetsManager";
+import { TweetsManager } from "../../tweetsManager/tweetsManager";
 import { UsersManager } from "../usersManager";
 import { Bookmark } from "./models";
 import { BookmarkFailure, BookmarksFeedFailure, CreateBookmarkFailure, DeleteBookmarkFailure } from "./types";
@@ -13,71 +13,93 @@ export class BookmarksManager {
     public static readonly shared = new BookmarksManager();
 
     async exists(parameters: {
-        authorId?: String;
-        tweetId?: String;
+        bookmark?: {
+            tweetId: String;
+            authorId: String;
+        },
         bookmarkId?: String;
     }): Promise<Boolean> {
         assert(
-            parameters.bookmarkId !== undefined || (parameters.tweetId !== undefined && parameters.authorId !== undefined),
-            "One of bookmarkId or tweetId should be present"
+            parameters.bookmarkId !== undefined || parameters.bookmark !== undefined,
+            "One of bookmarkId or bookmark should be present"
         );
 
-        try {
-            if (parameters.bookmarkId !== undefined) {
-                const collectionRef = DatabaseAssistant.shared.collectionGroup(DatabaseCollections.bookmarks);
+        const bookmarksCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.bookmarks);
 
-                const query = collectionRef.where(
-                    "id",
-                    "==",
-                    parameters.bookmarkId,
-                ).limit(1);
+        if (parameters.bookmarkId !== undefined) {
+            const bookmarksQuery = bookmarksCollectionRef.where(
+                "id",
+                "==",
+                parameters.bookmarkId.valueOf(),
+            ).limit(1);
 
-                const querySnapshot = await query.get();
+            try {
+                const snapshot = await bookmarksQuery.get();
 
-                if (querySnapshot.empty) {
+                if (snapshot.empty) {
                     return false;
-                } else {
-                    return true;
                 }
+
+                return true;
+            } catch {
+                return false;
             }
-
-            if (parameters.tweetId !== undefined && parameters.authorId) {
-                const collectionRef = DatabaseAssistant.shared.collection(
-                    DatabaseCollections.users +
-                    "/" +
-                    parameters.authorId.valueOf() +
-                    "/" +
-                    DatabaseCollections.bookmarks
-                );
-
-                const query = collectionRef.where(
-                    "tweetId",
-                    "==",
-                    parameters.tweetId.valueOf(),
-                );
-
-                const querySnapshot = await query.get();
-
-                if (querySnapshot.empty) {
-                    return false;
-                } else {
-                    return true;
-                }
-            }
-
-            return false;
-        } catch {
-            return false;
         }
+
+        if (parameters.bookmark !== undefined) {
+            const bookmarksQuery = bookmarksCollectionRef.where(
+                "tweetId",
+                "==",
+                parameters.bookmark.tweetId.valueOf(),
+            ).where(
+                "authordId",
+                "==",
+                parameters.bookmark.authorId.valueOf(),
+            ).limit(1);
+
+            try {
+                const snapshot = await bookmarksQuery.get();
+
+                if (snapshot.empty) {
+                    return false;
+                }
+
+                return true;
+            } catch {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     async createBookmark(parameters: {
         tweetId: String;
         authorId: String;
     }): Promise<Success<Bookmark> | Failure<CreateBookmarkFailure>> {
-        const isBookmarkExists = await this.exists({
-            authorId: parameters.authorId,
+        const isAuthorExists = await UsersManager.shared.exists({
+            userId: parameters.authorId
+        });
+
+        if (!isAuthorExists) {
+            const result = new Failure<CreateBookmarkFailure>(CreateBookmarkFailure.AUTHOR_DOES_NOT_EXISTS);
+            return result;
+        }
+
+        const isTweetExists = await TweetsManager.shared.exits({
             tweetId: parameters.tweetId
+        });
+
+        if (!isTweetExists) {
+            const result = new Failure<CreateBookmarkFailure>(CreateBookmarkFailure.TWEET_DOES_NOT_EXISTS);
+            return result;
+        }
+
+        const isBookmarkExists = await this.exists({
+            bookmark: {
+                authorId: parameters.authorId,
+                tweetId: parameters.tweetId
+            }
         });
 
         if (isBookmarkExists) {
@@ -92,11 +114,11 @@ export class BookmarksManager {
 
         if (bookmarkResult instanceof Success) {
             const collectionRef = DatabaseAssistant.shared.collection(
-                DatabaseCollections.users +
+                TxCollections.users +
                 "/" +
                 parameters.authorId.valueOf() +
                 "/" +
-                DatabaseCollections.bookmarks
+                TxCollections.bookmarks
             );
             const documentRef = collectionRef.doc(bookmarkResult.data.id);
 
@@ -122,87 +144,32 @@ export class BookmarksManager {
     }
 
     async bookmark(parameters: {
-        authorId: String;
-        bookmarkId?: String;
-        tweetId?: String;
+        bookmarkId: String;
     }): Promise<Success<Bookmark> | Failure<BookmarkFailure>> {
-        assert(
-            parameters.bookmarkId !== undefined || parameters.tweetId !== undefined,
-            "One of bookmarkId or tweetId should be present"
-        );
+        const bookmarksCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.bookmarks);
 
-        const isAuthorExists = await UsersManager.shared.exists({
-            userId: parameters.authorId
-        });
+        const bookmarksQuery = bookmarksCollectionRef.where(
+            "id",
+            "==",
+            parameters.bookmarkId.valueOf()
+        ).limit(1);
 
-        if (!isAuthorExists) {
-            const result = new Failure<BookmarkFailure>(BookmarkFailure.AUTHOR_DOES_NOT_EXISTS);
+        try {
+            const snapshot = await bookmarksQuery.get();
+
+            if (snapshot.empty) {
+                const result = new Failure<BookmarkFailure>(BookmarkFailure.BOOKMARK_DOES_NOT_EXISTS);
+                return result;
+            }
+
+            const bookmark = snapshot.docs[0].data() as unknown as Bookmark;
+
+            const result = new Success<Bookmark>(bookmark);
+            return result;
+        } catch {
+            const result = new Failure<BookmarkFailure>(BookmarkFailure.BOOKMARK_DOES_NOT_EXISTS);
             return result;
         }
-
-
-        if (parameters.bookmarkId !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(
-                DatabaseCollections.users +
-                "/" +
-                parameters.authorId.valueOf() +
-                "/" +
-                DatabaseCollections.bookmarks
-            );
-            const documentRef = collectionRef.doc(parameters.bookmarkId.valueOf());
-            const document = await documentRef.get();
-
-            if (document.exists) {
-                const bookmark = document.data() as unknown as Bookmark;
-
-                const result = new Success<Bookmark>(bookmark);
-                return result;
-            } else {
-                const result = new Failure<BookmarkFailure>(BookmarkFailure.BOOKMARK_DOES_NOT_EXISTS);
-                return result;
-            }
-        }
-
-        if (parameters.tweetId !== undefined) {
-            const isTweetExists = await TweetsManager.shared.exits({
-                tweetId: parameters.tweetId
-            });
-
-            if (!isTweetExists) {
-                const result = new Failure<BookmarkFailure>(BookmarkFailure.TWEET_DOES_NOT_EXISTS);
-                return result;
-            }
-
-
-            const collectionRef = DatabaseAssistant.shared.collection(
-                DatabaseCollections.users +
-                "/" +
-                parameters.authorId.valueOf() +
-                "/" +
-                DatabaseCollections.bookmarks
-            );
-            const query = collectionRef.where(
-                "tweetId",
-                "==",
-                parameters.tweetId.valueOf(),
-            );
-
-            const querySnapshot = await query.get();
-
-            if (querySnapshot.empty) {
-                const result = new Failure<BookmarkFailure>(BookmarkFailure.BOOKMARK_DOES_NOT_EXISTS);
-                return result;
-            } else {
-                const queryDocument = querySnapshot.docs[0];
-                const bookmark = queryDocument.data() as unknown as Bookmark;
-
-                const result = new Success<Bookmark>(bookmark);
-                return result;
-            }
-        }
-
-        const result = new Failure<BookmarkFailure>(BookmarkFailure.UNKNOWN);
-        return result;
     }
 
 
@@ -219,18 +186,22 @@ export class BookmarksManager {
             return result;
         }
 
-        const activities = await StreamAssistant.shared.bookmarkFeed.activities({
+        const bookmarkActivitiesResult = await StreamAssistant.shared.bookmarkFeed.activities({
             authorId: parameters.authorId,
             limit: parameters.limit,
             nextToken: parameters.nextToken,
         });
 
-        if (activities !== null) {
+        if (bookmarkActivitiesResult instanceof Failure) {
+            const result = new Failure<BookmarksFeedFailure>(BookmarksFeedFailure.UNKNOWN);
+            return result;
+        }
+
+        if (bookmarkActivitiesResult !== null) {
             const bookmarks: Bookmark[] = [];
 
-            for (const partialBookmark of activities.page) {
+            for (const partialBookmark of bookmarkActivitiesResult.page) {
                 const bookmarkResult = await this.bookmark({
-                    authorId: partialBookmark.authorId,
                     bookmarkId: partialBookmark.bookmarkId,
                 });
 
@@ -239,12 +210,14 @@ export class BookmarksManager {
                     return result;
                 }
 
-                bookmarks.push(bookmarkResult.data);
+                const bookmark = bookmarkResult.data;
+
+                bookmarks.push(bookmark);
             }
 
             const feed = new Paginated<Bookmark>({
                 page: bookmarks,
-                nextToken: activities.nextToken,
+                nextToken: bookmarkActivitiesResult.nextToken,
             });
 
             const result = new Success<Paginated<Bookmark>>(feed);
@@ -256,36 +229,41 @@ export class BookmarksManager {
     }
 
     async deleteBookmark(parameters: {
-        authorId: String;
         bookmarkId: String;
     }): Promise<Success<Empty> | Failure<DeleteBookmarkFailure>> {
-        const isAuthorExists = await UsersManager.shared.exists({
-            userId: parameters.authorId
-        });
+        const bookmarksCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.bookmarks);
 
-        if (!isAuthorExists) {
-            const result = new Failure<DeleteBookmarkFailure>(DeleteBookmarkFailure.AUTHOR_DOES_NOT_EXISTS);
-            return result;
-        }
-
-        const usersCollectionRef = DatabaseAssistant.shared.collection(DatabaseCollections.users);
-        const userDocumentRef = usersCollectionRef.doc(parameters.authorId.valueOf());
-
-        const bookmarksCollectionRef = userDocumentRef.collection(DatabaseCollections.bookmarks);
-        const bookmarkDocumentRef = bookmarksCollectionRef.doc(parameters.bookmarkId.valueOf());
+        const bookmarksQuery = bookmarksCollectionRef.where(
+            "id",
+            "==",
+            parameters.bookmarkId.valueOf(),
+        ).limit(1);
 
         try {
-            const bookmarkDocument = await bookmarkDocumentRef.get();
+            const snapshot = await bookmarksQuery.get();
 
-            if (bookmarkDocument.exists) {
-                await bookmarkDocumentRef.delete();
-
-                const result = new Success<Empty>({});
-                return result;
-            } else {
+            if (snapshot.empty) {
                 const result = new Failure<DeleteBookmarkFailure>(DeleteBookmarkFailure.BOOKMARK_DOES_NOT_EXISTS);
                 return result;
             }
+
+            const bookmarkDocumentRef = snapshot.docs[0].ref;
+            const bookmark = snapshot.docs[0].data() as unknown as Bookmark;
+
+            const deleteBookmarkActivityResult = await StreamAssistant.shared.bookmarkFeed.removeBookmarkActivity({
+                authorId: bookmark.authorId,
+                bookmarkId: bookmark.id
+            });
+
+            if (deleteBookmarkActivityResult instanceof Failure) {
+                const result = new Failure<DeleteBookmarkFailure>(DeleteBookmarkFailure.UNKNOWN);
+                return result;
+            }
+
+            await bookmarkDocumentRef.delete();
+
+            const result = new Success<Empty>({});
+            return result;
         } catch {
             const result = new Failure<DeleteBookmarkFailure>(DeleteBookmarkFailure.UNKNOWN);
             return result;

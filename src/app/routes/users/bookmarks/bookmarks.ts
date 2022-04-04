@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import Joi from "joi";
-import { TweetsManager } from "../../../../managers/usersManager/tweetsManager/tweetsManager";
+import { TweetsManager } from "../../../../managers/tweetsManager/tweetsManager";
 import { BookmarksManager } from "../../../../managers/usersManager/bookmarksManager/bookmarksManager";
 import { BookmarksFeedFailure, CreateBookmarkFailure, DeleteBookmarkFailure } from "../../../../managers/usersManager/bookmarksManager/types";
 import { Failure } from "../../../../utils/typescriptx/typescriptx";
@@ -126,11 +126,9 @@ bookmarks.delete(
         groundZero: GroundZero.parameters,
     }),
     async (req: Request, res: Response) => {
-        const session = (req as SessionizedRequest).session;
         const { bookmarkId } = req.body;
 
         const deleteBookmarkResult = await BookmarksManager.shared.deleteBookmark({
-            authorId: session.userId,
             bookmarkId: bookmarkId as String,
         });
 

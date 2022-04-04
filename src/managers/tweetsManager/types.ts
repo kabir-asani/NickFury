@@ -1,7 +1,6 @@
 // Tweet
 export enum TweetFailure {
     UNKNOWN,
-    AUTHOR_DOES_NOT_EXISTS,
     TWEET_DOES_NOT_EXISTS,
 }
 

@@ -2,9 +2,9 @@ import express, { json } from "express";
 import { caseme } from "./middlewares/caseme/caseme";
 import { gatekeeper } from "./middlewares/gatekeeper/gatekeeper";
 import storyteller from "./middlewares/storyteller/storyteller";
-import users from "./routes/users/users";
 import sessions from "./routes/sessions/sessions";
-import tweets from "./routes/users/tweets/tweets";
+import others from "./routes/users/others";
+import self from "./routes/users/self";
 
 const app = express();
 
@@ -20,15 +20,15 @@ app.use(
 );
 
 app.use(
-    "/users",
+    "/user",
     gatekeeper(),
-    users,
+    self,
 );
 
 app.use(
-    "/tweets",
+    "/users/:userId",
     gatekeeper(),
-    tweets,
+    others
 );
 
 export = app;
