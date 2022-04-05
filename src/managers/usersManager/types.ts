@@ -16,8 +16,8 @@ export enum UpdateUserFailure {
     USER_DOES_NOT_EXISTS
 }
 
-// ExternalizeUser
-export enum UserExternalsFailure {
+// Viewable
+export enum ViewableUserFailre {
     UNKNOWN,
     VIEWER_DOES_NOT_EXISTS
 }

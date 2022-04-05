@@ -6,10 +6,12 @@ import { Dately } from '../../utils/dately/dately';
 import { Empty, Failure, Success } from '../../utils/typescriptx/typescriptx';
 import { TxCollections } from "../core/collections";
 import { Paginated, PaginationQuery } from '../core/types';
-import { User } from '../usersManager/models';
-import { UsersManager } from '../usersManager/usersManager';
-import { Tweet } from "./models";
-import { CreateTweetFailure, DeleteTweetFailure, TweetsFeedFailure as TweetsFeedFailure, TweetFailure } from "./types";
+import { BookmarksManager } from '../usersManager/bookmarksManager/bookmarksManager';
+import { User, ViewableUser } from '../usersManager/models';
+import { UsersManager, ViewableUserX } from '../usersManager/usersManager';
+import { LikesManager } from './likesManager/likesManager';
+import { Tweet, TweetViewerMeta, ViewableTweet } from "./models";
+import { CreateTweetFailure, DeleteTweetFailure, TweetsFeedFailure as TweetsFeedFailure, TweetFailure, ViewableTweetFailure } from "./types";
 
 // In all of the functions below, we're assuming that a user 
 // corresponding to the given `authorId` always exists.
@@ -168,7 +170,7 @@ export class TweetsManager {
             return result;
         }
 
-        const tweets: Tweet[] = [];
+        const tweets = [];
 
         for (const partialTweet of tweetActivities.page) {
             const tweetResult = await this.tweet({
@@ -180,11 +182,11 @@ export class TweetsManager {
                 return result;
             }
 
-            tweets.push(tweetResult.data);
+            tweets.push(tweetResult.data as Tweet);
         }
 
         const feed = new Paginated<Tweet>({
-            page: tweets,
+            page: tweets as Tweet[],
             nextToken: tweetActivities?.nextToken,
         });
 

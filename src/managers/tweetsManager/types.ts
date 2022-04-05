@@ -22,3 +22,16 @@ export enum DeleteTweetFailure {
     UNKNOWN,
     TWEET_DOES_NOT_EXISTS,
 }
+
+
+// Viewable
+export enum ViewableTweetFailure {
+    UNKNOWN,
+    VIEWER_DOES_NOT_EXISTS
+}
+
+// Viewable Feed
+export enum ViewableTweetFeedFailure {
+    UNKNOWN,
+    VIEWER_DOES_NOT_EXISTS
+}
