@@ -7,7 +7,7 @@ import { Empty, Failure, Success } from '../../utils/typescriptx/typescriptx';
 import { TxCollections } from '../core/collections';
 import { ViewableUser, User, UserViewerMeta } from './models';
 import { SocialsManager } from './socialsManager/socialsManager';
-import { CreateUserFailure, UpdateUserFailure, UserExternalsFailure, UserFailure } from './types';
+import { CreateUserFailure, UpdateUserFailure, ViewableUserFailre, UserFailure } from './types';
 
 export class UsersManager {
     public static readonly shared = new UsersManager();
@@ -219,32 +219,6 @@ export class UsersManager {
         }
 
         const result = new Failure<UpdateUserFailure>(UpdateUserFailure.UNKNOWN);
-        return result;
-    }
-
-    async externals(parameters: {
-        userId: String;
-        viewerId: String;
-    }): Promise<Success<UserViewerMeta> | Failure<UserExternalsFailure>> {
-        const isViewerExists = await this.exists({
-            userId: parameters.viewerId
-        });
-
-        if (!isViewerExists) {
-            const result = new Failure<UserExternalsFailure>(UserExternalsFailure.VIEWER_DOES_NOT_EXISTS);
-            return result;
-        }
-
-        const isViewerFollower = await SocialsManager.shared.isFollower({
-            followingUserId: parameters.userId,
-            followerUserId: parameters.viewerId,
-        });
-
-        const externals: UserViewerMeta = {
-            follower: isViewerFollower
-        }
-
-        const result = new Success<UserViewerMeta>(externals);
         return result;
     }
 }

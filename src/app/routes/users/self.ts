@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import Joi from "joi";
-import { SessionsManager } from "../../../managers/sessionManager/sessionsManager";
 import { UsersManager } from "../../../managers/usersManager/usersManager";
+import { ViewableUserX } from "../../../managers/usersManager/viewables";
 import { Failure } from "../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../core/override";
 import { InternalRouteFailure, OkRouteSuccess } from "../../core/types";
@@ -23,7 +23,7 @@ self.use("/timeline", timeline);
 self.get(
     "/",
     async (req: Request, res: Response) => {
-        const session = (req as SessionizedRequest).session;
+        const { session } = (req as SessionizedRequest);
 
         const userResult = await UsersManager.shared.user({
             userId: session.userId,
@@ -43,10 +43,33 @@ self.get(
             }
         }
 
-        // TODO: Make viewable
         const user = userResult.data;
 
-        const response = new OkRouteSuccess(user);
+        const viewableUserX = new ViewableUserX({
+            user: user
+        });
+
+        const viewableUserResult = await viewableUserX.viewable({
+            viewerId: session.userId,
+        });
+
+        if (viewableUserResult instanceof Failure) {
+            switch (viewableUserResult.reason) {
+                default: {
+                    const response = new InternalRouteFailure();
+
+                    res
+                        .status(InternalRouteFailure.statusCode)
+                        .json(response);
+
+                    return;
+                }
+            }
+        }
+
+        const viewableUser = viewableUserResult.data;
+
+        const response = new OkRouteSuccess(viewableUser);
 
         res
             .status(OkRouteSuccess.statusCode)
