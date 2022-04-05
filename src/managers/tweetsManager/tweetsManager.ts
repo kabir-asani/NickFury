@@ -6,12 +6,15 @@ import { Dately } from '../../utils/dately/dately';
 import { Empty, Failure, Success } from '../../utils/typescriptx/typescriptx';
 import { TxCollections } from "../core/collections";
 import { Paginated, PaginationQuery } from '../core/types';
-import { BookmarksManager } from '../usersManager/bookmarksManager/bookmarksManager';
-import { User, ViewableUser } from '../usersManager/models';
-import { UsersManager, ViewableUserX } from '../usersManager/usersManager';
-import { LikesManager } from './likesManager/likesManager';
-import { Tweet, TweetViewerMeta, ViewableTweet } from "./models";
-import { CreateTweetFailure, DeleteTweetFailure, TweetsFeedFailure as TweetsFeedFailure, TweetFailure, ViewableTweetFailure } from "./types";
+import { User } from '../usersManager/models';
+import { UsersManager } from '../usersManager/usersManager';
+import { Tweet } from "./models";
+import {
+    CreateTweetFailure,
+    DeleteTweetFailure,
+    TweetsFeedFailure,
+    TweetFailure,
+} from "./types";
 
 // In all of the functions below, we're assuming that a user 
 // corresponding to the given `authorId` always exists.
@@ -39,10 +42,12 @@ export class TweetsManager {
     }
 
     async createTweet(parameters: {
-        text: String;
+        tweetData: {
+            text: String;
+        };
         authorId: String;
     }): Promise<Success<Tweet> | Failure<CreateTweetFailure>> {
-        if (parameters.text.length <= 0 || parameters.text.length > 280) {
+        if (parameters.tweetData.text.length <= 0 || parameters.tweetData.text.length > 280) {
             const result = new Failure<CreateTweetFailure>(CreateTweetFailure.MALFORMED_TWEET);
             return result;
         }
@@ -74,7 +79,7 @@ export class TweetsManager {
         const tweet: Tweet = {
             id: createTweetActivityResult.data.id,
             complimentaryTweetId: complimentaryTweetId,
-            text: parameters.text,
+            text: parameters.tweetData.text,
             creationDate: Dately.shared.now(),
             authorId: parameters.authorId.valueOf(),
             meta: {

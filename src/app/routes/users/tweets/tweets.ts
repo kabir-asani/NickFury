@@ -99,7 +99,9 @@ tweets.post(
 
         const createTweetResult = await TweetsManager.shared.createTweet({
             authorId: session.userId,
-            text: text
+            tweetData: {
+                text: text
+            }
         });
 
         if (createTweetResult instanceof Failure) {
