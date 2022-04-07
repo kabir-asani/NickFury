@@ -21,3 +21,9 @@ export enum ViewableUserFailre {
     UNKNOWN,
     VIEWER_DOES_NOT_EXISTS
 }
+
+// Seach
+export enum SearchUsersFailure {
+    UNKNOWN,
+    MALFORMED_KEYWORD
+}

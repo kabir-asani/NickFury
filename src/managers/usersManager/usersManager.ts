@@ -1,13 +1,17 @@
 import { assert } from 'console';
 import * as uuid from 'uuid';
-
 import { DatabaseAssistant } from "../../assistants/database/database";
 import { Dately } from '../../utils/dately/dately';
-import { Empty, Failure, Success } from '../../utils/typescriptx/typescriptx';
+import { Failure, Success } from '../../utils/typescriptx/typescriptx';
 import { TxCollections } from '../core/collections';
-import { ViewableUser, User, UserViewerMeta } from './models';
-import { SocialsManager } from './socialsManager/socialsManager';
-import { CreateUserFailure, UpdateUserFailure, ViewableUserFailre, UserFailure } from './types';
+import { Paginated, PaginationQuery } from '../core/types';
+import { User } from './models';
+import {
+    CreateUserFailure,
+    UpdateUserFailure,
+    UserFailure,
+    SearchUsersFailure
+} from './types';
 
 export class UsersManager {
     public static readonly shared = new UsersManager();
@@ -220,5 +224,131 @@ export class UsersManager {
 
         const result = new Failure<UpdateUserFailure>(UpdateUserFailure.UNKNOWN);
         return result;
+    }
+
+    async search(parameters: {
+        keyword: String;
+    } & PaginationQuery): Promise<Success<Paginated<User>> | Failure<SearchUsersFailure>> {
+        const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+
+        const isKeywordEmpty = parameters.keyword.length === 0;
+        if (isKeywordEmpty) {
+            const result = new Failure<SearchUsersFailure>(SearchUsersFailure.MALFORMED_KEYWORD);
+            return result;
+        } else {
+            const isLeadingCharacterUnderscoreInKeyword = parameters.keyword[0] === "_";
+            const isLeadingCharacterNumericInKeyword = parameters.keyword[0].match(/^[0-9]$/i) === null;
+            const areChractersOutsideAllowedSet = parameters.keyword.match(/^[A-Za-z0-9_]+$/i) === null;
+
+            if (
+                isLeadingCharacterNumericInKeyword
+                ||
+                isLeadingCharacterUnderscoreInKeyword
+                ||
+                areChractersOutsideAllowedSet
+            ) {
+                const result = new Failure<SearchUsersFailure>(SearchUsersFailure.MALFORMED_KEYWORD);
+                return result;
+            }
+        }
+
+        const limit = parameters.limit?.valueOf() || 10;
+        const nextToken = parameters.nextToken?.valueOf() || ":";
+
+        const usernextToken = nextToken.split(":")[0];
+        const nameNextToken = nextToken.split(":")[1];
+
+        let usernamesQuery = collectionRef
+            .orderBy("username")
+            .where(
+                "username",
+                ">=",
+                parameters.keyword.valueOf(),
+            )
+            .where(
+                "username",
+                "<=",
+                parameters.keyword[0].valueOf(),
+            ).limit(limit + 1);
+
+        if (usernextToken !== "") {
+            const documentRef = collectionRef.doc(usernextToken);
+
+            usernamesQuery = usernamesQuery.startAfter(documentRef);
+        }
+
+        let namesQuery = collectionRef
+            .orderBy("name")
+            .where(
+                "name",
+                ">=",
+                parameters.keyword.valueOf(),
+            )
+            .where(
+                "username",
+                "<",
+                parameters.keyword[0].valueOf(),
+            ).limit(limit + 1);
+
+        if (nameNextToken !== "") {
+            const documentRef = collectionRef.doc(nameNextToken);
+
+            namesQuery = namesQuery.startAfter(documentRef);
+        }
+
+        try {
+            const useranmeQuerySnapshot = await usernamesQuery.get();
+            const nameQuerySnapshot = await namesQuery.get();
+
+            const usernameQueryDocs = useranmeQuerySnapshot.docs;
+            const nameQueryDocs = nameQuerySnapshot.docs;
+
+            const usernameDocs: User[] = [];
+            for (const usernameQueryDoc of usernameQueryDocs) {
+                const user = usernameQueryDoc.data() as User;
+
+                usernameDocs.push(user);
+            }
+
+            const nameDocs: User[] = [];
+            for (const nameQueryDoc of nameQueryDocs) {
+                const user = nameQueryDoc.data() as User;
+
+                nameDocs.push(user);
+            }
+
+
+            const usernamesNextToken = usernameDocs.length === limit
+                ? usernameDocs[usernameDocs.length - 1].id
+                : undefined;
+
+            const namesNextToken = nameDocs.length === limit
+                ? nameDocs[nameDocs.length - 1].id
+                : undefined;
+
+            const nextToken = usernamesNextToken !== undefined || namesNextToken !== undefined
+                ? `${usernamesNextToken || ""}:${namesNextToken || ""}`
+                : undefined;
+
+            const users: User[] = [
+                ...(usernameDocs.length === limit
+                    ? usernameDocs.slice(0, usernameDocs.length - 1)
+                    : usernameDocs),
+                ...(nameDocs.length === limit
+                    ? nameDocs.slice(0, nameDocs.length - 1)
+                    : nameDocs),
+            ];
+
+            const paginatedUsers = new Paginated<User>({
+                page: users,
+                nextToken: nextToken
+            });
+
+            const result = new Success<Paginated<User>>(paginatedUsers);
+            return result;
+        } catch {
+            const result = new Failure<SearchUsersFailure>(SearchUsersFailure.UNKNOWN);
+            return result;
+        }
     }
 }
