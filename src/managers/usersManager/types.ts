@@ -17,7 +17,7 @@ export enum UpdateUserFailure {
 }
 
 // Viewable
-export enum ViewableUserFailre {
+export enum ViewableUserFailure {
     UNKNOWN,
     VIEWER_DOES_NOT_EXISTS
 }

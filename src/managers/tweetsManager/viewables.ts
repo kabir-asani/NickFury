@@ -96,3 +96,53 @@ export class ViewableTweetX {
         return result;
     }
 }
+
+export class ViewableTweetsX {
+    private tweets: Tweet[];
+
+    constructor(parameters: {
+        tweets: Tweet[];
+    }) {
+        this.tweets = parameters.tweets;
+    }
+
+    async viewable(parameters: {
+        viewerId: String;
+        options?: {
+            enableViewerCheck?: Boolean;
+        }
+    }): Promise<Success<ViewableTweet[]> | Failure<ViewableTweetFailure>> {
+        if (parameters.options?.enableViewerCheck === true) {
+            const isViewerExists = await UsersManager.shared.exists({
+                userId: parameters.viewerId
+            });
+
+            if (!isViewerExists) {
+                const result = new Failure<ViewableTweetFailure>(ViewableTweetFailure.VIEWER_DOES_NOT_EXISTS);
+                return result;
+            }
+        }
+
+        const viewableTweets: ViewableTweet[] = [];
+
+        for (const tweet of this.tweets) {
+            const viewableTweetX = new ViewableTweetX({
+                tweet: tweet
+            });
+
+            const viewableTweetResult = await viewableTweetX.viewable({
+                viewerId: parameters.viewerId,
+            });
+
+            if (viewableTweetResult instanceof Failure) {
+                return viewableTweetResult;
+            }
+
+            const viewableTweet = viewableTweetResult.data;
+            viewableTweets.push(viewableTweet);
+        }
+
+        const result = new Success<ViewableTweet[]>(viewableTweets);
+        return result;
+    }
+}

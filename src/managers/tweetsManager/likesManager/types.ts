@@ -23,3 +23,9 @@ export enum RemoveLikeFailure {
     UNKNOWN,
     LIKE_DOES_NOT_EXISTS,
 }
+
+// ViewableLike
+export enum ViewableLikeFailure {
+    UNKNOWN,
+    VIEWER_DOES_NOT_EXISTS
+}

@@ -25,3 +25,15 @@ export enum FollowingsFeedFailure {
     UNKNOWN,
     USER_DOES_NOT_EXISTS
 }
+
+// ViewableFollower
+export enum ViewableFollowerFailure {
+    UNKNOWN,
+    VIEWER_DOES_NOT_EXISTS,
+}
+
+// ViewableFollowing
+export enum ViewableFollowingFailure {
+    UNKNOWN,
+    VIEWER_DOES_NOT_EXISTS,
+}

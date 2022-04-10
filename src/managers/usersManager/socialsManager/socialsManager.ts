@@ -72,12 +72,12 @@ export class SocialsManager {
 
         // Data
         const followerData: Follower = {
-            id: parameters.followerUserId,
+            userId: parameters.followerUserId,
             creationDate: Dately.shared.now(),
         };
 
         const followingData: Following = {
-            id: parameters.followingUserId,
+            userId: parameters.followingUserId,
             creationDate: Dately.shared.now(),
         };
 
@@ -276,7 +276,7 @@ export class SocialsManager {
             const feed = new Paginated<Follower>({
                 page: followers.slice(0, limit),
                 nextToken: followers.length > limit
-                    ? followers[followers.length - 1].id
+                    ? followers[followers.length - 1].userId
                     : undefined
             });
 
@@ -332,7 +332,7 @@ export class SocialsManager {
             const feed = new Paginated<Follower>({
                 page: followings.slice(0, limit),
                 nextToken: followings.length > limit
-                    ? followings[followings.length - 1].id
+                    ? followings[followings.length - 1].userId
                     : undefined,
             });
 

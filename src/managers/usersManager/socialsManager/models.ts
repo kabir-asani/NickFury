@@ -1,7 +1,7 @@
 import { ViewableUser } from "../models";
 
 export interface Follower {
-    readonly id: String;
+    readonly userId: String;
     readonly creationDate: String;
 }
 
@@ -10,7 +10,7 @@ export interface ViewableFollower extends Follower {
 }
 
 export interface Following {
-    readonly id: String;
+    readonly userId: String;
     readonly creationDate: String;
 }
 

@@ -23,3 +23,9 @@ export enum DeleteBookmarkFailure {
     UNKNOWN,
     BOOKMARK_DOES_NOT_EXISTS
 }
+
+// Viewable Bookmark
+export enum ViewableBookmarkFailure {
+    UNKNOWN,
+    VIEWER_DOES_NOT_EXISTS,
+}

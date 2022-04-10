@@ -1,16 +1,16 @@
-// Like
+// Comment
 export enum CommentFailure {
     UNKNOWN,
     COMMENT_DOES_NOT_EXISTS,
 }
 
-// LikeFeed
+// CommentFeed
 export enum CommentsFeedFailure {
     UNKNOWN,
     TWEET_DOES_NOT_EXISTS
 }
 
-// CreateLike
+// Add Comment
 export enum AddCommentFailure {
     UNKNOWN,
     TWEET_DOES_NOT_EXISTS,
@@ -18,8 +18,15 @@ export enum AddCommentFailure {
     MISFORMED_COMMENT
 }
 
-// DeleteLike
+// Remove Comment
 export enum RemoveCommentFailure {
     UNKNOWN,
     COMMENT_DOES_NOT_EXISTS,
+}
+
+
+// ViewableComment
+export enum ViewableCommentFailure {
+    UNKNOWN,
+    VIEWER_DOES_NOT_EXISTS
 }

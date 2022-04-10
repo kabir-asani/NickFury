@@ -14,10 +14,8 @@ export interface User {
     };
 }
 
-export interface UserViewerMeta {
-    follower: Boolean;
-}
-
 export interface ViewableUser {
-    viewerMeta: UserViewerMeta;
+    viewerMeta: {
+        follower: Boolean;
+    };
 }
