@@ -103,8 +103,8 @@ export class TweetsManager {
                 // Action
                 const updatedUser: User = {
                     ...user,
-                    tweetsDetails: {
-                        tweetsCount: user.tweetsDetails.tweetsCount.valueOf() + 1,
+                    activityDetails: {
+                        tweetsCount: user.activityDetails.tweetsCount.valueOf() + 1,
                     }
                 };
 
@@ -234,10 +234,10 @@ export class TweetsManager {
                 const user = userDocument.data() as unknown as User;
                 const updatedUser: User = {
                     ...user,
-                    tweetsDetails: {
+                    activityDetails: {
                         tweetsCount: Math.max(
                             0,
-                            user.tweetsDetails.tweetsCount.valueOf() - 1
+                            user.activityDetails.tweetsCount.valueOf() - 1
                         ),
                     },
                 }

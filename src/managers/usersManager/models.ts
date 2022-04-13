@@ -7,15 +7,15 @@ export interface User {
     readonly creationDate: String;
     readonly socialDetails: {
         readonly followersCount: Number;
-        readonly followingCount: Number;
+        readonly followingsCount: Number;
     };
-    readonly tweetsDetails: {
+    readonly activityDetails: {
         readonly tweetsCount: Number;
     };
 }
 
 export interface ViewableUser {
-    viewerMeta: {
+    viewables: {
         follower: Boolean;
     };
 }

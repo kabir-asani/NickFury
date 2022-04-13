@@ -101,9 +101,9 @@ export class UsersManager {
             creationDate: Dately.shared.now(),
             socialDetails: {
                 followersCount: 0,
-                followingCount: 0,
+                followingsCount: 0,
             },
-            tweetsDetails: {
+            activityDetails: {
                 tweetsCount: 0,
             },
         };

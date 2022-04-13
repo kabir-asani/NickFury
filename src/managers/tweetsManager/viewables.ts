@@ -1,6 +1,6 @@
 import { Success, Failure } from "../../utils/typescriptx/typescriptx";
 import { LikesManager } from "../tweetsManager/likesManager/likesManager";
-import { Tweet, TweetViewerMeta, ViewableTweet } from "../tweetsManager/models";
+import { Tweet, TweetViewables, ViewableTweet } from "../tweetsManager/models";
 import { ViewableTweetFailure } from "../tweetsManager/types";
 import { BookmarksManager } from "../usersManager/bookmarksManager/bookmarksManager";
 import { ViewableUser } from "../usersManager/models";
@@ -47,7 +47,7 @@ export class ViewableTweetX {
             }
         });
 
-        const viewerMeta: TweetViewerMeta = {
+        const viewerMeta: TweetViewables = {
             liked: isLiked,
             bookmarked: isBookmarked,
         };
@@ -89,7 +89,7 @@ export class ViewableTweetX {
         const viewableTweet: ViewableTweet = {
             ...this.tweet,
             author: viewableAuthor,
-            viewerMeta: viewerMeta,
+            viewables: viewerMeta,
         }
 
         const result = new Success<ViewableTweet>(viewableTweet);

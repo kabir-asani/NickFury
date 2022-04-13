@@ -12,12 +12,10 @@ export interface Tweet {
     }
 }
 
-export interface TweetViewerMeta {
-    liked: Boolean;
-    bookmarked: Boolean;
-}
-
 export interface ViewableTweet extends Tweet {
     readonly author: ViewableUser;
-    readonly viewerMeta: TweetViewerMeta;
+    readonly viewables: {
+        liked: Boolean;
+        bookmarked: Boolean;
+    };
 }
