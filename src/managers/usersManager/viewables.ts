@@ -37,7 +37,7 @@ export class ViewableUserX {
 
         const viewableUser: ViewableUser = {
             ...this.user,
-            viewerMeta: {
+            viewables: {
                 follower: isFollower
             },
         };

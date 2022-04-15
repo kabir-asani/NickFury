@@ -108,7 +108,7 @@ export class SocialsManager {
                         transaction.update(
                             followerUserDocumentRef,
                             {
-                                "socialDetails.followingCount": follower.socialDetails.followingCount.valueOf() + 1
+                                "socialDetails.followingCount": follower.socialDetails.followingsCount.valueOf() + 1
                             }
                         );
 
@@ -199,7 +199,7 @@ export class SocialsManager {
                             followerUserDocumentRef,
                             {
                                 "socialDetails.followingCount": Math.max(
-                                    follower.socialDetails.followingCount.valueOf() - 1,
+                                    follower.socialDetails.followingsCount.valueOf() - 1,
                                     0
                                 )
                             }
