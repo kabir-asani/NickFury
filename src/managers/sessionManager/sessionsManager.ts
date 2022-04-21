@@ -1,5 +1,4 @@
 import * as uuid from "uuid";
-import { assert } from "console";
 import { DatabaseAssistant } from "../../assistants/database/database";
 import { TxCollections } from "../core/collections";
 import { Session } from "./models";
@@ -8,11 +7,13 @@ import {
     DeleteSessionFailure,
     SessionFailure,
 } from "./types";
-import { Dately } from "../../utils/dately/dately";
 import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
+import { Tokenizer } from "../../utils/tokenizer/tokenizer";
 
 export class SessionsManager {
     public static readonly shared = new SessionsManager();
+
+    private constructor() { }
 
     async exists(parameters: {
         sessionId: String,
@@ -30,26 +31,35 @@ export class SessionsManager {
     }
 
     async createSession(parameters: {
-        userId: String,
-    }): Promise<Success<Session> | Failure<CreateSessionFailure>> {
+        userId: String;
+    }): Promise<Success<String> | Failure<CreateSessionFailure>> {
         const deleteSessionResult = await this.deleteSessions({
             userId: parameters.userId
         });
 
+
         if (deleteSessionResult instanceof Success) {
+            const id = uuid.v4();
+
             const session: Session = {
-                id: uuid.v4(),
-                userId: parameters.userId,
-                creationDate: Dately.shared.now(),
+                id: id,
+                userId: parameters.userId
             };
 
-            const collectionRef = DatabaseAssistant.shared.collection(TxCollections.sessions);
-            const documentRef = collectionRef.doc(session.id.valueOf());
+            const usersCollectionsRef = DatabaseAssistant.shared.collection(TxCollections.users);
+            const userDocumentRef = usersCollectionsRef.doc(parameters.userId.valueOf());
+
+            const sessionsCollectionRef = userDocumentRef.collection(TxCollections.sessions);
+            const sessionDocumentRef = sessionsCollectionRef.doc(session.id.valueOf());
 
             try {
-                await documentRef.create(session);
+                const accessToken = Tokenizer.shared.token({
+                    payload: session
+                });
 
-                const result = new Success<Session>(session);
+                await sessionDocumentRef.create(session);
+
+                const result = new Success<String>(accessToken);
                 return result;
             } catch {
                 const result = new Failure<CreateSessionFailure>(CreateSessionFailure.UNKNOWN);
@@ -64,21 +74,27 @@ export class SessionsManager {
     async session(parameters: {
         sessionId: String,
     }): Promise<Success<Session> | Failure<SessionFailure>> {
-        const collectionRef = DatabaseAssistant.shared.collection(TxCollections.sessions);
-        const documentRef = collectionRef.doc(parameters.sessionId.valueOf());
+        const collectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.sessions);
+
+        const query = collectionRef.where(
+            "id",
+            "==",
+            parameters.sessionId.valueOf()
+        );
 
         try {
-            const document = await documentRef.get();
+            const querySnapshot = await query.get();
 
-            if (document.exists) {
-                const session = document.data() as unknown as Session;
+            if (!querySnapshot.empty) {
+                const session = querySnapshot.docs[0].data() as unknown as Session;
 
                 const result = new Success<Session>(session);
-                return result;
-            } else {
-                const result = new Failure<SessionFailure>(SessionFailure.SESSION_DOES_NOT_EXISTS);
+
                 return result;
             }
+
+            const result = new Failure<SessionFailure>(SessionFailure.SESSION_DOES_NOT_EXISTS);
+            return result;
         } catch {
             const result = new Failure<SessionFailure>(SessionFailure.UNKNOWN);
             return result;
@@ -88,14 +104,29 @@ export class SessionsManager {
     async deleteSession(parameters: {
         sessionId: String
     }): Promise<Success<Empty> | Failure<DeleteSessionFailure>> {
-        const collectionRef = DatabaseAssistant.shared.collection(TxCollections.sessions);
-        const documentRef = collectionRef.doc(parameters.sessionId.valueOf());
+        const collectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.sessions);
 
+        const query = collectionRef.where(
+            "id",
+            "==",
+            parameters.sessionId.valueOf()
+        );
 
         try {
-            await documentRef.delete();
+            const querySnapshot = await query.get();
+
+            const batch = DatabaseAssistant.shared.batch();
+
+            querySnapshot.docs.forEach((doc) => {
+                const docRef = doc.ref;
+
+                batch.delete(docRef);
+            });
+
+            await batch.commit();
 
             const result = new Success<Empty>({});
+
             return result;
         } catch {
             const result = new Failure<DeleteSessionFailure>(DeleteSessionFailure.UNKNOWN);
@@ -103,10 +134,11 @@ export class SessionsManager {
         }
     }
 
-    async deleteSessions(parameters: {
+    private async deleteSessions(parameters: {
         userId: String,
     }): Promise<Success<Empty> | Failure<DeleteSessionFailure>> {
-        const collectionRef = DatabaseAssistant.shared.collection(TxCollections.sessions);
+        const collectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.sessions);
+
         const query = collectionRef.where(
             "userId",
             "==",
