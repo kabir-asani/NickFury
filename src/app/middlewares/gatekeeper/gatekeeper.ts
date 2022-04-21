@@ -1,12 +1,12 @@
 import Joi from "joi";
 import { Request, Response } from "express";
 import { SessionsManager } from "../../../managers/sessionManager/sessionsManager";
-import { SessionFailure } from "../../../managers/sessionManager/types";
-import { Failure } from "../../../utils/typescriptx/typescriptx";
 import { InternalRouteFailure, UnauthenticatedRouteFailure } from "../../core/types";
 import { TxMiddleware } from "../core/types";
 import { soldier, GroundZero } from "../soldier/soldier";
 import { SessionizedRequest } from "../../core/override";
+import { Tokenizer } from "../../../utils/tokenizer/tokenizer";
+import { Session } from "../../../managers/sessionManager/models";
 
 export const gatekeeper = (): TxMiddleware[] => [
     soldier({
@@ -16,37 +16,55 @@ export const gatekeeper = (): TxMiddleware[] => [
         groundZero: GroundZero.headers
     }),
     async (req: Request, res: Response, next) => {
-        const sessionId = req.headers.authorization;
+        const accessToken = req.headers.authorization!;
 
-        const sessionResult = await SessionsManager.shared.session({
-            sessionId: sessionId as String,
+        const token = accessToken.split('/')[1];
+
+        const isValidToken = Tokenizer.shared.verify({
+            token: token
         });
 
-        if (sessionResult instanceof Failure) {
-            switch (sessionResult.reason) {
-                case SessionFailure.SESSION_DOES_NOT_EXISTS: {
-                    const response = new UnauthenticatedRouteFailure();
+        if (!isValidToken) {
+            const response = new UnauthenticatedRouteFailure();
 
-                    res
-                        .status(UnauthenticatedRouteFailure.statusCode)
-                        .json(response);
+            res
+                .status(UnauthenticatedRouteFailure.statusCode)
+                .json(response);
 
-                    return;
-                }
-                default: {
-                    const response = new InternalRouteFailure();
-
-                    res
-                        .status(InternalRouteFailure.statusCode)
-                        .json(response);
-
-                    return;
-                }
-            }
+            return;
         }
 
+        const session = Tokenizer.shared.payload<Session>({
+            token: token
+        });
+
+        if (session === null) {
+            const response = new InternalRouteFailure();
+
+            res
+                .status(InternalRouteFailure.statusCode)
+                .json(response);
+
+            return;
+        }
+
+        const isSessionExists = await SessionsManager.shared.exists({
+            sessionId: session.id,
+        });
+
+        if (!isSessionExists) {
+            const response = new UnauthenticatedRouteFailure();
+
+            res
+                .status(UnauthenticatedRouteFailure.statusCode)
+                .json(response);
+
+            return;
+        }
+
+
         const sessionizedRequest = req as unknown as SessionizedRequest;
-        sessionizedRequest.session = sessionResult.data;
+        sessionizedRequest.session = session;
 
         return next();
     }
