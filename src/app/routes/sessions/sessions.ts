@@ -1,8 +1,8 @@
 import { Request, Response, Router } from 'express';
 import Joi from 'joi';
-import { AuthManager } from '../../../managers/authManager/authManager';
-import { authProvider, AuthProvider } from '../../../managers/authManager/models';
-import { LogInFailure } from '../../../managers/authManager/types';
+import { AuthenticationManager } from '../../../managers/authenticationManager/authenticationManager';
+import { authProvider, AuthProvider } from '../../../managers/authenticationManager/models';
+import { LogInFailure } from '../../../managers/authenticationManager/types';
 import { Failure } from '../../../utils/typescriptx/typescriptx';
 import { SessionizedRequest } from '../../core/override';
 import { IncorrectArgumentsRouteFailure, InternalRouteFailure, NoContentRouteSuccess, OkRouteSuccess } from '../../core/types';
@@ -15,25 +15,38 @@ sessions.post(
     '/',
     soldier({
         schema: Joi.object({
-            accessToken: Joi.string().required(),
-            provider: Joi.string().valid(
-                AuthProvider.apple.valueOf(),
-                AuthProvider.google.valueOf(),
-            ),
+            details: Joi.object({
+                name: Joi.string().required(),
+                email: Joi.string().email(),
+                image: Joi.string().uri()
+            }),
+            credentials: Joi.object({
+                token: Joi.string().required(),
+                provider: Joi.string().valid(
+                    AuthProvider.apple.valueOf(),
+                    AuthProvider.google.valueOf(),
+                ),
+            }),
         }),
         groundZero: GroundZero.body,
     }),
     async (req: Request, res: Response) => {
-        const { accessToken, provider } = req.body;
+        const { details, credentials } = req.body;
 
-        const logInResult = await AuthManager.shared.logIn({
-            accessToken: accessToken as String,
-            provider: authProvider(provider)!,
+        const logInResult = await AuthenticationManager.shared.logIn({
+            details: {
+                name: details.name as String,
+                email: details.email as String,
+                image: details.image as String
+            },
+            credentials: {
+                provider: authProvider(credentials.provider as String)!,
+                token: credentials.token as String
+            }
         });
 
         if (logInResult instanceof Failure) {
             switch (logInResult.reason) {
-                case LogInFailure.INCORRECT_AUTH_PROVIDER:
                 case LogInFailure.INCORECT_ACCESS_TOKEN: {
                     const response = new IncorrectArgumentsRouteFailure();
 
@@ -55,8 +68,9 @@ sessions.post(
             }
         }
 
-        const session = logInResult.data;
-        const response = new OkRouteSuccess(session);
+        const response = new OkRouteSuccess({
+            accessToken: logInResult.data
+        });
 
         res
             .status(OkRouteSuccess.statusCode)
@@ -68,7 +82,7 @@ sessions.post(
 
 
 sessions.delete(
-    '/:sessionId',
+    '/',
     [
         ...gatekeeper(),
         soldier({
@@ -81,7 +95,7 @@ sessions.delete(
     async (req: Request, res: Response) => {
         const session = (req as SessionizedRequest).session;
 
-        const logOutResult = await AuthManager.shared.logOut({
+        const logOutResult = await AuthenticationManager.shared.logOut({
             sessionId: session.id,
         });
 
