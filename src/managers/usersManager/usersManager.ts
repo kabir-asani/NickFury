@@ -16,6 +16,8 @@ import {
 export class UsersManager {
     public static readonly shared = new UsersManager();
 
+    private constructor() { }
+
     async exists(parameters: {
         userId?: String,
         username?: String,
@@ -44,7 +46,7 @@ export class UsersManager {
                 "username",
                 "==",
                 parameters.username.valueOf(),
-            );
+            ).limit(1);
 
             const querySnapshot = await query.get();
 
@@ -61,7 +63,7 @@ export class UsersManager {
                 "email",
                 "==",
                 parameters.email.valueOf(),
-            );
+            ).limit(1);
 
             const querySnapshot = await query.get();
 
@@ -108,11 +110,11 @@ export class UsersManager {
             },
         };
 
-        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
-        const documentRef = collectionRef.doc(user.id.valueOf());
+        const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+        const userDocumentRef = usersCollectionRef.doc(user.id.valueOf());
 
         try {
-            await documentRef.create(user);
+            await userDocumentRef.create(user);
 
             const result = new Success<User>(
                 user
@@ -138,12 +140,12 @@ export class UsersManager {
 
 
         if (parameters.userId !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
-            const documentRef = collectionRef.doc(parameters.userId.valueOf());
-            const document = await documentRef.get();
+            const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+            const userDocumentRef = usersCollectionRef.doc(parameters.userId.valueOf());
+            const userDocument = await userDocumentRef.get();
 
-            if (document.exists) {
-                const user = document.data() as unknown as User;
+            if (userDocument.exists) {
+                const user = userDocument.data() as unknown as User;
 
                 const result = new Success<User>(user);
                 return result;
@@ -154,20 +156,20 @@ export class UsersManager {
         }
 
         if (parameters.username !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
-            const query = collectionRef.where(
+            const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+            const usersQuery = usersCollectionRef.where(
                 "username",
                 "==",
                 parameters.username.valueOf(),
-            );
+            ).limit(1);
 
-            const querySnapshot = await query.get();
+            const usersQuerySnapshot = await usersQuery.get();
 
-            if (querySnapshot.empty) {
+            if (usersQuerySnapshot.empty) {
                 const result = new Failure<UserFailure>(UserFailure.USER_DOES_NOT_EXISTS);
                 return result;
             } else {
-                const user = querySnapshot.docs[0].data() as unknown as User;
+                const user = usersQuerySnapshot.docs[0].data() as unknown as User;
 
                 const result = new Success<User>(user);
                 return result;
@@ -175,20 +177,20 @@ export class UsersManager {
         }
 
         if (parameters.email !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
-            const query = collectionRef.where(
+            const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+            const usersQuery = usersCollectionRef.where(
                 "email",
                 "==",
                 parameters.email.valueOf(),
-            );
+            ).limit(1);
 
-            const querySnapshot = await query.get();
+            const usersQuerySnapshot = await usersQuery.get();
 
-            if (querySnapshot.empty) {
+            if (usersQuerySnapshot.empty) {
                 const result = new Failure<UserFailure>(UserFailure.USER_DOES_NOT_EXISTS);
                 return result;
             } else {
-                const user = querySnapshot.docs[0].data() as unknown as User;
+                const user = usersQuerySnapshot.docs[0].data() as unknown as User;
 
                 const result = new Success<User>(user);
                 return result;
@@ -203,16 +205,16 @@ export class UsersManager {
         userId: String;
         update: (currentUser: User) => User;
     }): Promise<Success<User> | Failure<UpdateUserFailure>> {
-        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
-        const documentRef = collectionRef.doc(parameters.userId.valueOf());
-        const document = await documentRef.get();
+        const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+        const userDocumentRef = usersCollectionRef.doc(parameters.userId.valueOf());
+        const userDocument = await userDocumentRef.get();
 
-        if (document.exists) {
-            const currentUser = document.data() as unknown as User;
+        if (userDocument.exists) {
+            const currentUser = userDocument.data() as unknown as User;
             const updatedUser = parameters.update(currentUser);
 
             try {
-                await documentRef.update(updatedUser);
+                await userDocumentRef.update(updatedUser);
 
                 const result = new Success<User>(updatedUser);
                 return result;
@@ -229,36 +231,19 @@ export class UsersManager {
     async search(parameters: {
         keyword: String;
     } & PaginationQuery): Promise<Success<Paginated<User>> | Failure<SearchUsersFailure>> {
-        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+        const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
 
         const isKeywordEmpty = parameters.keyword.length === 0;
+
         if (isKeywordEmpty) {
             const result = new Failure<SearchUsersFailure>(SearchUsersFailure.MALFORMED_KEYWORD);
             return result;
-        } else {
-            const isLeadingCharacterUnderscoreInKeyword = parameters.keyword[0] === "_";
-            const isLeadingCharacterNumericInKeyword = parameters.keyword[0].match(/^[0-9]$/i) === null;
-            const areChractersOutsideAllowedSet = parameters.keyword.match(/^[A-Za-z0-9_]+$/i) === null;
-
-            if (
-                isLeadingCharacterNumericInKeyword
-                ||
-                isLeadingCharacterUnderscoreInKeyword
-                ||
-                areChractersOutsideAllowedSet
-            ) {
-                const result = new Failure<SearchUsersFailure>(SearchUsersFailure.MALFORMED_KEYWORD);
-                return result;
-            }
         }
 
         const limit = parameters.limit?.valueOf() || 10;
-        const nextToken = parameters.nextToken?.valueOf() || ":";
+        const nextToken = parameters.nextToken?.valueOf();
 
-        const usernextToken = nextToken.split(":")[0];
-        const nameNextToken = nextToken.split(":")[1];
-
-        let usernamesQuery = collectionRef
+        let usernamesQuery = usersCollectionRef
             .orderBy("username")
             .where(
                 "username",
@@ -267,41 +252,20 @@ export class UsersManager {
             )
             .where(
                 "username",
-                "<=",
-                parameters.keyword[0].valueOf(),
+                "<",
+                parameters.keyword[0].valueOf() + 1,
             ).limit(limit + 1);
 
-        if (usernextToken !== "") {
-            const documentRef = collectionRef.doc(usernextToken);
+        if (nextToken !== undefined && nextToken !== null) {
+            const documentRef = usersCollectionRef.doc(nextToken);
 
             usernamesQuery = usernamesQuery.startAfter(documentRef);
         }
 
-        let namesQuery = collectionRef
-            .orderBy("name")
-            .where(
-                "name",
-                ">=",
-                parameters.keyword.valueOf(),
-            )
-            .where(
-                "username",
-                "<",
-                parameters.keyword[0].valueOf(),
-            ).limit(limit + 1);
-
-        if (nameNextToken !== "") {
-            const documentRef = collectionRef.doc(nameNextToken);
-
-            namesQuery = namesQuery.startAfter(documentRef);
-        }
-
         try {
             const useranmeQuerySnapshot = await usernamesQuery.get();
-            const nameQuerySnapshot = await namesQuery.get();
 
             const usernameQueryDocs = useranmeQuerySnapshot.docs;
-            const nameQueryDocs = nameQuerySnapshot.docs;
 
             const usernameDocs: User[] = [];
             for (const usernameQueryDoc of usernameQueryDocs) {
@@ -310,38 +274,17 @@ export class UsersManager {
                 usernameDocs.push(user);
             }
 
-            const nameDocs: User[] = [];
-            for (const nameQueryDoc of nameQueryDocs) {
-                const user = nameQueryDoc.data() as User;
-
-                nameDocs.push(user);
-            }
-
-
             const usernamesNextToken = usernameDocs.length === limit
                 ? usernameDocs[usernameDocs.length - 1].id
                 : undefined;
 
-            const namesNextToken = nameDocs.length === limit
-                ? nameDocs[nameDocs.length - 1].id
-                : undefined;
-
-            const nextToken = usernamesNextToken !== undefined || namesNextToken !== undefined
-                ? `${usernamesNextToken || ""}:${namesNextToken || ""}`
-                : undefined;
-
-            const users: User[] = [
-                ...(usernameDocs.length === limit
-                    ? usernameDocs.slice(0, usernameDocs.length - 1)
-                    : usernameDocs),
-                ...(nameDocs.length === limit
-                    ? nameDocs.slice(0, nameDocs.length - 1)
-                    : nameDocs),
-            ];
+            const users: User[] = usernameDocs.length === limit
+                ? usernameDocs.slice(0, usernameDocs.length - 1)
+                : usernameDocs;
 
             const paginatedUsers = new Paginated<User>({
                 page: users,
-                nextToken: nextToken
+                nextToken: usernamesNextToken
             });
 
             const result = new Success<Paginated<User>>(paginatedUsers);
