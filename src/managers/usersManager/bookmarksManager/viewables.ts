@@ -76,7 +76,6 @@ class ViewableBookmarkX {
     }
 }
 
-
 class ViewableBookmarksX {
     private bookmarks: Bookmark[];
 

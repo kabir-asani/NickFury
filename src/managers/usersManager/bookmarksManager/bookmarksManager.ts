@@ -12,6 +12,8 @@ import { BookmarkFailure, BookmarksFeedFailure, CreateBookmarkFailure, DeleteBoo
 export class BookmarksManager {
     public static readonly shared = new BookmarksManager();
 
+    private constructor() { }
+
     async exists(parameters: {
         bookmark?: {
             tweetId: String;
@@ -113,14 +115,14 @@ export class BookmarksManager {
         });
 
         if (bookmarkResult instanceof Success) {
-            const collectionRef = DatabaseAssistant.shared.collection(
+            const bookmarksCollectionRef = DatabaseAssistant.shared.collection(
                 TxDatabaseCollections.users +
                 "/" +
                 parameters.authorId.valueOf() +
                 "/" +
                 TxDatabaseCollections.bookmarks
             );
-            const documentRef = collectionRef.doc(bookmarkResult.data.id);
+            const bookmarkDocumentRef = bookmarksCollectionRef.doc(bookmarkResult.data.id);
 
             const bookmark: Bookmark = {
                 id: bookmarkResult.data.id,
@@ -129,7 +131,7 @@ export class BookmarksManager {
             };
 
             try {
-                await documentRef.create(bookmark);
+                await bookmarkDocumentRef.create(bookmark);
 
                 const result = new Success<Bookmark>(bookmark);
                 return result;
@@ -247,7 +249,6 @@ export class BookmarksManager {
                 return result;
             }
 
-            const bookmarkDocumentRef = snapshot.docs[0].ref;
             const bookmark = snapshot.docs[0].data() as unknown as Bookmark;
 
             const deleteBookmarkActivityResult = await StreamAssistant.shared.bookmarkFeed.removeBookmarkActivity({
@@ -260,7 +261,7 @@ export class BookmarksManager {
                 return result;
             }
 
-            await bookmarkDocumentRef.delete();
+            // NOTE: Not deleting bookmark object from backend as it might be useful later on
 
             const result = new Success<Empty>({});
             return result;
