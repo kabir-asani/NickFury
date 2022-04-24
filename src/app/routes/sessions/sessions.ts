@@ -83,15 +83,7 @@ sessions.post(
 
 sessions.delete(
     '/',
-    [
-        ...gatekeeper(),
-        soldier({
-            schema: Joi.object({
-                sessionId: Joi.string().required(),
-            }),
-            groundZero: GroundZero.parameters,
-        }),
-    ],
+    ...gatekeeper(),
     async (req: Request, res: Response) => {
         const session = (req as SessionizedRequest).session;
 

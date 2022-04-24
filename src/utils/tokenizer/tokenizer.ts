@@ -24,7 +24,9 @@ export class Tokenizer {
         const object = jwt.decode(parameters.token.valueOf());
 
         if (object !== null) {
-            return (object as jwt.Jwt).payload as unknown as T;
+            const payload = object as unknown as T;
+
+            return payload;
         }
 
         return null;

@@ -2,7 +2,7 @@ import { assert } from "console";
 import { DatabaseAssistant } from "../../../assistants/database/database";
 import { StreamAssistant } from "../../../assistants/stream/stream";
 import { Empty, Failure, Success } from "../../../utils/typescriptx/typescriptx";
-import { TxCollections } from "../../core/collections";
+import { TxDatabaseCollections } from "../../core/collections";
 import { Paginated, PaginationQuery } from "../../core/types";
 import { TweetsManager } from "../../tweetsManager/tweetsManager";
 import { UsersManager } from "../usersManager";
@@ -24,7 +24,7 @@ export class BookmarksManager {
             "One of bookmarkId or bookmark should be present"
         );
 
-        const bookmarksCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.bookmarks);
+        const bookmarksCollectionRef = DatabaseAssistant.shared.collectionGroup(TxDatabaseCollections.bookmarks);
 
         if (parameters.bookmarkId !== undefined) {
             const bookmarksQuery = bookmarksCollectionRef.where(
@@ -114,11 +114,11 @@ export class BookmarksManager {
 
         if (bookmarkResult instanceof Success) {
             const collectionRef = DatabaseAssistant.shared.collection(
-                TxCollections.users +
+                TxDatabaseCollections.users +
                 "/" +
                 parameters.authorId.valueOf() +
                 "/" +
-                TxCollections.bookmarks
+                TxDatabaseCollections.bookmarks
             );
             const documentRef = collectionRef.doc(bookmarkResult.data.id);
 
@@ -146,7 +146,7 @@ export class BookmarksManager {
     async bookmark(parameters: {
         bookmarkId: String;
     }): Promise<Success<Bookmark> | Failure<BookmarkFailure>> {
-        const bookmarksCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.bookmarks);
+        const bookmarksCollectionRef = DatabaseAssistant.shared.collectionGroup(TxDatabaseCollections.bookmarks);
 
         const bookmarksQuery = bookmarksCollectionRef.where(
             "id",
@@ -231,7 +231,7 @@ export class BookmarksManager {
     async deleteBookmark(parameters: {
         bookmarkId: String;
     }): Promise<Success<Empty> | Failure<DeleteBookmarkFailure>> {
-        const bookmarksCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.bookmarks);
+        const bookmarksCollectionRef = DatabaseAssistant.shared.collectionGroup(TxDatabaseCollections.bookmarks);
 
         const bookmarksQuery = bookmarksCollectionRef.where(
             "id",

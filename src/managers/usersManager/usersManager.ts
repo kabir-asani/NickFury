@@ -3,7 +3,7 @@ import * as uuid from 'uuid';
 import { DatabaseAssistant } from "../../assistants/database/database";
 import { Dately } from '../../utils/dately/dately';
 import { Failure, Success } from '../../utils/typescriptx/typescriptx';
-import { TxCollections } from '../core/collections';
+import { TxDatabaseCollections } from '../core/collections';
 import { Paginated, PaginationQuery } from '../core/types';
 import { User } from './models';
 import {
@@ -27,7 +27,7 @@ export class UsersManager {
         );
 
         if (parameters.userId !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
             const documentRef = collectionRef.doc(parameters.userId.valueOf());
             const document = await documentRef.get();
 
@@ -39,7 +39,7 @@ export class UsersManager {
         }
 
         if (parameters.username !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
             const query = collectionRef.where(
                 "username",
                 "==",
@@ -56,7 +56,7 @@ export class UsersManager {
         }
 
         if (parameters.email !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
             const query = collectionRef.where(
                 "email",
                 "==",
@@ -108,7 +108,7 @@ export class UsersManager {
             },
         };
 
-        const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
         const documentRef = collectionRef.doc(user.id.valueOf());
 
         try {
@@ -138,7 +138,7 @@ export class UsersManager {
 
 
         if (parameters.userId !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
             const documentRef = collectionRef.doc(parameters.userId.valueOf());
             const document = await documentRef.get();
 
@@ -154,7 +154,7 @@ export class UsersManager {
         }
 
         if (parameters.username !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
             const query = collectionRef.where(
                 "username",
                 "==",
@@ -175,7 +175,7 @@ export class UsersManager {
         }
 
         if (parameters.email !== undefined) {
-            const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+            const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
             const query = collectionRef.where(
                 "email",
                 "==",
@@ -203,7 +203,7 @@ export class UsersManager {
         userId: String;
         update: (currentUser: User) => User;
     }): Promise<Success<User> | Failure<UpdateUserFailure>> {
-        const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
         const documentRef = collectionRef.doc(parameters.userId.valueOf());
         const document = await documentRef.get();
 
@@ -229,7 +229,7 @@ export class UsersManager {
     async search(parameters: {
         keyword: String;
     } & PaginationQuery): Promise<Success<Paginated<User>> | Failure<SearchUsersFailure>> {
-        const collectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
 
         const isKeywordEmpty = parameters.keyword.length === 0;
         if (isKeywordEmpty) {

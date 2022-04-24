@@ -2,7 +2,7 @@ import { assert } from "console";
 import { DatabaseAssistant } from "../../../assistants/database/database";
 import { StreamAssistant } from "../../../assistants/stream/stream";
 import { Empty, Failure, Success } from "../../../utils/typescriptx/typescriptx";
-import { TxCollections } from "../../core/collections";
+import { TxDatabaseCollections } from "../../core/collections";
 import { Paginated, PaginationQuery } from "../../core/types";
 import { UsersManager } from "../../usersManager/usersManager";
 import { Tweet } from "../models";
@@ -27,7 +27,7 @@ export class LikesManager {
             "Either of like or likeId should be present"
         );
 
-        const likesCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.likes);
+        const likesCollectionRef = DatabaseAssistant.shared.collectionGroup(TxDatabaseCollections.likes);
 
         if (parameters.likeId !== undefined) {
             const likesQuery = likesCollectionRef.where(
@@ -128,10 +128,10 @@ export class LikesManager {
 
         try {
             // References
-            const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxCollections.tweets);
+            const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.tweets);
             const tweetDocumentRef = tweetsCollectionRef.doc(like.tweetId.valueOf());
 
-            const likesCollectionRef = tweetDocumentRef.collection(TxCollections.likes);
+            const likesCollectionRef = tweetDocumentRef.collection(TxDatabaseCollections.likes);
             const likeDocumentRef = likesCollectionRef.doc(like.id.valueOf());
 
             await DatabaseAssistant.shared.runTransaction(async (transaction) => {
@@ -170,7 +170,7 @@ export class LikesManager {
     async like(parameters: {
         likeId: String;
     }): Promise<Success<Like> | Failure<LikeFailure>> {
-        const likesCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.likes);
+        const likesCollectionRef = DatabaseAssistant.shared.collectionGroup(TxDatabaseCollections.likes);
 
         const likesQuery = likesCollectionRef.where(
             "id",
@@ -249,7 +249,7 @@ export class LikesManager {
     async removeLike(parameters: {
         likeId: String;
     }): Promise<Success<Empty> | Failure<RemoveLikeFailure>> {
-        const likesCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.likes);
+        const likesCollectionRef = DatabaseAssistant.shared.collectionGroup(TxDatabaseCollections.likes);
 
         const likesQuery = likesCollectionRef.where(
             "id",
@@ -277,7 +277,7 @@ export class LikesManager {
                 return result;
             }
 
-            const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxCollections.tweets);
+            const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.tweets);
             const tweetDocumentRef = tweetsCollectionRef.doc(like.tweetId.valueOf());
 
             await DatabaseAssistant.shared.runTransaction(async (transaction) => {

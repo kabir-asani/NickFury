@@ -18,13 +18,15 @@ export const gatekeeper = (): TxMiddleware[] => [
     async (req: Request, res: Response, next) => {
         const accessToken = req.headers.authorization!;
 
-        const token = accessToken.split('/')[1];
+        const token = accessToken.split(' ')[1];
 
         const isValidToken = Tokenizer.shared.verify({
             token: token
         });
 
         if (!isValidToken) {
+            console.log(`Token: ${token} is invalid`);
+
             const response = new UnauthenticatedRouteFailure();
 
             res
@@ -39,6 +41,8 @@ export const gatekeeper = (): TxMiddleware[] => [
         });
 
         if (session === null) {
+            console.log(`Token: ${token} could not be decoded`);
+
             const response = new InternalRouteFailure();
 
             res
@@ -53,6 +57,8 @@ export const gatekeeper = (): TxMiddleware[] => [
         });
 
         if (!isSessionExists) {
+            console.log(`Session: ${session} doesn't exists on database`);
+
             const response = new UnauthenticatedRouteFailure();
 
             res
@@ -62,9 +68,11 @@ export const gatekeeper = (): TxMiddleware[] => [
             return;
         }
 
-
         const sessionizedRequest = req as unknown as SessionizedRequest;
-        sessionizedRequest.session = session;
+        sessionizedRequest.session = {
+            id: session.id,
+            userId: session.userId,
+        };
 
         return next();
     }

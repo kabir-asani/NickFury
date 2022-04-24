@@ -3,7 +3,7 @@ import { text } from "stream/consumers";
 import { DatabaseAssistant } from "../../../assistants/database/database";
 import { StreamAssistant } from "../../../assistants/stream/stream";
 import { Empty, Failure, Success } from "../../../utils/typescriptx/typescriptx";
-import { TxCollections } from "../../core/collections";
+import { TxDatabaseCollections } from "../../core/collections";
 import { Paginated, PaginationQuery } from "../../core/types";
 import { UsersManager } from "../../usersManager/usersManager";
 import { Tweet } from "../models";
@@ -28,7 +28,7 @@ export class CommentsManager {
             "Either of like or likeId should be present"
         );
 
-        const commentsCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.comments);
+        const commentsCollectionRef = DatabaseAssistant.shared.collectionGroup(TxDatabaseCollections.comments);
 
         if (parameters.commentId !== undefined) {
             const commentsQuery = commentsCollectionRef.where(
@@ -124,10 +124,10 @@ export class CommentsManager {
 
         try {
             // References
-            const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxCollections.tweets);
+            const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.tweets);
             const tweetDocumentRef = tweetsCollectionRef.doc(comment.tweetId.valueOf());
 
-            const commentsCollectionRef = tweetDocumentRef.collection(TxCollections.likes);
+            const commentsCollectionRef = tweetDocumentRef.collection(TxDatabaseCollections.likes);
             const commentDocumentRef = commentsCollectionRef.doc(comment.id.valueOf());
 
             await DatabaseAssistant.shared.runTransaction(async (transaction) => {
@@ -166,7 +166,7 @@ export class CommentsManager {
     async comment(parameters: {
         commentId: String;
     }): Promise<Success<Comment> | Failure<CommentFailure>> {
-        const commentsCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.comments);
+        const commentsCollectionRef = DatabaseAssistant.shared.collectionGroup(TxDatabaseCollections.comments);
 
         const commentsQuery = commentsCollectionRef.where(
             "id",
@@ -245,7 +245,7 @@ export class CommentsManager {
     async deleteLike(parameters: {
         commentId: String;
     }): Promise<Success<Empty> | Failure<RemoveCommentFailure>> {
-        const commentsCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.comments);
+        const commentsCollectionRef = DatabaseAssistant.shared.collectionGroup(TxDatabaseCollections.comments);
 
         const commentsQuery = commentsCollectionRef.where(
             "id",
@@ -273,7 +273,7 @@ export class CommentsManager {
                 return result;
             }
 
-            const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxCollections.tweets);
+            const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.tweets);
             const tweetDocumentRef = tweetsCollectionRef.doc(comment.tweetId.valueOf());
 
             await DatabaseAssistant.shared.runTransaction(async (transaction) => {

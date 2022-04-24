@@ -4,7 +4,7 @@ import { DatabaseAssistant } from "../../assistants/database/database";
 import { StreamAssistant } from '../../assistants/stream/stream';
 import { Dately } from '../../utils/dately/dately';
 import { Empty, Failure, Success } from '../../utils/typescriptx/typescriptx';
-import { TxCollections } from "../core/collections";
+import { TxDatabaseCollections } from "../core/collections";
 import { Paginated, PaginationQuery } from '../core/types';
 import { User } from '../usersManager/models';
 import { UsersManager } from '../usersManager/usersManager';
@@ -22,7 +22,7 @@ export class TweetsManager {
     async exits(parameters: {
         tweetId: String,
     }): Promise<Boolean> {
-        const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxCollections.tweets);
+        const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.tweets);
         const tweetDocumentRef = tweetsCollectionRef.doc(parameters.tweetId.valueOf());
 
         try {
@@ -88,10 +88,10 @@ export class TweetsManager {
         try {
             await DatabaseAssistant.shared.runTransaction(async (transaction) => {
                 // References
-                const usersCollectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+                const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
                 const userDocumentRef = usersCollectionRef.doc(parameters.authorId.valueOf());
 
-                const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxCollections.tweets);
+                const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.tweets);
                 const tweetDocumentRef = tweetsCollectionRef.doc(tweet.id.valueOf());
 
                 const userDocument = await userDocumentRef.get();
@@ -127,7 +127,7 @@ export class TweetsManager {
         tweetId: String;
     }): Promise<Success<Tweet> | Failure<TweetFailure>> {
         // References
-        const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxCollections.tweets);
+        const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.tweets);
         const tweetDocumentRef = tweetsCollectionRef.doc(parameters.tweetId.valueOf());
 
         // Action
@@ -200,7 +200,7 @@ export class TweetsManager {
         tweetId: String;
     }): Promise<Success<Empty> | Failure<DeleteTweetFailure>> {
         // References
-        const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxCollections.tweets);
+        const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.tweets);
         const tweetDocumentRef = tweetsCollectionRef.doc(parameters.tweetId.valueOf());
 
         try {
@@ -224,7 +224,7 @@ export class TweetsManager {
             }
 
             await DatabaseAssistant.shared.runTransaction(async (transaction) => {
-                const usersCollectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+                const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
                 const userDocumentRef = usersCollectionRef.doc(tweet.authorId.valueOf());
 
                 const userDocument = await userDocumentRef.get();

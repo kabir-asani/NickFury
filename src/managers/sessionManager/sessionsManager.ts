@@ -1,6 +1,6 @@
 import * as uuid from "uuid";
 import { DatabaseAssistant } from "../../assistants/database/database";
-import { TxCollections } from "../core/collections";
+import { TxDatabaseCollections } from "../core/collections";
 import { Session } from "./models";
 import {
     CreateSessionFailure,
@@ -18,7 +18,7 @@ export class SessionsManager {
     async exists(parameters: {
         sessionId: String,
     }): Promise<Boolean> {
-        const collectionRef = DatabaseAssistant.shared.collection(TxCollections.sessions);
+        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
         const documentRef = collectionRef.doc(parameters.sessionId.valueOf());
 
         const sesison = await documentRef.get();
@@ -46,10 +46,7 @@ export class SessionsManager {
                 userId: parameters.userId
             };
 
-            const usersCollectionsRef = DatabaseAssistant.shared.collection(TxCollections.users);
-            const userDocumentRef = usersCollectionsRef.doc(parameters.userId.valueOf());
-
-            const sessionsCollectionRef = userDocumentRef.collection(TxCollections.sessions);
+            const sessionsCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
             const sessionDocumentRef = sessionsCollectionRef.doc(session.id.valueOf());
 
             try {
@@ -74,7 +71,7 @@ export class SessionsManager {
     async session(parameters: {
         sessionId: String,
     }): Promise<Success<Session> | Failure<SessionFailure>> {
-        const collectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.sessions);
+        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
 
         const query = collectionRef.where(
             "id",
@@ -104,7 +101,7 @@ export class SessionsManager {
     async deleteSession(parameters: {
         sessionId: String
     }): Promise<Success<Empty> | Failure<DeleteSessionFailure>> {
-        const collectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.sessions);
+        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
 
         const query = collectionRef.where(
             "id",
@@ -137,7 +134,7 @@ export class SessionsManager {
     private async deleteSessions(parameters: {
         userId: String,
     }): Promise<Success<Empty> | Failure<DeleteSessionFailure>> {
-        const collectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.sessions);
+        const collectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.sessions);
 
         const query = collectionRef.where(
             "userId",

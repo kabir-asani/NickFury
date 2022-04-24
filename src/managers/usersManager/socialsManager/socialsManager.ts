@@ -2,7 +2,7 @@ import { DatabaseAssistant } from "../../../assistants/database/database";
 import { StreamAssistant } from "../../../assistants/stream/stream";
 import { Dately } from "../../../utils/dately/dately";
 import { Empty, Failure, Success } from "../../../utils/typescriptx/typescriptx";
-import { TxCollections } from "../../core/collections";
+import { TxDatabaseCollections } from "../../core/collections";
 import { PaginationQuery, Paginated } from "../../core/types";
 import { User } from "../models";
 import { UsersManager } from "../usersManager";
@@ -59,13 +59,13 @@ export class SocialsManager {
         }
 
         // References
-        const userCollectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+        const userCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
 
         const followerUserDocumentRef = userCollectionRef.doc(parameters.followerUserId.valueOf());
         const followingUserDocumentRef = userCollectionRef.doc(parameters.followingUserId.valueOf());
 
-        const followersCollectionRef = followingUserDocumentRef.collection(TxCollections.followers);
-        const followingsCollectionRef = followerUserDocumentRef.collection(TxCollections.followings);
+        const followersCollectionRef = followingUserDocumentRef.collection(TxDatabaseCollections.followers);
+        const followingsCollectionRef = followerUserDocumentRef.collection(TxDatabaseCollections.followings);
 
         const followerDocumentRef = followersCollectionRef.doc(parameters.followerUserId.valueOf());
         const followingDocumentRef = followingsCollectionRef.doc(parameters.followingUserId.valueOf());
@@ -166,13 +166,13 @@ export class SocialsManager {
         }
 
         // References
-        const usersCollectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+        const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
 
         const followerUserDocumentRef = usersCollectionRef.doc(parameters.followerUserId.valueOf());
         const followingUserDocumentRef = usersCollectionRef.doc(parameters.followingUserId.valueOf());
 
-        const followersCollectionRef = followingUserDocumentRef.collection(TxCollections.followers);
-        const followingsCollectionRef = followerUserDocumentRef.collection(TxCollections.followings);
+        const followersCollectionRef = followingUserDocumentRef.collection(TxDatabaseCollections.followers);
+        const followingsCollectionRef = followerUserDocumentRef.collection(TxDatabaseCollections.followings);
 
         const followerDocumentRef = followersCollectionRef.doc(parameters.followerUserId.valueOf());
         const followingDocumentRef = followingsCollectionRef.doc(parameters.followingUserId.valueOf());
@@ -246,9 +246,9 @@ export class SocialsManager {
         }
 
         // References
-        const usersCollectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+        const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
         const userDocumentRef = usersCollectionRef.doc(parameters.userId.valueOf());
-        const followersCollectionRef = userDocumentRef.collection(TxCollections.followers);
+        const followersCollectionRef = userDocumentRef.collection(TxDatabaseCollections.followers);
 
         const limit = Math.min(
             parameters.limit?.valueOf() || 25,
@@ -301,9 +301,9 @@ export class SocialsManager {
         }
 
         // References
-        const usersCollectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+        const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
         const userDocumentRef = usersCollectionRef.doc(parameters.userId.valueOf());
-        const followersCollectionRef = userDocumentRef.collection(TxCollections.followings);
+        const followersCollectionRef = userDocumentRef.collection(TxDatabaseCollections.followings);
 
         const limit = Math.min(
             parameters.limit?.valueOf() || 25,
@@ -349,9 +349,9 @@ export class SocialsManager {
         followerUserId: String;
     }): Promise<Boolean> {
         // References
-        const usersCollectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+        const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
         const followerDocumentRef = usersCollectionRef.doc(parameters.followingUserId.valueOf());
-        const followingsCollectionRef = followerDocumentRef.collection(TxCollections.followings);
+        const followingsCollectionRef = followerDocumentRef.collection(TxDatabaseCollections.followings);
         const followingDataDocumentRef = followingsCollectionRef.doc(parameters.followingUserId.valueOf());
 
         // Data
@@ -369,9 +369,9 @@ export class SocialsManager {
         followerUserId: String;
     }): Promise<Boolean> {
         // References
-        const usersCollectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
+        const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
         const followingDocumentRef = usersCollectionRef.doc(parameters.followingUserId.valueOf());
-        const followersCollectionRef = followingDocumentRef.collection(TxCollections.followers);
+        const followersCollectionRef = followingDocumentRef.collection(TxDatabaseCollections.followers);
         const followerDataDocumentRef = followersCollectionRef.doc(parameters.followerUserId.valueOf());
 
         // Data
