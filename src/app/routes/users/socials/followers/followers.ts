@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import Joi from "joi";
 import { Paginated } from "../../../../../managers/core/types";
-import { SessionsManager } from "../../../../../managers/sessionManager/sessionsManager";
+import { SessionsManager } from "../../../../../managers/sessionsManager/sessionsManager";
 import { Follower } from "../../../../../managers/usersManager/socialsManager/models";
 import { SocialsManager } from "../../../../../managers/usersManager/socialsManager/socialsManager";
 import { FollowersFeedFailure } from "../../../../../managers/usersManager/socialsManager/types";

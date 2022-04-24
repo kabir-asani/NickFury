@@ -1,12 +1,12 @@
 import Joi from "joi";
 import { Request, Response } from "express";
-import { SessionsManager } from "../../../managers/sessionManager/sessionsManager";
+import { SessionsManager } from "../../../managers/sessionsManager/sessionsManager";
 import { InternalRouteFailure, UnauthenticatedRouteFailure } from "../../core/types";
 import { TxMiddleware } from "../core/types";
 import { soldier, GroundZero } from "../soldier/soldier";
 import { SessionizedRequest } from "../../core/override";
 import { Tokenizer } from "../../../utils/tokenizer/tokenizer";
-import { Session } from "../../../managers/sessionManager/models";
+import { Session } from "../../../managers/sessionsManager/models";
 
 export const gatekeeper = (): TxMiddleware[] => [
     soldier({

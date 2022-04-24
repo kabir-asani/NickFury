@@ -1,5 +1,5 @@
 import { Request } from "express";
-import { Session } from "../../managers/sessionManager/models";
+import { Session } from "../../managers/sessionsManager/models";
 
 export interface SessionizedRequest extends Request {
     session: Session

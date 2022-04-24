@@ -1,6 +1,6 @@
 import { GoogleAssistant } from "../../assistants/google/google";
 import { UsersManager } from "../usersManager/usersManager";
-import { SessionsManager } from "../sessionManager/sessionsManager";
+import { SessionsManager } from "../sessionsManager/sessionsManager";
 import { AuthProvider } from "./models";
 import {
     LogInFailure,
