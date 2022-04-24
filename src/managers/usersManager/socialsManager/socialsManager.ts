@@ -67,8 +67,8 @@ export class SocialsManager {
         const followersCollectionRef = followingUserDocumentRef.collection(TxDatabaseCollections.followers);
         const followingsCollectionRef = followerUserDocumentRef.collection(TxDatabaseCollections.followings);
 
-        const followerDocumentRef = followersCollectionRef.doc(parameters.followerUserId.valueOf());
-        const followingDocumentRef = followingsCollectionRef.doc(parameters.followingUserId.valueOf());
+        const followerDataDocumentRef = followersCollectionRef.doc(parameters.followerUserId.valueOf());
+        const followingDataDocumentRef = followingsCollectionRef.doc(parameters.followingUserId.valueOf());
 
         // Data
         const followerData: Follower = {
@@ -81,12 +81,12 @@ export class SocialsManager {
             creationDate: Dately.shared.now(),
         };
 
-        const followResult = await StreamAssistant.shared.timelineFeed.follow({
+        const timelineFollowResult = await StreamAssistant.shared.timelineFeed.follow({
             followerUserId: parameters.followerUserId,
             followingUserId: parameters.followingUserId,
         });
 
-        if (followResult instanceof Success) {
+        if (timelineFollowResult instanceof Success) {
             try {
                 await DatabaseAssistant.shared.runTransaction(async (transaction) => {
                     const followerUserDocument = await followerUserDocumentRef.get();
@@ -97,18 +97,18 @@ export class SocialsManager {
                         const following = followingUserDocument.data() as unknown as User;
 
                         transaction.create(
-                            followerDocumentRef,
+                            followerDataDocumentRef,
                             followerData
                         );
                         transaction.create(
-                            followingDocumentRef,
+                            followingDataDocumentRef,
                             followingData,
                         );
 
                         transaction.update(
                             followerUserDocumentRef,
                             {
-                                "socialDetails.followingCount": follower.socialDetails.followingsCount.valueOf() + 1
+                                "socialDetails.followingsCount": follower.socialDetails.followingsCount.valueOf() + 1
                             }
                         );
 
@@ -174,8 +174,8 @@ export class SocialsManager {
         const followersCollectionRef = followingUserDocumentRef.collection(TxDatabaseCollections.followers);
         const followingsCollectionRef = followerUserDocumentRef.collection(TxDatabaseCollections.followings);
 
-        const followerDocumentRef = followersCollectionRef.doc(parameters.followerUserId.valueOf());
-        const followingDocumentRef = followingsCollectionRef.doc(parameters.followingUserId.valueOf());
+        const followerDataDocumentRef = followersCollectionRef.doc(parameters.followerUserId.valueOf());
+        const followingDataDocumentRef = followingsCollectionRef.doc(parameters.followingUserId.valueOf());
 
         const timelineUnfollowResult = await StreamAssistant.shared.timelineFeed.unfollow({
             followerUserId: parameters.followerUserId,
@@ -192,13 +192,13 @@ export class SocialsManager {
                         const follower = followerUserDocument.data() as unknown as User;
                         const following = followingUserDocument.data() as unknown as User;
 
-                        transaction.delete(followerDocumentRef);
-                        transaction.delete(followingDocumentRef);
+                        transaction.delete(followerDataDocumentRef);
+                        transaction.delete(followingDataDocumentRef);
 
                         transaction.update(
                             followerUserDocumentRef,
                             {
-                                "socialDetails.followingCount": Math.max(
+                                "socialDetails.followingsCount": Math.max(
                                     follower.socialDetails.followingsCount.valueOf() - 1,
                                     0
                                 )
@@ -260,9 +260,9 @@ export class SocialsManager {
             .limit(limit + 1); // +1 to be used for pagination purposes
 
         if (parameters.nextToken !== undefined) {
-            const followerDocumentRef = followersCollectionRef.doc(parameters.nextToken.valueOf());
+            const followerDataDocumentRef = followersCollectionRef.doc(parameters.nextToken.valueOf());
 
-            query = query.startAfter(followerDocumentRef);
+            query = query.startAfter(followerDataDocumentRef);
         }
 
         try {
@@ -290,7 +290,7 @@ export class SocialsManager {
 
     async followings(parameters: {
         userId: String;
-    } & PaginationQuery): Promise<Success<Paginated<Follower>> | Failure<FollowingsFeedFailure>> {
+    } & PaginationQuery): Promise<Success<Paginated<Following>> | Failure<FollowingsFeedFailure>> {
         const isUserExists = await UsersManager.shared.exists({
             userId: parameters.userId
         });
@@ -303,44 +303,66 @@ export class SocialsManager {
         // References
         const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
         const userDocumentRef = usersCollectionRef.doc(parameters.userId.valueOf());
-        const followersCollectionRef = userDocumentRef.collection(TxDatabaseCollections.followings);
+        const followingsCollectionRef = userDocumentRef.collection(TxDatabaseCollections.followings);
 
         const limit = Math.min(
             parameters.limit?.valueOf() || 25,
             25
         );
 
-        let query = followersCollectionRef
+        let query = followingsCollectionRef
             .orderBy("creationDate")
             .limit(limit + 1); // +1 to be used for pagination purposes
 
         if (parameters.nextToken !== undefined) {
-            const followerDocumentRef = followersCollectionRef.doc(parameters.nextToken.valueOf());
+            const followingDataDocumentRef = followingsCollectionRef.doc(parameters.nextToken.valueOf());
 
-            query = query.startAfter(followerDocumentRef);
+            query = query.startAfter(followingDataDocumentRef);
         }
 
         try {
             const followingsQuerySnapshot = await query.get();
 
-            const followings: Follower[] = followingsQuerySnapshot.docs.map<Follower>((followerQueryDocument) => {
-                const following = followerQueryDocument.data() as unknown as Follower;
+            const followings: Following[] = followingsQuerySnapshot.docs.map<Following>((followerQueryDocument) => {
+                const following = followerQueryDocument.data() as unknown as Following;
                 return following;
             });
 
 
-            const feed = new Paginated<Follower>({
+            const feed = new Paginated<Following>({
                 page: followings.slice(0, limit),
                 nextToken: followings.length > limit
                     ? followings[followings.length - 1].userId
                     : undefined,
             });
 
-            const result = new Success<Paginated<Follower>>(feed);
+            const result = new Success<Paginated<Following>>(feed);
             return result;
         } catch {
             const result = new Failure<FollowingsFeedFailure>(FollowingsFeedFailure.UNKNOWN);
             return result;
+        }
+    }
+
+
+
+    async isFollower(parameters: {
+        followingUserId: String;
+        followerUserId: String;
+    }): Promise<Boolean> {
+        // References
+        const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
+        const followingDocumentRef = usersCollectionRef.doc(parameters.followingUserId.valueOf());
+        const followersCollectionRef = followingDocumentRef.collection(TxDatabaseCollections.followers);
+        const followerDataDocumentRef = followersCollectionRef.doc(parameters.followerUserId.valueOf());
+
+        // Data
+        const document = await followerDataDocumentRef.get();
+
+        if (document.exists) {
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -356,26 +378,6 @@ export class SocialsManager {
 
         // Data
         const document = await followingDataDocumentRef.get();
-
-        if (document.exists) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    async isFollower(parameters: {
-        followingUserId: String;
-        followerUserId: String;
-    }): Promise<Boolean> {
-        // References
-        const usersCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.users);
-        const followingDocumentRef = usersCollectionRef.doc(parameters.followingUserId.valueOf());
-        const followersCollectionRef = followingDocumentRef.collection(TxDatabaseCollections.followers);
-        const followerDataDocumentRef = followersCollectionRef.doc(parameters.followerUserId.valueOf());
-
-        // Data
-        const document = await followerDataDocumentRef.get();
 
         if (document.exists) {
             return true;
