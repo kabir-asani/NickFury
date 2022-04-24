@@ -138,14 +138,6 @@ export class LikesManager {
                 const tweetDocument = await tweetDocumentRef.get();
                 const tweet = tweetDocument.data() as unknown as Tweet;
 
-                const updatedTweet: Tweet = {
-                    ...tweet,
-                    meta: {
-                        ...tweet.meta,
-                        likesCount: tweet.meta.likesCount.valueOf() + 1,
-                    }
-                };
-
                 transaction.create(
                     likeDocumentRef,
                     like
@@ -153,7 +145,7 @@ export class LikesManager {
 
                 transaction.update(
                     tweetDocumentRef,
-                    updatedTweet,
+                    { "meta.likesCount": tweet.meta.likesCount.valueOf() + 1 },
                 );
 
                 return Promise.resolve();
@@ -167,7 +159,7 @@ export class LikesManager {
         }
     }
 
-    async like(parameters: {
+    private async like(parameters: {
         likeId: String;
     }): Promise<Success<Like> | Failure<LikeFailure>> {
         const likesCollectionRef = DatabaseAssistant.shared.collectionGroup(TxDatabaseCollections.likes);
@@ -265,7 +257,6 @@ export class LikesManager {
                 return result;
             }
 
-            const likeDocumentRef = snapshot.docs[0].ref;
             const like = snapshot.docs[0].data() as unknown as Like;
 
             const removeLikeResult = await StreamAssistant.shared.likeReactions.removeLike({
@@ -284,21 +275,11 @@ export class LikesManager {
                 const tweetDocument = await tweetDocumentRef.get();
                 const tweet = tweetDocument.data() as unknown as Tweet;
 
-                const updatedTweet: Tweet = {
-                    ...tweet,
-                    meta: {
-                        ...tweet.meta,
-                        likesCount: tweet.meta.likesCount.valueOf() - 1,
-                    }
-                };
-
-                transaction.delete(
-                    likeDocumentRef,
-                );
+                // NOTE: Not deleting like from DB as it might be useful in future
 
                 transaction.update(
                     tweetDocumentRef,
-                    updatedTweet,
+                    { "meta.likesCount": tweet.meta.likesCount.valueOf() - 1 },
                 );
 
                 return Promise.resolve();
