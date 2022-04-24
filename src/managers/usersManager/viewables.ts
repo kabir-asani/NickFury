@@ -47,7 +47,7 @@ export class ViewableUserX {
     }
 }
 
-class ViewableUsersX {
+export class ViewableUsersX {
     private users: User[];
 
     constructor(parameters: {

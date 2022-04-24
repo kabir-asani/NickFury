@@ -6,6 +6,7 @@ import { soldier, GroundZero } from "./middlewares/soldier/soldier";
 import storyteller from "./middlewares/storyteller/storyteller";
 import sessions from "./routes/sessions/sessions";
 import others from "./routes/users/others";
+import search from "./routes/users/search";
 import self from "./routes/users/self";
 
 const app = express();
@@ -39,6 +40,12 @@ app.use(
         }),
     ],
     others
+);
+
+app.use(
+    "/search",
+    ...gatekeeper(),
+    search
 );
 
 export = app;
