@@ -37,7 +37,6 @@ export class SessionsManager {
             userId: parameters.userId
         });
 
-
         if (deleteSessionResult instanceof Success) {
             const id = uuid.v4();
 
