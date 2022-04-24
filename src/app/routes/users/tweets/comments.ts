@@ -84,7 +84,7 @@ comments.put(
 
         if (addCommentResult instanceof Failure) {
             switch (addCommentResult.reason) {
-                case AddCommentFailure.MISFORMED_COMMENT:
+                case AddCommentFailure.MALFORMED_COMMENT:
                 case AddCommentFailure.TWEET_DOES_NOT_EXISTS: {
                     const response = new SemanticRouteFailure("like already exists on this ");
 

@@ -15,7 +15,7 @@ export enum AddCommentFailure {
     UNKNOWN,
     TWEET_DOES_NOT_EXISTS,
     AUTHOR_DOES_NOT_EXISTS,
-    MISFORMED_COMMENT
+    MALFORMED_COMMENT
 }
 
 // Remove Comment

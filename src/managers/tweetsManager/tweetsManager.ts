@@ -98,20 +98,13 @@ export class TweetsManager {
                 const user = userDocument.data() as unknown as User;
 
                 // Action
-                const updatedUser: User = {
-                    ...user,
-                    activityDetails: {
-                        tweetsCount: user.activityDetails.tweetsCount.valueOf() + 1,
-                    }
-                };
-
                 transaction.create(
                     tweetDocumentRef,
                     tweet,
                 );
                 transaction.update(
                     userDocumentRef,
-                    updatedUser,
+                    { "activityDetails.tweetsCount": user.activityDetails.tweetsCount.valueOf() + 1 },
                 );
             });
 
@@ -230,19 +223,9 @@ export class TweetsManager {
                 const userDocument = await userDocumentRef.get();
                 const user = userDocument.data() as unknown as User;
 
-                const updatedUser: User = {
-                    ...user,
-                    activityDetails: {
-                        tweetsCount: Math.max(
-                            0,
-                            user.activityDetails.tweetsCount.valueOf() - 1
-                        ),
-                    },
-                }
-
                 transaction.update(
                     userDocumentRef,
-                    updatedUser
+                    { "activityDetails.tweetsCount": user.activityDetails.tweetsCount.valueOf() - 1 }
                 );
             });
 

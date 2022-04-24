@@ -25,7 +25,7 @@ export class CommentsManager {
     }): Promise<boolean> {
         assert(
             parameters.comment !== undefined || parameters.commentId !== undefined,
-            "Either of like or likeId should be present"
+            "Either of comment or commentId should be present"
         );
 
         const commentsCollectionRef = DatabaseAssistant.shared.collectionGroup(TxDatabaseCollections.comments);
@@ -84,7 +84,7 @@ export class CommentsManager {
         text: String;
     }): Promise<Success<Comment> | Failure<AddCommentFailure>> {
         if (parameters.text.length <= 0 || parameters.text.length > 280) {
-            const result = new Failure<AddCommentFailure>(AddCommentFailure.MISFORMED_COMMENT);
+            const result = new Failure<AddCommentFailure>(AddCommentFailure.MALFORMED_COMMENT);
             return result;
         }
 
@@ -127,20 +127,12 @@ export class CommentsManager {
             const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxDatabaseCollections.tweets);
             const tweetDocumentRef = tweetsCollectionRef.doc(comment.tweetId.valueOf());
 
-            const commentsCollectionRef = tweetDocumentRef.collection(TxDatabaseCollections.likes);
+            const commentsCollectionRef = tweetDocumentRef.collection(TxDatabaseCollections.comments);
             const commentDocumentRef = commentsCollectionRef.doc(comment.id.valueOf());
 
             await DatabaseAssistant.shared.runTransaction(async (transaction) => {
                 const tweetDocument = await tweetDocumentRef.get();
                 const tweet = tweetDocument.data() as unknown as Tweet;
-
-                const updatedTweet: Tweet = {
-                    ...tweet,
-                    meta: {
-                        ...tweet.meta,
-                        commentsCount: tweet.meta.commentsCount.valueOf() + 1,
-                    }
-                };
 
                 transaction.create(
                     commentDocumentRef,
@@ -149,7 +141,7 @@ export class CommentsManager {
 
                 transaction.update(
                     tweetDocumentRef,
-                    updatedTweet,
+                    { "meta.commentsCount": tweet.meta.commentsCount.valueOf() + 1 },
                 );
 
                 return Promise.resolve();
@@ -204,18 +196,18 @@ export class CommentsManager {
             return result;
         }
 
-        const feedResult = await StreamAssistant.shared.commentReactions.commentsList({
+        const commentsFeedResult = await StreamAssistant.shared.commentReactions.commentsList({
             tweetId: parameters.tweetId,
             nextToken: parameters.nextToken,
             limit: parameters.limit,
         });
 
-        if (feedResult instanceof Failure) {
+        if (commentsFeedResult instanceof Failure) {
             const result = new Failure<CommentsFeedFailure>(CommentsFeedFailure.UNKNOWN);
             return result;
         }
 
-        const partialComments = feedResult.data.page;
+        const partialComments = commentsFeedResult.data.page;
 
         const comments: Comment[] = [];
 
@@ -235,14 +227,14 @@ export class CommentsManager {
 
         const paginatedComments = new Paginated<Comment>({
             page: comments,
-            nextToken: feedResult.data.nextToken,
+            nextToken: commentsFeedResult.data.nextToken,
         });
 
         const result = new Success<Paginated<Comment>>(paginatedComments);
         return result;
     }
 
-    async deleteLike(parameters: {
+    async deleteComment(parameters: {
         commentId: String;
     }): Promise<Success<Empty> | Failure<RemoveCommentFailure>> {
         const commentsCollectionRef = DatabaseAssistant.shared.collectionGroup(TxDatabaseCollections.comments);
@@ -261,11 +253,10 @@ export class CommentsManager {
                 return result;
             }
 
-            const commentDocumentRef = snapshot.docs[0].ref;
             const comment = snapshot.docs[0].data() as unknown as Comment;
 
-            const removeCommentResult = await StreamAssistant.shared.likeReactions.removeLike({
-                likeId: comment.id
+            const removeCommentResult = await StreamAssistant.shared.commentReactions.removeComment({
+                commentId: comment.id
             });
 
             if (removeCommentResult instanceof Failure) {
@@ -280,21 +271,11 @@ export class CommentsManager {
                 const tweetDocument = await tweetDocumentRef.get();
                 const tweet = tweetDocument.data() as unknown as Tweet;
 
-                const updatedTweet: Tweet = {
-                    ...tweet,
-                    meta: {
-                        ...tweet.meta,
-                        commentsCount: tweet.meta.likesCount.valueOf() - 1
-                    }
-                };
-
-                transaction.delete(
-                    commentDocumentRef,
-                );
+                // NOTE: Not deleting comments from DB for it might be useful in future
 
                 transaction.update(
                     tweetDocumentRef,
-                    updatedTweet,
+                    { "meta.commentsCount": tweet.meta.commentsCount.valueOf() - 1 },
                 );
 
                 return Promise.resolve();

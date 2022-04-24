@@ -70,10 +70,10 @@ export class CommentReactionAssistant extends ReactionsAssistant {
     }
 
     async removeComment(parameters: {
-        likeId: String;
+        commentId: String;
     }): Promise<Success<Empty> | Failure<RemoveCommentFailure>> {
         try {
-            await this.client.reactions.delete(parameters.likeId.valueOf());
+            await this.client.reactions.delete(parameters.commentId.valueOf());
 
             const result = new Success<Empty>({});
             return result;
