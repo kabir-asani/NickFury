@@ -9,7 +9,7 @@ export class FirebaseAssistant {
     private _app: App;
     public app = (): App => this._app;
 
-    constructor() {
+    private constructor() {
         const serviceAccount = {
             projectId: process.env.FIREBASE_PROJECT_ID || Secrets.firebase.projectId,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL || Secrets.firebase.clientEmail,

@@ -19,6 +19,8 @@ import {
 export class TweetsManager {
     public static readonly shared = new TweetsManager();
 
+    private constructor() { }
+
     async exits(parameters: {
         tweetId: String,
     }): Promise<Boolean> {

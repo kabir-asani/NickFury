@@ -1,4 +1,3 @@
-import { GoogleAssistant } from "../../assistants/google/google";
 import { UsersManager } from "../usersManager/usersManager";
 import { SessionsManager } from "../sessionsManager/sessionsManager";
 import { AuthProvider } from "./models";
@@ -12,6 +11,8 @@ import { User } from "../usersManager/models";
 
 export class AuthenticationManager {
     public static readonly shared = new AuthenticationManager();
+
+    private constructor() { }
 
     async logIn(parameters: {
         details: {

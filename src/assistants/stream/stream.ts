@@ -19,7 +19,7 @@ export class StreamAssistant {
     readonly likeReactions: LikeReactionAssistant;
     readonly commentReactions: CommentReactionAssistant;
 
-    constructor() {
+    private constructor() {
         this.client = Stream.connect(
             process.env.STREAM_KEY || Secrets.stream.key,
             process.env.STREAM_SECRET || Secrets.stream.secret,

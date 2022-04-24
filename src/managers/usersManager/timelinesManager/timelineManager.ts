@@ -9,6 +9,8 @@ import { TimelineFeedFailure as TimelineFeedFailure } from "./types";
 export class TimelineManager {
     public static readonly shared = new TimelineManager();
 
+    private constructor() { }
+
     async feed(parameters: {
         userId: String;
     } & PaginationQuery): Promise<Success<Paginated<Tweet>> | Failure<TimelineFeedFailure>> {

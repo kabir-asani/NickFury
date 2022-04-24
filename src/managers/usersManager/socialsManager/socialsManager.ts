@@ -17,6 +17,8 @@ import {
 export class SocialsManager {
     public static readonly shared = new SocialsManager();
 
+    private constructor() { }
+
     async exists(parameters: {
         followingUserId: String;
         followerUserId: String;

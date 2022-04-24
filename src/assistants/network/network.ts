@@ -17,6 +17,8 @@ export class NetworkAssistant {
     private static _shared = new NetworkAssistant();
     public static shared = (): NetworkAssistant => this._shared;
 
+    private constructor() { }
+
     async get(parameters: {
         url: String,
         headers?: {

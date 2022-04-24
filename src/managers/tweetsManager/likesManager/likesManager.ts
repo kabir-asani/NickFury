@@ -13,6 +13,8 @@ import { AddLikeFailure, RemoveLikeFailure, LikeFailure, LikesFeedFailure } from
 export class LikesManager {
     public static readonly shared = new LikesManager();
 
+    private constructor() { }
+
     async exists(parameters: {
         likeId?: String;
     } &

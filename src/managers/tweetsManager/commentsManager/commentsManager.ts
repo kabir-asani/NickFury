@@ -14,6 +14,8 @@ import { AddCommentFailure, RemoveCommentFailure, CommentFailure, CommentsFeedFa
 export class CommentsManager {
     public static readonly shared = new CommentsManager();
 
+    private constructor() { }
+
     async exists(parameters: {
         commentId?: String;
     } &
