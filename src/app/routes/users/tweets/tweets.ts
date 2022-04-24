@@ -52,7 +52,7 @@ tweets.get(
 
         const { userId } = req.params;
 
-        const feedResult = await TweetsManager.shared.tweetsFeed({
+        const feedResult = await TweetsManager.shared.tweetsList({
             authorId: userId || session.userId,
             nextToken: nextToken !== undefined ? nextToken as unknown as String : undefined,
             limit: limit !== undefined ? Number(limit) : undefined,

@@ -60,13 +60,10 @@ export class TweetsManager {
 
         const complimentaryTweetId = uuid.v4();
 
-        const createTweetActivityResult = await StreamAssistant
-            .shared
-            .userFeed
-            .createTweetActivity({
-                authorId: parameters.authorId,
-                complimentaryTweetId: complimentaryTweetId,
-            });
+        const createTweetActivityResult = await StreamAssistant.shared.userFeed.createTweetActivity({
+            authorId: parameters.authorId,
+            complimentaryTweetId: complimentaryTweetId,
+        });
 
         if (createTweetActivityResult instanceof Failure) {
             const result = new Failure<CreateTweetFailure>(CreateTweetFailure.UNKNOWN);
@@ -142,7 +139,7 @@ export class TweetsManager {
         }
     }
 
-    async tweetsFeed(parameters: {
+    async tweetsList(parameters: {
         authorId: String;
     } & PaginationQuery): Promise<Success<Paginated<Tweet>> | Failure<TweetsFeedFailure>> {
         const isAuthorExists = await UsersManager.shared.exists({
@@ -165,7 +162,7 @@ export class TweetsManager {
             return result;
         }
 
-        const tweets = [];
+        const tweets: Tweet[] = [];
 
         for (const partialTweet of tweetActivities.page) {
             const tweetResult = await this.tweet({
@@ -181,7 +178,7 @@ export class TweetsManager {
         }
 
         const feed = new Paginated<Tweet>({
-            page: tweets as Tweet[],
+            page: tweets,
             nextToken: tweetActivities?.nextToken,
         });
 
@@ -229,7 +226,7 @@ export class TweetsManager {
                 );
             });
 
-            // * Not deleting tweet from DB. Data might be useful later on. *
+            // NOTE: Not deleting tweet from DB. Data might be useful later on.
 
             const result = new Success<Empty>({});
             return result;
