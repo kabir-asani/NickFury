@@ -16,9 +16,6 @@ import {
     TweetFailure,
 } from "./types";
 
-// In all of the functions below, we're assuming that a user 
-// corresponding to the given `authorId` always exists.
-
 export class TweetsManager {
     public static readonly shared = new TweetsManager();
 
@@ -94,7 +91,7 @@ export class TweetsManager {
                 const usersCollectionRef = DatabaseAssistant.shared.collection(TxCollections.users);
                 const userDocumentRef = usersCollectionRef.doc(parameters.authorId.valueOf());
 
-                const tweetsCollectionRef = userDocumentRef.collection(TxCollections.tweets);
+                const tweetsCollectionRef = DatabaseAssistant.shared.collection(TxCollections.tweets);
                 const tweetDocumentRef = tweetsCollectionRef.doc(tweet.id.valueOf());
 
                 const userDocument = await userDocumentRef.get();
@@ -232,6 +229,7 @@ export class TweetsManager {
 
                 const userDocument = await userDocumentRef.get();
                 const user = userDocument.data() as unknown as User;
+
                 const updatedUser: User = {
                     ...user,
                     activityDetails: {

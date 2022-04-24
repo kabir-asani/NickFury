@@ -3,6 +3,7 @@ export class TxCollections {
 
     static readonly tweets = "tweets";
     static readonly likes = "likes";
+    static readonly comments = "comments";
 
     static readonly users = "users";
     static readonly followings = "followings";

@@ -28,10 +28,10 @@ export class CommentsManager {
             "Either of like or likeId should be present"
         );
 
-        const likesCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.likes);
+        const commentsCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.comments);
 
         if (parameters.commentId !== undefined) {
-            const likesQuery = likesCollectionRef.where(
+            const commentsQuery = commentsCollectionRef.where(
                 "id",
                 "==",
                 parameters.commentId.valueOf(),
@@ -39,7 +39,7 @@ export class CommentsManager {
 
 
             try {
-                const snapshot = await likesQuery.get();
+                const snapshot = await commentsQuery.get();
 
                 if (snapshot.empty) {
                     return false;
@@ -52,7 +52,7 @@ export class CommentsManager {
         }
 
         if (parameters.comment !== undefined) {
-            const commentsQuery = likesCollectionRef.where(
+            const commentsQuery = commentsCollectionRef.where(
                 "tweetId",
                 "==",
                 parameters.comment.tweetId.valueOf(),
@@ -166,7 +166,7 @@ export class CommentsManager {
     async comment(parameters: {
         commentId: String;
     }): Promise<Success<Comment> | Failure<CommentFailure>> {
-        const commentsCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.likes);
+        const commentsCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.comments);
 
         const commentsQuery = commentsCollectionRef.where(
             "id",
@@ -245,7 +245,7 @@ export class CommentsManager {
     async deleteLike(parameters: {
         commentId: String;
     }): Promise<Success<Empty> | Failure<RemoveCommentFailure>> {
-        const commentsCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.likes);
+        const commentsCollectionRef = DatabaseAssistant.shared.collectionGroup(TxCollections.comments);
 
         const commentsQuery = commentsCollectionRef.where(
             "id",
