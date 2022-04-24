@@ -54,7 +54,7 @@ export class BookmarksManager {
                 "==",
                 parameters.bookmark.tweetId.valueOf(),
             ).where(
-                "authordId",
+                "authorId",
                 "==",
                 parameters.bookmark.authorId.valueOf(),
             ).limit(1);
