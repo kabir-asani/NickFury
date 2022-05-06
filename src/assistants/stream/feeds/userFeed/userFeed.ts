@@ -94,7 +94,7 @@ export class UserFeedAssistant extends FeedAssistant {
                 .map((activity) => {
                     const partialTweet: PartialTweet = new PartialTweet({
                         authorId: activity.actor,
-                        tweetId: activity.object as String,
+                        tweetId: activity.id,
                         foreignTweetId: activity.foreign_id as String,
                     });
 
