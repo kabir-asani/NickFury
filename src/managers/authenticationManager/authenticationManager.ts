@@ -3,6 +3,7 @@ import { SessionsManager } from "../sessionsManager/sessionsManager";
 import { AuthProvider } from "./models";
 import {
     LogInFailure,
+    LogInSuccess,
     LogOutFailure,
 } from "./types";
 import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
@@ -24,7 +25,7 @@ export class AuthenticationManager {
             provider: AuthProvider;
             token: String;
         }
-    }): Promise<Success<String> | Failure<LogInFailure>> {
+    }): Promise<Success<LogInSuccess> | Failure<LogInFailure>> {
         // TODO: Verify access-token from Google or Apple
         const isTokenValid = true;
 
@@ -50,6 +51,7 @@ export class AuthenticationManager {
                         }
 
                         user = createUserResult.data;
+                        break;
                     }
                     default: {
                         const result = new Failure<LogInFailure>(LogInFailure.UNKNOWN);
@@ -69,7 +71,13 @@ export class AuthenticationManager {
                 return result;
             }
 
-            const result = new Success<String>(createSessionResult.data);
+            const result = new Success<LogInSuccess>({
+                credentials: {
+                    accessToken: createSessionResult.data,
+                },
+                user: user
+            });
+
             return result;
         } else {
             const result = new Failure<LogInFailure>(LogInFailure.INCORECT_ACCESS_TOKEN);
