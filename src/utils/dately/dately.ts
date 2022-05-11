@@ -7,7 +7,7 @@ export class Dately {
 
     now(): String {
         const now = moment();
-        const nowFormattedAccordingToISO8601 = now.format();
+        const nowFormattedAccordingToISO8601 = now.utc().format();
 
         return nowFormattedAccordingToISO8601;
     }

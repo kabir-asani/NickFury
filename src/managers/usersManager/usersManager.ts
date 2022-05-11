@@ -100,6 +100,7 @@ export class UsersManager {
             email: parameters.email,
             username: parameters.email.split('@')[0] + uuid.v4().substring(0, 5),
             image: parameters.image,
+            bio: "",
             creationDate: Dately.shared.now(),
             socialDetails: {
                 followersCount: 0,

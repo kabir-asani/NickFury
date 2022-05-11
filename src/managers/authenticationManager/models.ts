@@ -13,7 +13,3 @@ export const authProvider = (provider: String): AuthProvider | null => {
             return null;
     }
 }
-
-export interface Authentication {
-    token: String;
-}

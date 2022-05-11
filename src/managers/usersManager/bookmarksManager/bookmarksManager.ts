@@ -1,6 +1,7 @@
 import { assert } from "console";
 import { DatabaseAssistant } from "../../../assistants/database/database";
 import { StreamAssistant } from "../../../assistants/stream/stream";
+import { Dately } from "../../../utils/dately/dately";
 import { Empty, Failure, Success } from "../../../utils/typescriptx/typescriptx";
 import { TxDatabaseCollections } from "../../core/collections";
 import { Paginated, PaginationQuery } from "../../core/types";
@@ -128,6 +129,7 @@ export class BookmarksManager {
                 id: bookmarkResult.data.id,
                 authorId: parameters.authorId,
                 tweetId: parameters.tweetId,
+                creationDate: Dately.shared.now(),
             };
 
             try {

@@ -4,6 +4,7 @@ export interface Bookmark {
     readonly id: String;
     readonly authorId: String;
     readonly tweetId: String;
+    readonly creationDate: String;
 }
 
 export interface ViewableBookmark {

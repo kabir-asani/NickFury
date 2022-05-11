@@ -4,6 +4,7 @@ export interface User {
     readonly email: String;
     readonly username: String;
     readonly image: String;
+    readonly bio: String;
     readonly creationDate: String;
     readonly socialDetails: {
         readonly followersCount: Number;
