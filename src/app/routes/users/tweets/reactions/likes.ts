@@ -2,12 +2,12 @@ import { Router, Request, Response } from "express";
 import { UnimplementedRouteFailure } from "../../../../core/types";
 import paginated from "../../../../middlewares/paginated/paginated";
 
-const followers = Router({
+const likes = Router({
     mergeParams: true
 });
 
-followers.get(
-    "/",
+likes.get(
+    '/',
     paginated(),
     async (req: Request, res: Response) => {
         const response = new UnimplementedRouteFailure();
@@ -15,7 +15,18 @@ followers.get(
         res
             .status(UnimplementedRouteFailure.statusCode)
             .json(response);
-    },
+    }
 );
 
-export = followers;
+likes.post(
+    '/',
+    async (req: Request, res: Response) => {
+        const response = new UnimplementedRouteFailure();
+
+        res
+            .status(UnimplementedRouteFailure.statusCode)
+            .json(response);
+    }
+);
+
+export = likes;

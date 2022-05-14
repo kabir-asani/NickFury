@@ -23,7 +23,7 @@ app.use(
 );
 
 app.use(
-    "/self",
+    "/users/self",
     gatekeeper(),
     self,
 );

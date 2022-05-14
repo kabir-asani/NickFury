@@ -91,3 +91,11 @@ export class InternalRouteFailure extends RouteFailure {
         super(reason || "UNKNOWN");
     }
 }
+
+export class UnimplementedRouteFailure extends RouteFailure {
+    static readonly statusCode = 501;
+
+    constructor(reason?: Object) {
+        super(reason || "UNIMPLEMENTED");
+    }
+}

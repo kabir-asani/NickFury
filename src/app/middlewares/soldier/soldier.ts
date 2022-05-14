@@ -33,7 +33,14 @@ export const soldier = (parameters: {
     if (validation.error === null || validation.error === undefined) {
         return next();
     } else {
-        const details = (validation.error as ValidationError).details.map((detail) => detail.message);
+        const details = (validation.error as ValidationError).details.map((detail) => {
+            return {
+                message: detail.message,
+                path: detail.path,
+                type: detail.type,
+            };
+        });
+
         const failure = new IncorrectArgumentsRouteFailure(details);
 
         res

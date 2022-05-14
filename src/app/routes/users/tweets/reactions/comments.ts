@@ -1,15 +1,15 @@
 import { Router, Request, Response } from "express";
 import Joi from "joi";
-import { NoResourceRouteFailure, UnimplementedRouteFailure } from "../../../../core/types";
+import { UnimplementedRouteFailure } from "../../../../core/types";
 import paginated from "../../../../middlewares/paginated/paginated";
 import { GroundZero, soldier } from "../../../../middlewares/soldier/soldier";
 
-const followings = Router({
+const comments = Router({
     mergeParams: true
 });
 
-followings.get(
-    "/",
+comments.get(
+    '/',
     paginated(),
     async (req: Request, res: Response) => {
         const response = new UnimplementedRouteFailure();
@@ -17,14 +17,14 @@ followings.get(
         res
             .status(UnimplementedRouteFailure.statusCode)
             .json(response);
-    },
+    }
 );
 
-followings.post(
-    "/",
+comments.post(
+    '/',
     soldier({
         schema: Joi.object({
-            userId: Joi.string().required(),
+            text: Joi.string().required().min(1).max(280),
         }),
         groundZero: GroundZero.body,
     }),
@@ -34,24 +34,7 @@ followings.post(
         res
             .status(UnimplementedRouteFailure.statusCode)
             .json(response);
-    },
+    }
 );
 
-followings.delete(
-    "/:userId",
-    soldier({
-        schema: Joi.object({
-            userId: Joi.string().required(),
-        }),
-        groundZero: GroundZero.parameters,
-    }),
-    async (req: Request, res: Response) => {
-        const response = new UnimplementedRouteFailure();
-
-        res
-            .status(UnimplementedRouteFailure.statusCode)
-            .json(response);
-    }
-)
-
-export = followings;
+export = comments;
