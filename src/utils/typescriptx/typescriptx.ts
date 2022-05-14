@@ -1,17 +1,17 @@
 export interface Empty { }
 
-export class Success<D> {
-    data: D;
+export class Success<Data> {
+    data: Data;
 
-    constructor(data: D) {
+    constructor(data: Data) {
         this.data = data;
     }
 }
 
-export class Failure<R> {
-    reason: R;
+export class Failure<Reason> {
+    reason: Reason;
 
-    constructor(reason: R) {
+    constructor(reason: Reason) {
         this.reason = reason;
     }
 }
