@@ -68,4 +68,81 @@ export class NetworkAssistant {
 
         return reply;
     }
+
+
+    async put(parameters: {
+        url: String,
+        headers?: {
+            [key: string]: string
+        },
+        body?: any
+    }): Promise<NetworkResult> {
+        const options = {
+            headers: parameters.headers,
+            data: parameters.body,
+            validateStatus: () => true,
+        }
+
+        const result = await axios.put(
+            parameters.url.valueOf(),
+            options,
+        );
+
+        const reply = new NetworkResult({
+            statusCode: result.status,
+            data: result.data,
+        });
+
+        return reply;
+    }
+
+    async patch(parameters: {
+        url: String,
+        headers?: {
+            [key: string]: string
+        },
+        body?: any
+    }): Promise<NetworkResult> {
+        const options = {
+            headers: parameters.headers,
+            data: parameters.body,
+            validateStatus: () => true,
+        }
+
+        const result = await axios.patch(
+            parameters.url.valueOf(),
+            options,
+        );
+
+        const reply = new NetworkResult({
+            statusCode: result.status,
+            data: result.data,
+        });
+
+        return reply;
+    }
+
+    async delete(parameters: {
+        url: String,
+        headers?: {
+            [key: string]: string
+        }
+    }): Promise<NetworkResult> {
+        const options = {
+            headers: parameters.headers,
+            validateStatus: () => true,
+        };
+
+        const result = await axios.delete(
+            parameters.url.valueOf(),
+            options,
+        );
+
+        const reply = new NetworkResult({
+            statusCode: result.status,
+            data: result.data,
+        });
+
+        return reply;
+    }
 }
