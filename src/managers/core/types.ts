@@ -4,6 +4,8 @@ export interface PaginationQuery {
 }
 
 export class Paginated<T> {
+    static readonly maximumPageLength = 25;
+
     readonly page: T[];
     readonly nextToken?: String;
 

@@ -62,7 +62,7 @@ export class TweetsManager {
 
         const complimentaryTweetId = uuid.v4();
 
-        const createTweetActivityResult = await StreamAssistant.shared.userFeed.createTweetActivity({
+        const createTweetActivityResult = await StreamAssistant.shared.userFeed.addTweetActivity({
             authorId: parameters.authorId,
             complimentaryTweetId: complimentaryTweetId,
         });
@@ -73,7 +73,7 @@ export class TweetsManager {
         }
 
         const tweet: Tweet = {
-            id: createTweetActivityResult.data.id,
+            id: createTweetActivityResult.data.tweetId,
             complimentaryTweetId: complimentaryTweetId,
             text: parameters.tweetData.text,
             creationDate: Dately.shared.now(),
@@ -205,7 +205,7 @@ export class TweetsManager {
 
             const tweet = tweetDocument.data() as unknown as Tweet;
 
-            const remoteTweetResult = await StreamAssistant.shared.userFeed.remoteTweetActivity({
+            const remoteTweetResult = await StreamAssistant.shared.userFeed.removeTweetActivity({
                 authorId: tweet.authorId,
                 tweetId: tweet.id,
             });

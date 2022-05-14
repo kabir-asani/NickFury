@@ -2,7 +2,7 @@ import * as Stream from 'getstream';
 import { StreamClient } from 'getstream';
 import Secrets from '../../secrets.json';
 import { BookmarkFeedAssistant } from './feeds/bookmarkFeed/bookmarkFeed';
-import { UserFeedAssistant } from './feeds/userFeed/userFeed';
+import { SelfFeedAssistant } from './feeds/selfFeed/selfFeed';
 import { TimelineFeedAssistant } from './feeds/timelineFeed/timelineFeed';
 import { LikeReactionAssistant } from './reactions/likeReaction/likeReaction';
 import { CommentReactionAssistant } from './reactions/commentReaction/commentReaction';
@@ -12,7 +12,7 @@ export class StreamAssistant {
 
     private readonly client: StreamClient;
 
-    readonly userFeed: UserFeedAssistant;
+    readonly userFeed: SelfFeedAssistant;
     readonly timelineFeed: TimelineFeedAssistant;
     readonly bookmarkFeed: BookmarkFeedAssistant;
 
@@ -25,7 +25,7 @@ export class StreamAssistant {
             process.env.STREAM_SECRET || Secrets.stream.secret,
         );
 
-        this.userFeed = new UserFeedAssistant({
+        this.userFeed = new SelfFeedAssistant({
             client: this.client
         });
 

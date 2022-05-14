@@ -2,9 +2,9 @@ import { FlatActivity, StreamClient } from "getstream";
 import { Paginated, PaginationQuery } from "../../../../managers/core/types";
 import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
 import { FeedAssistant } from "../feed";
-import { UserFeedAssistant } from "../userFeed/userFeed";
-import { PartialBookmark } from "../types";
-import { AddBookmarkActivityFailure, BookmarkActivity, RemoveBookmarkActivityFailure } from "./types";
+import { SelfFeedAssistant } from "../selfFeed/selfFeed";
+import { BookmarkActivity } from "../types";
+import { AddBookmarkActivityFailure, RemoveBookmarkActivityFailure } from "./types";
 
 export class BookmarkFeedAssistant extends FeedAssistant {
     public static readonly feed = "bookmark";
@@ -14,12 +14,12 @@ export class BookmarkFeedAssistant extends FeedAssistant {
         client: StreamClient;
     }) {
         super({
-            type: UserFeedAssistant.feed,
+            type: SelfFeedAssistant.feed,
             client: parameters.client
         });
     }
 
-    async createBookmarkActivity(parameters: {
+    async addBookmarkActivity(parameters: {
         authorId: String;
         tweetId: String;
     }): Promise<Success<BookmarkActivity> | Failure<AddBookmarkActivityFailure>> {
@@ -29,18 +29,24 @@ export class BookmarkFeedAssistant extends FeedAssistant {
         );
 
         try {
-            const activity = await feed.addActivity({
+            const bookmarkActivity = await feed.addActivity({
                 actor: parameters.authorId.valueOf(),
                 verb: BookmarkFeedAssistant.verb,
                 object: parameters.tweetId.valueOf(),
             });
 
             const result = new Success<BookmarkActivity>({
-                id: activity.id
+                bookmarkId: bookmarkActivity.id,
+                authorId: parameters.authorId,
+                tweetId: parameters.tweetId
             });
+
             return result;
         } catch {
-            const result = new Failure<AddBookmarkActivityFailure>(AddBookmarkActivityFailure.UNKNOWN);
+            const result = new Failure<AddBookmarkActivityFailure>(
+                AddBookmarkActivityFailure.UNKNOWN
+            );
+
             return result;
         }
     }
@@ -55,53 +61,58 @@ export class BookmarkFeedAssistant extends FeedAssistant {
         );
 
         try {
-            feed.removeActivity(parameters.bookmarkId.valueOf());
+            await feed.removeActivity(parameters.bookmarkId.valueOf());
 
             const result = new Success<Empty>({});
             return result;
         } catch {
-            const result = new Failure<RemoveBookmarkActivityFailure>(RemoveBookmarkActivityFailure.UNKNOWN);
+            const result = new Failure<RemoveBookmarkActivityFailure>(
+                RemoveBookmarkActivityFailure.UNKNOWN
+            );
+
             return result;
         }
     }
 
     async activities(parameters: {
         authorId: String;
-    } & PaginationQuery): Promise<Paginated<PartialBookmark> | null> {
+    } & PaginationQuery): Promise<Paginated<BookmarkActivity> | null> {
         const feed = this.client.feed(
             this.type.valueOf(),
             parameters.authorId.valueOf(),
         );
 
         try {
-            const flatPaginatedFeed = await feed.get({
+            const flatFeed = await feed.get({
                 id_gt: parameters.nextToken?.valueOf(),
                 limit: Math.min(
-                    parameters.limit?.valueOf() || 25,
-                    100,
+                    parameters.limit?.valueOf() || Paginated.maximumPageLength,
+                    Paginated.maximumPageLength,
                 ),
             });
 
-            const activities = flatPaginatedFeed.results as FlatActivity[];
+            const flatActivities = flatFeed.results as FlatActivity[];
 
-            const partialBookmarks = activities
+            const bookmarkActivities = flatActivities
                 .map((activity) => {
-                    const partialBookmark: PartialBookmark = new PartialBookmark({
+                    const bookmarkActivity: BookmarkActivity = {
                         bookmarkId: activity.id as String,
                         authorId: activity.actor as String,
                         tweetId: activity.object as String,
-                    });
+                    };
 
-                    return partialBookmark;
+                    return bookmarkActivity;
                 });
 
-            const result = new Paginated<PartialBookmark>({
-                page: partialBookmarks,
-                nextToken: flatPaginatedFeed.next,
+            const result = new Paginated<BookmarkActivity>({
+                page: bookmarkActivities,
+                nextToken: flatFeed.next,
             });
+
             return result;
         } catch {
             const result = null;
+
             return result;
         }
     }

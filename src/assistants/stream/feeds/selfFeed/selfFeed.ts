@@ -5,14 +5,13 @@ import {
 import { Paginated, PaginationQuery } from "../../../../managers/core/types";
 import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
 import { FeedAssistant } from "../feed";
-import { PartialTweet } from "../types";
+import { TweetActivity } from "../types";
 import {
     AddTweetActivityFailure,
     RemoveTweetActivityFailure,
-    TweetActivity,
 } from "./types";
 
-export class UserFeedAssistant extends FeedAssistant {
+export class SelfFeedAssistant extends FeedAssistant {
     public static readonly feed = "self";
     private static readonly verb = "tweet";
 
@@ -20,12 +19,12 @@ export class UserFeedAssistant extends FeedAssistant {
         client: StreamClient;
     }) {
         super({
-            type: UserFeedAssistant.feed,
+            type: SelfFeedAssistant.feed,
             client: parameters.client
         });
     }
 
-    async createTweetActivity(parameters: {
+    async addTweetActivity(parameters: {
         authorId: String;
         complimentaryTweetId: String;
     }): Promise<Success<TweetActivity> | Failure<AddTweetActivityFailure>> {
@@ -37,21 +36,27 @@ export class UserFeedAssistant extends FeedAssistant {
         try {
             const tweetActivity = await feed.addActivity({
                 actor: parameters.authorId.valueOf(),
-                verb: UserFeedAssistant.verb,
+                verb: SelfFeedAssistant.verb,
                 object: parameters.complimentaryTweetId.valueOf(),
             });
 
             const result = new Success<TweetActivity>({
-                id: tweetActivity.id,
+                tweetId: tweetActivity.id,
+                authorId: parameters.authorId,
+                complimentaryTweetId: parameters.complimentaryTweetId,
             });
+
             return result;
         } catch {
-            const result = new Failure<AddTweetActivityFailure>(AddTweetActivityFailure.UNKNOWN);
+            const result = new Failure<AddTweetActivityFailure>(
+                AddTweetActivityFailure.UNKNOWN
+            );
+
             return result;
         }
     }
 
-    async remoteTweetActivity(parameters: {
+    async removeTweetActivity(parameters: {
         authorId: String;
         tweetId: String;
     }): Promise<Success<Empty> | Failure<RemoveTweetActivityFailure>> {
@@ -64,50 +69,56 @@ export class UserFeedAssistant extends FeedAssistant {
             await feed.removeActivity(parameters.tweetId.valueOf());
 
             const result = new Success<Empty>({});
+
             return result;
         } catch {
-            const result = new Failure<RemoveTweetActivityFailure>(RemoveTweetActivityFailure.UNKNOWN);
+            const result = new Failure<RemoveTweetActivityFailure>(
+                RemoveTweetActivityFailure.UNKNOWN
+            );
+
             return result;
         }
     }
 
     async activities(parameters: {
         authorId: String;
-    } & PaginationQuery): Promise<Paginated<PartialTweet> | null> {
+    } & PaginationQuery): Promise<Paginated<TweetActivity> | null> {
         const feed = this.client.feed(
             this.type.valueOf(),
             parameters.authorId.valueOf(),
         );
 
         try {
-            const flatPaginatedFeed = await feed.get({
+            const flatFeed = await feed.get({
                 id_gt: parameters.nextToken?.valueOf(),
                 limit: Math.min(
-                    parameters.limit?.valueOf() || 25,
-                    100,
+                    parameters.limit?.valueOf() || Paginated.maximumPageLength,
+                    Paginated.maximumPageLength,
                 ),
             });
 
-            const activities = flatPaginatedFeed.results as FlatActivity[];
+            const flatActivities = flatFeed.results as FlatActivity[];
 
-            const partialTweets = activities
+            const tweetActivities = flatActivities
                 .map((activity) => {
-                    const partialTweet: PartialTweet = new PartialTweet({
+                    const tweetActivity: TweetActivity = {
                         authorId: activity.actor,
                         tweetId: activity.id,
-                        foreignTweetId: activity.foreign_id as String,
-                    });
+                        complimentaryTweetId: activity.foreign_id as String,
+                    };
 
-                    return partialTweet;
+                    return tweetActivity;
                 });
 
-            const result = new Paginated<PartialTweet>({
-                page: partialTweets,
-                nextToken: flatPaginatedFeed.next
+            const result = new Paginated<TweetActivity>({
+                page: tweetActivities,
+                nextToken: flatFeed.next
             });
+
             return result;
         } catch {
             const result = null;
+
             return result;
         }
     }

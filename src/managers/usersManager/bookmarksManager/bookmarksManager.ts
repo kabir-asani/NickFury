@@ -110,7 +110,7 @@ export class BookmarksManager {
             return result;
         }
 
-        const bookmarkResult = StreamAssistant.shared.bookmarkFeed.createBookmarkActivity({
+        const bookmarkResult = StreamAssistant.shared.bookmarkFeed.addBookmarkActivity({
             authorId: parameters.authorId,
             tweetId: parameters.tweetId
         });
