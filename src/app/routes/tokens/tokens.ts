@@ -1,21 +1,21 @@
 import { Request, Response, Router } from 'express';
 import Joi from 'joi';
+import { AuthProvider } from '../../../managers/tokensManager/types';
 import { UnimplementedRouteFailure } from '../../core/types';
 import { gatekeeper } from '../../middlewares/gatekeeper/gatekeeper';
 import { GroundZero, soldier } from '../../middlewares/soldier/soldier';
 
-const sessions = Router();
+const tokens = Router();
 
-sessions.post(
+tokens.post(
     '/',
     soldier({
         schema: Joi.object({
             credentials: Joi.object({
                 token: Joi.string().required(),
                 provider: Joi.string().valid(
-                    // TODO: Use enum for this
-                    "apple",
-                    "google"
+                    AuthProvider.apple.valueOf(),
+                    AuthProvider.google.valueOf()
                 ),
             }),
             details: Joi.object({
@@ -36,7 +36,7 @@ sessions.post(
 );
 
 
-sessions.delete(
+tokens.delete(
     '/',
     ...gatekeeper(),
     async (req: Request, res: Response) => {
@@ -48,4 +48,4 @@ sessions.delete(
     },
 );
 
-export = sessions;
+export = tokens;
