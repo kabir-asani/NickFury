@@ -38,7 +38,7 @@ tokens.post(
 
 tokens.delete(
     '/',
-    ...gatekeeper(),
+    gatekeeper(),
     async (req: Request, res: Response) => {
         const response = new UnimplementedRouteFailure();
 

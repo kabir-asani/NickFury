@@ -1,35 +1,30 @@
-import Joi from "joi";
-import { Request, Response } from "express";
-import { InternalRouteFailure, UnauthenticatedRouteFailure } from "../../core/types";
+import { UnauthenticatedRouteFailure } from "../../core/types";
 import { TxMiddleware } from "../core/types";
-import { soldier, GroundZero } from "../soldier/soldier";
 import { SessionizedRequest } from "../../core/override";
-import { Tokenizer } from "../../../utils/tokenizer/tokenizer";
+import { TokensManager } from "../../../managers/tokensManager/tokensManager";
 
-export const gatekeeper = (): TxMiddleware[] => [
-    soldier({
-        schema: Joi.object({
-            authorization: Joi.string().required(),
-        }),
-        groundZero: GroundZero.headers
-    }),
-    async (req: Request, res: Response, next) => {
-        const accessToken = req.headers.authorization! as String;
+export const gatekeeper = (): TxMiddleware =>
+    async (req, res, next) => {
+        const authorization = req.headers.authorization;
 
-        if (accessToken.startsWith("Bearer ")) {
+        if (authorization !== undefined && authorization.startsWith("Bearer ")) {
+            const accessToken = authorization.substring(7);
 
-        } else {
-            // TODO: Respond with 401
+            const session = await TokensManager.shared.validateAccessToken({
+                accessToken: accessToken
+            });
+
+            if (session != null) {
+                const sessionizedRequest = req as unknown as SessionizedRequest;
+                sessionizedRequest.session = session;
+
+                return next();
+            }
         }
 
-        const bearerToken = accessToken.split(' ')[1];
+        const response = new UnauthenticatedRouteFailure();
 
-        const sessionizedRequest = req as unknown as SessionizedRequest;
-        sessionizedRequest.session = {
-            sessionId: "", // TODO: Extract sessionId from token
-            userId: "", // TODO: Extract userId from token
-        };
-
-        return next();
+        res
+            .status(UnauthenticatedRouteFailure.statusCode)
+            .json(response);
     }
-];

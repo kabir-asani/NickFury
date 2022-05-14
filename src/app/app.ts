@@ -31,7 +31,7 @@ app.use(
 app.use(
     "/users/:userId",
     [
-        ...gatekeeper(),
+        gatekeeper(),
         soldier({
             schema: Joi.object({
                 userId: Joi.string().required(),
@@ -44,7 +44,7 @@ app.use(
 
 app.use(
     "/search",
-    ...gatekeeper(),
+    gatekeeper(),
     search
 );
 
