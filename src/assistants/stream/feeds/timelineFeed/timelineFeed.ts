@@ -96,10 +96,7 @@ export class TimelineFeedAssistant extends FeedAssistant {
 
             const result = new Paginated<PartialTweet>({
                 page: partialTweets,
-                nextToken:
-                    flatPaginatedFeed.next !== undefined || flatPaginatedFeed.next !== null
-                        ? partialTweets[partialTweets.length - 1].tweetId
-                        : undefined,
+                nextToken: flatPaginatedFeed.next,
             });
             return result;
         } catch {

@@ -97,10 +97,7 @@ export class BookmarkFeedAssistant extends FeedAssistant {
 
             const result = new Paginated<PartialBookmark>({
                 page: partialBookmarks,
-                nextToken:
-                    flatPaginatedFeed.next !== undefined || flatPaginatedFeed.next !== null
-                        ? partialBookmarks[partialBookmarks.length - 1].tweetId
-                        : undefined,
+                nextToken: flatPaginatedFeed.next,
             });
             return result;
         } catch {

@@ -13,7 +13,7 @@ import {
 } from "./types";
 
 export class UserFeedAssistant extends FeedAssistant {
-    public static readonly feed = "user";
+    public static readonly feed = "self";
     private static readonly verb = "tweet";
 
     constructor(parameters: {
@@ -103,10 +103,7 @@ export class UserFeedAssistant extends FeedAssistant {
 
             const result = new Paginated<PartialTweet>({
                 page: partialTweets,
-                nextToken:
-                    flatPaginatedFeed.next !== undefined || flatPaginatedFeed.next !== null
-                        ? partialTweets[partialTweets.length - 1].tweetId
-                        : undefined,
+                nextToken: flatPaginatedFeed.next
             });
             return result;
         } catch {
