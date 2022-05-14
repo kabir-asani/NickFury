@@ -1,8 +1,6 @@
 import { Request } from "express";
+import { Session } from "../../managers/core/models";
 
 export interface SessionizedRequest extends Request {
-    session: {
-        sessionId: String;
-        userId: String;
-    }
+    session: Session
 }
