@@ -14,7 +14,7 @@ export class TokensManager {
 
     async validateAccessToken(parameters: {
         accessToken: String;
-    }): Promise<Success<Session> | Failure<TokenValidationFailureReason>> {
+    }): Promise<Session | null> {
         const session = Tokenizer.shared.decode<Session>({
             token: parameters.accessToken
         });
@@ -27,26 +27,16 @@ export class TokensManager {
                 const sessionDocument = await sessionDocumentRef.get();
 
                 if (sessionDocument.exists) {
-                    const reply = new Success<Session>(session);
-                    return reply;
+                    return session;
                 }
 
-                const reply = new Failure<TokenValidationFailureReason>(
-                    TokenValidationFailureReason.invalid
-                );
-                return reply;
+                return null;
             } catch {
-                const reply = new Failure<TokenValidationFailureReason>(
-                    TokenValidationFailureReason.unknown
-                );
-                return reply;
+                return null;
             }
         }
 
-        const reply = new Failure<TokenValidationFailureReason>(
-            TokenValidationFailureReason.unknown
-        );
-        return reply;
+        return null;
     }
 
     async createAccessToken(parameters: {
@@ -60,6 +50,8 @@ export class TokensManager {
             image: String;
         }
     }): Promise<Success<Credentials> | Failure<TokenCreationFailureReason>> {
+        // TODO: Validate token from credentials is being verified.
+
         const user = await UsersManager.shared.user({
             email: parameters.details.email
         });
