@@ -17,10 +17,12 @@ export interface User {
     }
 }
 
+export interface UserViewables {
+    following: Boolean;
+}
+
 export interface ViewableUser extends User {
-    viewables: {
-        following: Boolean;
-    }
+    viewables: UserViewables;
 }
 
 // Session
@@ -36,10 +38,12 @@ export interface Follower {
     readonly creationDate: String;
 }
 
+export interface FollowerViewables {
+    follower: ViewableUser;
+}
+
 export interface ViewableFollower {
-    readonly viewables: {
-        follower: ViewableUser;
-    }
+    readonly viewables: FollowerViewables;
 }
 
 // Followee
@@ -48,10 +52,12 @@ export interface Followee {
     readonly creationDate: String;
 }
 
+export interface FolloweeViewables {
+    followee: ViewableUser;
+}
+
 export interface ViewableFollowee {
-    readonly viewables: {
-        followee: ViewableUser;
-    }
+    readonly viewables: FolloweeViewables;
 }
 
 // Tweet
@@ -68,11 +74,13 @@ export interface Tweet {
     }
 }
 
+export interface TweetViewables {
+    author: ViewableUser;
+    bookmarked: Boolean;
+}
+
 export interface ViewableTweet extends Tweet {
-    readonly viewables: {
-        author: ViewableUser;
-        bookmarked: Boolean;
-    }
+    readonly viewables: TweetViewables;
 }
 
 // Comment
@@ -84,11 +92,13 @@ export interface Comment {
     readonly creationDate: String;
 }
 
+export interface CommentViewables {
+    tweet: ViewableTweet;
+    author: ViewableUser;
+}
+
 export interface ViewableComment extends Comment {
-    readonly viewables: {
-        tweet: ViewableTweet;
-        author: ViewableUser;
-    }
+    readonly viewables: CommentViewables;
 }
 
 // Like
@@ -99,11 +109,13 @@ export interface Like {
     readonly creationDate: String;
 }
 
+export interface LikeViewables {
+    tweet: ViewableTweet;
+    author: ViewableUser;
+}
+
 export interface ViewableLike extends Like {
-    readonly viewables: {
-        tweet: ViewableTweet;
-        author: ViewableUser;
-    }
+    readonly viewables: LikeViewables;
 }
 
 // Bookmark
@@ -114,9 +126,11 @@ export interface Bookmark {
     readonly creationDate: String;
 }
 
+export interface BookmarkViewables {
+    tweet: ViewableTweet;
+    author: ViewableUser;
+}
+
 export interface ViewableBookmark extends Bookmark {
-    readonly viewables: {
-        tweet: ViewableTweet;
-        author: ViewableUser;
-    }
+    readonly viewables: BookmarkViewables;
 }
