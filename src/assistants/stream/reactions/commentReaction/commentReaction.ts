@@ -1,5 +1,5 @@
 import { StreamClient } from "getstream";
-import { Paginated, PaginationQuery } from "../../../../managers/core/types";
+import { Paginated, PaginationParameters } from "../../../../managers/core/types";
 import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
 import { ReactionsAssistant } from "../../feeds/reactions";
 import { AddCommentFailure, CommentsListFailure, PartialCommentReaction, RemoveCommentFailure } from "./types";
@@ -39,7 +39,7 @@ export class CommentReactionAssistant extends ReactionsAssistant {
 
     async commentsList(parameters: {
         tweetId: String;
-    } & PaginationQuery): Promise<Success<Paginated<PartialCommentReaction>> | Failure<CommentsListFailure>> {
+    } & PaginationParameters): Promise<Success<Paginated<PartialCommentReaction>> | Failure<CommentsListFailure>> {
         try {
             const reactions = await this.client.reactions.filter({
                 activity_id: parameters.tweetId.valueOf(),

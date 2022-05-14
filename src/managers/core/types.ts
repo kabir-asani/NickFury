@@ -1,6 +1,10 @@
-export interface PaginationQuery {
+export interface PaginationParameters {
     nextToken?: String;
     limit?: Number;
+}
+
+export interface ViewablesParameters {
+    viewerId: String;
 }
 
 export interface Paginated<T> {
@@ -8,4 +12,4 @@ export interface Paginated<T> {
     readonly nextToken?: String;
 }
 
-export const MAXIMUM_PAGINATED_PAGE_LENGTH = 25;
+export const kMaximumPaginatedPageLength = 25;

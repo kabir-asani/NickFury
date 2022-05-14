@@ -1,5 +1,5 @@
 import { StreamClient } from "getstream";
-import { Paginated, PaginationQuery } from "../../../../managers/core/types";
+import { Paginated, PaginationParameters } from "../../../../managers/core/types";
 import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
 import { ReactionsAssistant } from "../../feeds/reactions";
 import { AddLikeFailure, LikesListFailure, PartialLikeReaction, RemoveLikeFailure } from "./types";
@@ -39,7 +39,7 @@ export class LikeReactionAssistant extends ReactionsAssistant {
 
     async likesList(parameters: {
         tweetId: String;
-    } & PaginationQuery): Promise<Success<Paginated<PartialLikeReaction>> | Failure<LikesListFailure>> {
+    } & PaginationParameters): Promise<Success<Paginated<PartialLikeReaction>> | Failure<LikesListFailure>> {
         try {
             const reactions = await this.client.reactions.filter({
                 activity_id: parameters.tweetId.valueOf(),
@@ -56,10 +56,10 @@ export class LikeReactionAssistant extends ReactionsAssistant {
                 return like;
             });
 
-            const paginatedLikes = new Paginated<PartialLikeReaction>({
+            const paginatedLikes: Paginated<PartialLikeReaction> = {
                 page: likes,
                 nextToken: reactions.next,
-            });
+            };
 
             const result = new Success<Paginated<PartialLikeReaction>>(paginatedLikes);
             return result;

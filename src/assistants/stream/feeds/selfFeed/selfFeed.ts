@@ -2,7 +2,7 @@ import {
     StreamClient,
     FlatActivity
 } from "getstream";
-import { MAXIMUM_PAGINATED_PAGE_LENGTH, Paginated, PaginationQuery } from "../../../../managers/core/types";
+import { kMaximumPaginatedPageLength, Paginated, PaginationParameters } from "../../../../managers/core/types";
 import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
 import { FeedAssistant } from "../feed";
 import { TweetActivity } from "../types";
@@ -82,7 +82,7 @@ export class SelfFeedAssistant extends FeedAssistant {
 
     async activities(parameters: {
         authorId: String;
-    } & PaginationQuery): Promise<Paginated<TweetActivity> | null> {
+    } & PaginationParameters): Promise<Paginated<TweetActivity> | null> {
         const feed = this.client.feed(
             this.type.valueOf(),
             parameters.authorId.valueOf(),
@@ -92,8 +92,8 @@ export class SelfFeedAssistant extends FeedAssistant {
             const flatFeed = await feed.get({
                 id_gt: parameters.nextToken?.valueOf(),
                 limit: Math.min(
-                    parameters.limit?.valueOf() || MAXIMUM_PAGINATED_PAGE_LENGTH,
-                    MAXIMUM_PAGINATED_PAGE_LENGTH
+                    parameters.limit?.valueOf() || kMaximumPaginatedPageLength,
+                    kMaximumPaginatedPageLength
                 ),
             });
 
