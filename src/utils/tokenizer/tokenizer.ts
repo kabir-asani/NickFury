@@ -7,8 +7,8 @@ export class Tokenizer {
 
     private constructor() { }
 
-    token(parameters: {
-        payload: Object,
+    encode<T extends Object>(parameters: {
+        payload: T,
     }): String {
         const token = jwt.sign(
             parameters.payload,
@@ -18,7 +18,7 @@ export class Tokenizer {
         return token;
     }
 
-    payload<T>(parameters: {
+    decode<T extends Object>(parameters: {
         token: String
     }): T | null {
         const object = jwt.decode(parameters.token.valueOf());
