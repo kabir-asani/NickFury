@@ -1,5 +1,5 @@
 import { FlatActivity, StreamClient } from "getstream";
-import { Paginated, PaginationQuery } from "../../../../managers/core/types";
+import { MAXIMUM_PAGINATED_PAGE_LENGTH, Paginated, PaginationQuery } from "../../../../managers/core/types";
 import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
 import { FeedAssistant } from "../feed";
 import { SelfFeedAssistant } from "../selfFeed/selfFeed";
@@ -86,8 +86,8 @@ export class BookmarkFeedAssistant extends FeedAssistant {
             const flatFeed = await feed.get({
                 id_gt: parameters.nextToken?.valueOf(),
                 limit: Math.min(
-                    parameters.limit?.valueOf() || Paginated.maximumPageLength,
-                    Paginated.maximumPageLength,
+                    parameters.limit?.valueOf() || MAXIMUM_PAGINATED_PAGE_LENGTH,
+                    MAXIMUM_PAGINATED_PAGE_LENGTH
                 ),
             });
 
@@ -104,10 +104,10 @@ export class BookmarkFeedAssistant extends FeedAssistant {
                     return bookmarkActivity;
                 });
 
-            const result = new Paginated<BookmarkActivity>({
+            const result: Paginated<BookmarkActivity> = {
                 page: bookmarkActivities,
                 nextToken: flatFeed.next,
-            });
+            };
 
             return result;
         } catch {

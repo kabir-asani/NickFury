@@ -3,17 +3,9 @@ export interface PaginationQuery {
     limit?: Number;
 }
 
-export class Paginated<T> {
-    static readonly maximumPageLength = 25;
-
+export interface Paginated<T> {
     readonly page: T[];
     readonly nextToken?: String;
-
-    constructor(parameters: {
-        page: T[];
-        nextToken?: String;
-    }) {
-        this.page = parameters.page;
-        this.nextToken = parameters.nextToken;
-    }
 }
+
+export const MAXIMUM_PAGINATED_PAGE_LENGTH = 25;
