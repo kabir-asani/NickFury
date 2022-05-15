@@ -6,3 +6,7 @@ export enum UserCreationFailureReason {
 export enum UserViewablesFailureReason {
     unknown
 }
+
+export enum UserUpdationFailureReason {
+    unknown
+}

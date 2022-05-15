@@ -1,6 +1,6 @@
 import { Failure, Success } from "../../utils/typescriptx/typescriptx";
 import { User, UserViewables } from "../core/models";
-import { UserCreationFailureReason, UserViewablesFailureReason } from "./types";
+import { UserCreationFailureReason, UserUpdationFailureReason, UserViewablesFailureReason } from "./types";
 import * as uuid from "uuid";
 import { Dately } from "../../utils/dately/dately";
 import { DatabaseAssistant, DatabaseCollections } from "../../assistants/database/database";
@@ -180,5 +180,20 @@ export class UsersManager {
             );
             return reply;
         }
+    }
+
+    async update(parameters: {
+        username?: String;
+        name?: String;
+        image?: String;
+        description?: String;
+    }): Promise<Success<User> | Failure<UserUpdationFailureReason>> {
+        // TODO: Implement `UsersManager.update`
+
+        const reply = new Failure<UserUpdationFailureReason>(
+            UserUpdationFailureReason.unknown
+        );
+
+        return reply;
     }
 }
