@@ -1,6 +1,6 @@
 import { Failure, Success } from "../../utils/typescriptx/typescriptx";
 import { User, UserViewables } from "../core/models";
-import { UserCreationFailureReason, UserUpdationFailureReason, UserViewablesFailureReason } from "./types";
+import { UserViewablesFailureReason } from "./types";
 import * as uuid from "uuid";
 import { Dately } from "../../utils/dately/dately";
 import { DatabaseAssistant, DatabaseCollections } from "../../assistants/database/database";
@@ -126,74 +126,6 @@ export class UsersManager {
         const reply = new Failure<UserViewablesFailureReason>(
             UserViewablesFailureReason.unknown
         );
-        return reply;
-    }
-
-    async createUser(parameters: {
-        email: String;
-        name: String;
-        image: String;
-    }): Promise<Success<User> | Failure<UserCreationFailureReason>> {
-        const isUserExists = await this.exists({
-            email: parameters.email
-        });
-
-        if (isUserExists) {
-            const reply = new Failure<UserCreationFailureReason>(
-                UserCreationFailureReason.userWithThatEmailAlreadyExists
-            );
-            return reply;
-        }
-
-        const userId = uuid.v4();
-        const username = parameters.email.split("@")[0] + userId.substring(0, 5);
-
-        const user: User = {
-            id: userId,
-            name: parameters.name,
-            email: parameters.email,
-            description: "",
-            image: parameters.image,
-            username: username,
-            activityDetails: {
-                tweetsCount: 0
-            },
-            socialDetails: {
-                followersCount: 0,
-                followingsCount: 0
-            },
-            creationDate: Dately.shared.now(),
-            lastUpdatedDate: Dately.shared.now()
-        }
-
-        const usersCollection = DatabaseAssistant.shared.collection(DatabaseCollections.users);
-        const userDocumentRef = usersCollection.doc(userId);
-
-        try {
-            await userDocumentRef.create(user);
-
-            const reply = new Success<User>(user);
-            return reply;
-        } catch {
-            const reply = new Failure<UserCreationFailureReason>(
-                UserCreationFailureReason.unknown
-            );
-            return reply;
-        }
-    }
-
-    async update(parameters: {
-        username?: String;
-        name?: String;
-        image?: String;
-        description?: String;
-    }): Promise<Success<User> | Failure<UserUpdationFailureReason>> {
-        // TODO: Implement `UsersManager.update`
-
-        const reply = new Failure<UserUpdationFailureReason>(
-            UserUpdationFailureReason.unknown
-        );
-
         return reply;
     }
 }

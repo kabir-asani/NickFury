@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import Joi from "joi";
 import { ViewableUser as User } from "../../../managers/core/models";
+import { SelfManager } from "../../../managers/selfManager/selfManager";
 import { UsersManager } from "../../../managers/usersManager/usersManager";
 import { SessionizedRequest } from "../../core/override";
 import { NoResourceRouteFailure, OkRouteSuccess, UnimplementedRouteFailure } from "../../core/types";
@@ -26,7 +27,7 @@ self.get(
     async (req, res) => {
         const session = (req as SessionizedRequest).session;
 
-        const user = await UsersManager.shared.user({
+        const user = await SelfManager.shared.self({
             id: session.userId
         });
 
