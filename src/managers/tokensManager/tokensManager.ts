@@ -20,7 +20,11 @@ export class TokensManager {
         });
 
         if (session !== null) {
-            const sessionsCollection = DatabaseAssistant.shared.collection(DatabaseCollections.sessions);
+            const sessionsCollection = DatabaseAssistant.shared.collection(
+                DatabaseCollections.users
+                + "/" + session.userId + "/" +
+                DatabaseCollections.sessions
+            );
             const sessionDocumentRef = sessionsCollection.doc(session.id.valueOf());
 
             try {
@@ -86,7 +90,11 @@ export class TokensManager {
             }
         }
 
-        const sessionsCollection = DatabaseAssistant.shared.collection(DatabaseCollections.sessions);
+        const sessionsCollection = DatabaseAssistant.shared.collection(
+            DatabaseCollections.users
+            + "/" + session.userId + "/" +
+            DatabaseCollections.sessions
+        );
         const sessionDocumentRef = sessionsCollection.doc(session.id.valueOf());
 
         try {
@@ -116,7 +124,11 @@ export class TokensManager {
         });
 
         if (session !== null) {
-            const sessionsCollection = DatabaseAssistant.shared.collection(DatabaseCollections.sessions);
+            const sessionsCollection = DatabaseAssistant.shared.collection(
+                DatabaseCollections.users
+                + "/" + session.userId + "/" +
+                DatabaseCollections.sessions
+            );
             const sessionDocumentRef = sessionsCollection.doc(session.id.valueOf());
 
             try {
