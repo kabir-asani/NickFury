@@ -13,7 +13,7 @@ export const soldier = (parameters: {
     schema: ObjectSchema,
     groundZero: GroundZero
 }): TxMiddleware => async (req, res, next) => {
-    const schema = parameters.schema.unknown();
+    const schema = parameters.schema;
 
     const data = (() => {
         switch (parameters.groundZero) {
