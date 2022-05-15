@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import Joi from "joi";
-import { ViewableUser } from "../../../managers/core/models";
+import { ViewableUser as User } from "../../../managers/core/models";
 import { UsersManager } from "../../../managers/usersManager/usersManager";
 import { SessionizedRequest } from "../../core/override";
 import { NoResourceRouteFailure, OkRouteSuccess, UnimplementedRouteFailure } from "../../core/types";
@@ -31,14 +31,7 @@ self.get(
         });
 
         if (user !== null) {
-            const viewableUser: ViewableUser = {
-                ...user,
-                viewables: {
-                    following: true
-                }
-            };
-
-            const response = new OkRouteSuccess(viewableUser);
+            const response = new OkRouteSuccess(user);
 
             res
                 .status(OkRouteSuccess.statusCode)
