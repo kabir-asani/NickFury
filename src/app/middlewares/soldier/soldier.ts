@@ -31,7 +31,7 @@ export const soldier = (parameters: {
     const validation = schema.validate(data);
 
     if (validation.error === null || validation.error === undefined) {
-        return next();
+        next();
     } else {
         const details = (validation.error as ValidationError).details.map((detail) => {
             return {
