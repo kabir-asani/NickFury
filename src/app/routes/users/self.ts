@@ -1,6 +1,9 @@
 import { Router, Request, Response } from "express";
 import Joi from "joi";
-import { UnimplementedRouteFailure } from "../../core/types";
+import { ViewableUser } from "../../../managers/core/models";
+import { UsersManager } from "../../../managers/usersManager/usersManager";
+import { SessionizedRequest } from "../../core/override";
+import { NoResourceRouteFailure, OkRouteSuccess, UnimplementedRouteFailure } from "../../core/types";
 import { soldier, GroundZero } from "../../middlewares/soldier/soldier";
 import bookmarks from "./bookmarks/bookmarks";
 import followers from "./socials/followers/followers";
@@ -20,12 +23,33 @@ self.use("/bookmarks", bookmarks);
 
 self.get(
     "/",
-    async (req: Request, res: Response) => {
-        const response = new UnimplementedRouteFailure();
+    async (req, res) => {
+        const session = (req as SessionizedRequest).session;
 
-        res
-            .status(UnimplementedRouteFailure.statusCode)
-            .json(response);
+        const user = await UsersManager.shared.user({
+            id: session.userId
+        });
+
+        if (user !== null) {
+            const viewableUser: ViewableUser = {
+                ...user,
+                viewables: {
+                    following: true
+                }
+            };
+
+            const response = new OkRouteSuccess(viewableUser);
+
+            res
+                .status(OkRouteSuccess.statusCode)
+                .json(response);
+        } else {
+            const response = new NoResourceRouteFailure();
+
+            res
+                .status(NoResourceRouteFailure.statusCode)
+                .json(response);
+        }
     }
 );
 
@@ -40,7 +64,7 @@ self.patch(
         }),
         groundZero: GroundZero.body
     }),
-    async (req: Request, res: Response) => {
+    async (req, res) => {
         const response = new UnimplementedRouteFailure();
 
         res
