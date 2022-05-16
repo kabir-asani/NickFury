@@ -47,17 +47,17 @@ export interface ViewableFollower {
 }
 
 // Followee
-export interface Followee {
-    readonly followeeId: String;
+export interface Following {
+    readonly followingId: String;
     readonly creationDate: String;
 }
 
-export interface FolloweeViewables {
-    followee: ViewableUser;
+export interface FollowingViewables {
+    following: ViewableUser;
 }
 
-export interface ViewableFollowee {
-    readonly viewables: FolloweeViewables;
+export interface ViewableFollowing {
+    readonly viewables: FollowingViewables;
 }
 
 // Tweet
