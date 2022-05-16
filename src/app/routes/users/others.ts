@@ -26,35 +26,17 @@ others.get(
         const userId = req.params.userId as String;
 
 
-        const user = await UsersManager.shared.user({
-            id: userId
+        const viewableUser = await UsersManager.shared.user({
+            id: userId,
+            viewerId: session.userId
         });
 
-        if (user !== null) {
-            const viewablesResult = await UsersManager.shared.viewables({
-                userId: userId,
-                viewerId: session.userId
-            });
+        if (viewableUser !== null) {
+            const response = new AllOkRouteSuccess(viewableUser);
 
-
-            if (viewablesResult instanceof Failure) {
-                const response = new InternalRouteFailure();
-
-                res
-                    .status(InternalRouteFailure.statusCode)
-                    .json(response);
-            } else {
-                const viewableUser: ViewableUser = {
-                    ...user,
-                    viewables: viewablesResult.data
-                };
-
-                const response = new AllOkRouteSuccess(viewableUser);
-
-                res
-                    .status(AllOkRouteSuccess.statusCode)
-                    .json(response);
-            }
+            res
+                .status(AllOkRouteSuccess.statusCode)
+                .json(response);
         } else {
             const response = new InternalRouteFailure();
 
