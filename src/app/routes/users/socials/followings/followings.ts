@@ -8,6 +8,7 @@ import {
 import { Failure } from "../../../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../../../core/override";
 import {
+    AllOkRouteSuccess,
     InternalRouteFailure,
     NoContentRouteSuccess,
     NoResourceRouteFailure,
@@ -25,11 +26,49 @@ followings.get(
     "/",
     paginated(),
     async (req: Request, res: Response) => {
-        const response = new UnimplementedRouteFailure();
+        const session = (req as SessionizedRequest).session;
 
-        res
-            .status(UnimplementedRouteFailure.statusCode)
-            .json(response);
+        const userId = req.params.userId;
+
+        if (userId !== undefined && userId !== null) {
+            const followings = await SocialsManager.shared.followings({
+                userId: userId,
+                viewerId: session.userId
+            });
+
+            if (followings == null) {
+                const response = new InternalRouteFailure();
+
+                res
+                    .status(InternalRouteFailure.statusCode)
+                    .json(response);
+            } else {
+                const response = new AllOkRouteSuccess(followings);
+
+                res
+                    .status(AllOkRouteSuccess.statusCode)
+                    .json(response);
+            }
+        } else {
+            const followings = await SocialsManager.shared.followings({
+                userId: session.userId,
+                viewerId: session.userId
+            });
+
+            if (followings == null) {
+                const response = new InternalRouteFailure();
+
+                res
+                    .status(InternalRouteFailure.statusCode)
+                    .json(response);
+            } else {
+                const response = new AllOkRouteSuccess(followings);
+
+                res
+                    .status(AllOkRouteSuccess.statusCode)
+                    .json(response);
+            }
+        }
     },
 );
 
