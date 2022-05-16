@@ -8,10 +8,10 @@ import { TokensManager } from "../../../managers/tokensManager/tokensManager";
 import { AuthProvider } from "../../../managers/tokensManager/types";
 import { Failure } from "../../../utils/typescriptx/typescriptx";
 import {
-    IncorrectArgumentsRouteFailure,
+    IncorrectParametersRouteFailure,
     InternalRouteFailure,
     NoContentRouteSuccess,
-    OkRouteSuccess,
+    AllOkRouteSuccess,
     UnimplementedRouteFailure
 } from "../../core/types";
 import { gatekeeper } from "../../middlewares/gatekeeper/gatekeeper";
@@ -56,7 +56,7 @@ tokens.post(
             }
         } = req.body;
 
-        const tokenCreationResult = await TokensManager.shared.createAccessToken({
+        const tokenCreation = await TokensManager.shared.createAccessToken({
             credentials: {
                 token: parameters.credentials.token,
                 provider: parameters.credentials.provider
@@ -69,17 +69,17 @@ tokens.post(
         });
 
 
-        if (tokenCreationResult instanceof Failure) {
+        if (tokenCreation instanceof Failure) {
             const response = new InternalRouteFailure();
 
             res
                 .status(InternalRouteFailure.statusCode)
                 .json(response);
         } else {
-            const response = new OkRouteSuccess(tokenCreationResult.data);
+            const response = new AllOkRouteSuccess(tokenCreation.data);
 
             res
-                .status(OkRouteSuccess.statusCode)
+                .status(AllOkRouteSuccess.statusCode)
                 .json(response);
         }
     },
@@ -113,10 +113,10 @@ tokens.delete(
                     .json(response);
             }
         } else {
-            const response = new IncorrectArgumentsRouteFailure();
+            const response = new IncorrectParametersRouteFailure();
 
             res
-                .status(IncorrectArgumentsRouteFailure.statusCode)
+                .status(IncorrectParametersRouteFailure.statusCode)
                 .json(response);
         }
     },

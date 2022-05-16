@@ -11,7 +11,7 @@ export class RouteSuccess {
     }
 }
 
-export class OkRouteSuccess extends RouteSuccess {
+export class AllOkRouteSuccess extends RouteSuccess {
     static readonly statusCode = 200;
 
     constructor(data: Object) {
@@ -19,7 +19,7 @@ export class OkRouteSuccess extends RouteSuccess {
     }
 }
 
-export class CreatedRouteSuccess extends RouteSuccess {
+export class CreationRouteSuccess extends RouteSuccess {
     static readonly statusCode = 201;
 
     constructor(data: Object) {
@@ -44,11 +44,11 @@ export class RouteFailure {
     }
 }
 
-export class IncorrectArgumentsRouteFailure extends RouteFailure {
+export class IncorrectParametersRouteFailure extends RouteFailure {
     static readonly statusCode = 400;
 
     constructor(reason?: Object) {
-        super(reason || "INCORRECT_ARGUMENTS");
+        super(reason || "Incorrect parameters");
     }
 }
 
@@ -56,7 +56,7 @@ export class UnauthenticatedRouteFailure extends RouteFailure {
     static readonly statusCode = 401;
 
     constructor(reason?: Object) {
-        super(reason || "UNAUTHENTICATED");
+        super(reason || "Unauthenticated");
     }
 }
 
@@ -64,7 +64,7 @@ export class ForbiddenRouteFailure extends RouteFailure {
     static readonly statusCode = 403;
 
     constructor(reason?: Object) {
-        super(reason || "FORBIDDEN");
+        super(reason || "Forbidden");
     }
 }
 
@@ -72,7 +72,7 @@ export class NoResourceRouteFailure extends RouteFailure {
     static readonly statusCode = 404;
 
     constructor(reason?: Object) {
-        super(reason || "NON_EXISTENT");
+        super(reason || "Non-existent");
     }
 }
 
@@ -80,7 +80,7 @@ export class SemanticRouteFailure extends RouteFailure {
     static readonly statusCode = 422;
 
     constructor(reason?: Object) {
-        super(reason || "INCORRECT_SEMEANTICALLY");
+        super(reason || "Incorrect Semantically");
     }
 }
 
@@ -88,7 +88,7 @@ export class InternalRouteFailure extends RouteFailure {
     static readonly statusCode = 500;
 
     constructor(reason?: Object) {
-        super(reason || "UNKNOWN");
+        super(reason || "Unknown");
     }
 }
 
@@ -96,6 +96,6 @@ export class UnimplementedRouteFailure extends RouteFailure {
     static readonly statusCode = 501;
 
     constructor(reason?: Object) {
-        super(reason || "UNIMPLEMENTED");
+        super(reason || "Unimplemented");
     }
 }

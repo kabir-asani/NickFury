@@ -6,6 +6,7 @@ import * as uuid from "uuid";
 import { Session } from "../core/models";
 import { Dately } from "../../utils/dately/dately";
 import { Tokenizer } from "../../utils/tokenizer/tokenizer";
+import { SelfManager } from "../selfManager/selfManager";
 
 export class TokensManager {
     static readonly shared = new TokensManager();
@@ -70,22 +71,23 @@ export class TokensManager {
                 creationDate: Dately.shared.now()
             }
         } else {
-            const userCreationResult = await UsersManager.shared.createUser({
+            const selfCreation = await SelfManager.shared.create({
                 email: parameters.details.email,
                 image: parameters.details.image,
                 name: parameters.details.name
             });
 
-            if (userCreationResult instanceof Failure) {
+            if (selfCreation instanceof Failure) {
                 const reply = new Failure<TokenCreationFailureReason>(
                     TokenCreationFailureReason.unknown
                 );
+
                 return reply;
             }
 
             session = {
                 id: sessionId,
-                userId: userCreationResult.data.id,
+                userId: selfCreation.data.id,
                 creationDate: Dately.shared.now()
             }
         }
