@@ -293,13 +293,17 @@ export class SocialsManager {
             } else {
                 let nextToken = undefined;
 
-                if (querySnapshot.size === limit + 1) {
-                    nextToken = (querySnapshot.docs[querySnapshot.size - 1].data() as unknown as Follower).creationDate;
+                if (querySnapshot.docs.length === limit + 1) {
+                    const lastDocument = querySnapshot.docs.pop();
+
+                    if (lastDocument !== undefined) {
+                        nextToken = (lastDocument.data() as unknown as Follower).creationDate;
+                    }
                 }
 
                 const page = [];
 
-                for (let i = 0; i < (querySnapshot.size <= limit ? querySnapshot.size : limit); ++i) {
+                for (let i = 0; i < querySnapshot.docs.length; ++i) {
                     const follower = querySnapshot.docs[i].data() as unknown as Follower;
 
                     const viewableUser = await UsersManager.shared.user({
@@ -372,13 +376,17 @@ export class SocialsManager {
             } else {
                 let nextToken = undefined;
 
-                if (querySnapshot.size == limit + 1) {
-                    nextToken = (querySnapshot.docs[querySnapshot.size - 1].data() as unknown as Following).creationDate;
+                if (querySnapshot.docs.length === limit + 1) {
+                    const lastDocument = querySnapshot.docs.pop();
+
+                    if (lastDocument !== undefined) {
+                        nextToken = (lastDocument.data() as unknown as Follower).creationDate;
+                    }
                 }
 
                 const page = [];
 
-                for (let i = 0; i < (querySnapshot.size <= limit ? querySnapshot.size : limit); ++i) {
+                for (let i = 0; i < querySnapshot.docs.length; ++i) {
                     const following = querySnapshot.docs[i].data() as unknown as Following;
 
                     const viewableUser = await UsersManager.shared.user({
