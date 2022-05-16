@@ -27,6 +27,8 @@ export class SelfManager {
             return reply;
         }
 
+        // TODO: Make `timeline` feed follower `self` feed.
+
         const userId = uuid.v4();
         const username = parameters.email.split("@")[0] + userId.substring(0, 5);
 

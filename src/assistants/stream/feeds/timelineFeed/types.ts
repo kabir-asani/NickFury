@@ -1,7 +1,7 @@
 export enum FollowFeedFailure {
-    UNKNOWN,
+    unknown,
 }
 
 export enum UnfollowFeedFailure {
-    UNKNOWN,
+    unknown,
 }

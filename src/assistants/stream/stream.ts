@@ -12,7 +12,7 @@ export class StreamAssistant {
 
     private readonly client: StreamClient;
 
-    readonly userFeed: SelfFeedAssistant;
+    readonly selfFeed: SelfFeedAssistant;
     readonly timelineFeed: TimelineFeedAssistant;
     readonly bookmarkFeed: BookmarkFeedAssistant;
 
@@ -25,7 +25,7 @@ export class StreamAssistant {
             process.env.STREAM_SECRET || Secrets.stream.secret,
         );
 
-        this.userFeed = new SelfFeedAssistant({
+        this.selfFeed = new SelfFeedAssistant({
             client: this.client
         });
 

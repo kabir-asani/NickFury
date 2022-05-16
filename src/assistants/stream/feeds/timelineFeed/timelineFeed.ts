@@ -38,7 +38,7 @@ export class TimelineFeedAssistant extends FeedAssistant {
             return result;
         } catch {
             const result = new Failure<FollowFeedFailure>(
-                FollowFeedFailure.UNKNOWN
+                FollowFeedFailure.unknown
             );
 
             return result;
@@ -65,7 +65,7 @@ export class TimelineFeedAssistant extends FeedAssistant {
             return result;
         } catch {
             const result = new Failure<UnfollowFeedFailure>(
-                UnfollowFeedFailure.UNKNOWN
+                UnfollowFeedFailure.unknown
             );
 
             return result;

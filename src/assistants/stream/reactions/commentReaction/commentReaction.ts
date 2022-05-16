@@ -56,10 +56,10 @@ export class CommentReactionAssistant extends ReactionsAssistant {
                 return comment;
             });
 
-            const paginatedComments = new Paginated<PartialCommentReaction>({
+            const paginatedComments: Paginated<PartialCommentReaction> = {
                 page: comments,
                 nextToken: reactions.next,
-            });
+            };
 
             const result = new Success<Paginated<PartialCommentReaction>>(paginatedComments);
             return result;

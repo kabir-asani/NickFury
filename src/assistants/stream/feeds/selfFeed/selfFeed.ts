@@ -49,7 +49,7 @@ export class SelfFeedAssistant extends FeedAssistant {
             return result;
         } catch {
             const result = new Failure<AddTweetActivityFailure>(
-                AddTweetActivityFailure.UNKNOWN
+                AddTweetActivityFailure.unknown
             );
 
             return result;
@@ -73,7 +73,7 @@ export class SelfFeedAssistant extends FeedAssistant {
             return result;
         } catch {
             const result = new Failure<RemoveTweetActivityFailure>(
-                RemoveTweetActivityFailure.UNKNOWN
+                RemoveTweetActivityFailure.unknown
             );
 
             return result;

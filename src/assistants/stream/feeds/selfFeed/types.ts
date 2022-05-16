@@ -1,7 +1,7 @@
 export enum AddTweetActivityFailure {
-    UNKNOWN
+    unknown
 }
 
 export enum RemoveTweetActivityFailure {
-    UNKNOWN
+    unknown
 } 
