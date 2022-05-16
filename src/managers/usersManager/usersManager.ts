@@ -6,6 +6,7 @@ import { Dately } from "../../utils/dately/dately";
 import { DatabaseAssistant, DatabaseCollections } from "../../assistants/database/database";
 import { assert } from "console";
 import { ViewablesParameters } from "../core/types";
+import { SocialsManager } from "../socialsManager/socialsManager";
 
 export class UsersManager {
     static readonly shared = new UsersManager();
@@ -121,11 +122,17 @@ export class UsersManager {
             userId: String;
         } & ViewablesParameters
     ): Promise<Success<UserViewables> | Failure<UserViewablesFailureReason>> {
-        // TODO: Implement `UsersManager: viewables`
+        const isFollowing = await SocialsManager.shared.isFollowing({
+            followerId: parameters.viewerId,
+            followingId: parameters.userId
+        });
 
-        const reply = new Failure<UserViewablesFailureReason>(
-            UserViewablesFailureReason.unknown
-        );
+        const viewables: UserViewables = {
+            following: isFollowing
+        };
+
+        const reply = new Success<UserViewables>(viewables);
+
         return reply;
     }
 }
