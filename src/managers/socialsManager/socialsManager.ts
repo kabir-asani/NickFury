@@ -2,7 +2,8 @@ import { DatabaseAssistant, DatabaseCollections } from "../../assistants/databas
 import { StreamAssistant } from "../../assistants/stream/stream";
 import { Dately } from "../../utils/dately/dately";
 import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
-import { Following, Follower, User } from "../core/models";
+import { Following, Follower, User, ViewableUser } from "../core/models";
+import { kMaximumPaginatedPageLength, Paginated, PaginationParameters } from "../core/types";
 import { UsersManager } from "../usersManager/usersManager";
 import { FollowFailureReason, UnfollowFailureReason } from "./types";
 
@@ -131,11 +132,11 @@ export class SocialsManager {
                     const followingUser = followingUserDocument.data() as unknown as User;
                     const followerUser = followerUserDocument.data() as unknown as User;
 
-                    transaction.create(
+                    transaction.set(
                         followingDataDocumentRef,
                         followingData
                     );
-                    transaction.create(
+                    transaction.set(
                         followerDataDocumentRef,
                         followerData
                     );
@@ -167,7 +168,6 @@ export class SocialsManager {
             }
         }
     }
-
 
     async unfollow(parameters: {
         followingId: String;
@@ -258,6 +258,163 @@ export class SocialsManager {
 
                 return reply;
             }
+        }
+    }
+
+    async followers(parameters: {
+        userId: String;
+        viewerId?: String;
+    } & PaginationParameters): Promise<Paginated<User | ViewableUser> | null> {
+        const followersCollection = DatabaseAssistant.shared.collection(
+            DatabaseCollections.users
+            + "/" + parameters.userId + "/" +
+            DatabaseCollections.followers
+        );
+
+        const limit = parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
+
+        let query = followersCollection
+            .orderBy("followerId")
+            .limit(limit + 1);
+
+        if (parameters.nextToken !== undefined) {
+            query = query.startAt(parameters.nextToken);
+        }
+
+        try {
+            const querySnapshot = await query.get();
+
+            if (querySnapshot.empty) {
+                const reply: Paginated<User> = {
+                    page: []
+                };
+
+                return reply;
+            } else {
+                let nextToken = undefined;
+
+                if (querySnapshot.size === limit + 1) {
+                    nextToken = (querySnapshot.docs[querySnapshot.size - 1].data() as unknown as Follower).followerId;
+                }
+
+                const page = [];
+
+                for (let i = 0; i < (querySnapshot.size <= limit ? querySnapshot.size : limit); ++i) {
+                    const follower = querySnapshot.docs[i].data() as unknown as Follower;
+
+                    const viewableUser = await UsersManager.shared.user({
+                        id: follower.followerId,
+                        viewerId: parameters.viewerId
+                    });
+
+                    if (viewableUser !== null) {
+                        if (parameters.viewerId !== undefined) {
+                            page.push(viewableUser as ViewableUser);
+                        } else {
+                            page.push(viewableUser as User);
+                        }
+                    } else {
+                        return null;
+                    }
+                }
+
+                if (parameters.viewerId !== null) {
+                    const reply: Paginated<ViewableUser> = {
+                        page: page as ViewableUser[],
+                        nextToken: nextToken
+                    };
+
+                    return reply;
+                } else {
+                    const reply: Paginated<User> = {
+                        page: page as User[],
+                        nextToken: nextToken
+                    };
+
+                    return reply;
+                }
+            }
+        } catch {
+            return null;
+        }
+    }
+
+
+    async followings(parameters: {
+        userId: String;
+        viewerId?: String;
+    } & PaginationParameters): Promise<Paginated<User | ViewableUser> | null> {
+        const followingsCollection = DatabaseAssistant.shared.collection(
+            DatabaseCollections.users
+            + "/" + parameters.userId + "/" +
+            DatabaseCollections.followings
+        );
+
+        const limit = parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
+
+        let query = followingsCollection
+            .orderBy("followingId")
+            .limit(limit + 1);
+
+        if (parameters.nextToken !== undefined) {
+            query = query.startAt(parameters.nextToken);
+        }
+
+        try {
+            const querySnapshot = await query.get();
+
+            if (querySnapshot.empty) {
+                const reply: Paginated<User> = {
+                    page: []
+                };
+
+                return reply;
+            } else {
+                let nextToken = undefined;
+
+                if (querySnapshot.size == limit + 1) {
+                    nextToken = (querySnapshot.docs[querySnapshot.size - 1].data() as unknown as Following).followingId;
+                }
+
+                const page = [];
+
+                for (let i = 0; i < (querySnapshot.size <= limit ? querySnapshot.size : limit); ++i) {
+                    const following = querySnapshot.docs[i].data() as unknown as Following;
+
+                    const viewableUser = await UsersManager.shared.user({
+                        id: following.followingId,
+                        viewerId: parameters.viewerId
+                    });
+
+                    if (viewableUser !== null) {
+                        if (parameters.viewerId !== undefined) {
+                            page.push(viewableUser as ViewableUser);
+                        } else {
+                            page.push(viewableUser as User);
+                        }
+                    } else {
+                        return null;
+                    }
+                }
+
+                if (parameters.viewerId !== null) {
+                    const reply: Paginated<ViewableUser> = {
+                        page: page as ViewableUser[],
+                        nextToken: nextToken
+                    };
+
+                    return reply;
+                } else {
+                    const reply: Paginated<User> = {
+                        page: page as User[],
+                        nextToken: nextToken
+                    };
+
+                    return reply;
+                }
+            }
+        } catch {
+            return null;
         }
     }
 }
