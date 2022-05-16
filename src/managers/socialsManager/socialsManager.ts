@@ -274,7 +274,7 @@ export class SocialsManager {
         const limit = parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
 
         let query = followersCollection
-            .orderBy("followerId")
+            .orderBy("creationDate")
             .limit(limit + 1);
 
         if (parameters.nextToken !== undefined) {
@@ -294,7 +294,7 @@ export class SocialsManager {
                 let nextToken = undefined;
 
                 if (querySnapshot.size === limit + 1) {
-                    nextToken = (querySnapshot.docs[querySnapshot.size - 1].data() as unknown as Follower).followerId;
+                    nextToken = (querySnapshot.docs[querySnapshot.size - 1].data() as unknown as Follower).creationDate;
                 }
 
                 const page = [];
@@ -353,7 +353,7 @@ export class SocialsManager {
         const limit = parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
 
         let query = followingsCollection
-            .orderBy("followingId")
+            .orderBy("creationDate")
             .limit(limit + 1);
 
         if (parameters.nextToken !== undefined) {
@@ -373,7 +373,7 @@ export class SocialsManager {
                 let nextToken = undefined;
 
                 if (querySnapshot.size == limit + 1) {
-                    nextToken = (querySnapshot.docs[querySnapshot.size - 1].data() as unknown as Following).followingId;
+                    nextToken = (querySnapshot.docs[querySnapshot.size - 1].data() as unknown as Following).creationDate;
                 }
 
                 const page = [];
