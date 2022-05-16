@@ -1,7 +1,9 @@
 import { Router, Request, Response } from "express";
+import { ViewableUser } from "../../../managers/core/models";
 import { UsersManager } from "../../../managers/usersManager/usersManager";
+import { Failure } from "../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../core/override";
-import { AllOkRouteSuccess, UnimplementedRouteFailure } from "../../core/types";
+import { AllOkRouteSuccess, InternalRouteFailure, UnimplementedRouteFailure } from "../../core/types";
 import followers from "./socials/followers/followers";
 import followings from "./socials/followings/followings";
 import tweets from "./tweets/tweets";
@@ -29,18 +31,35 @@ others.get(
         });
 
         if (user !== null) {
-            // TODO: Fetch and insert viewables
+            const viewablesResult = await UsersManager.shared.viewables({
+                userId: userId,
+                viewerId: session.userId
+            });
 
-            const response = new AllOkRouteSuccess(user);
 
-            res
-                .status(AllOkRouteSuccess.statusCode)
-                .json(response);
+            if (viewablesResult instanceof Failure) {
+                const response = new InternalRouteFailure();
+
+                res
+                    .status(InternalRouteFailure.statusCode)
+                    .json(response);
+            } else {
+                const viewableUser: ViewableUser = {
+                    ...user,
+                    viewables: viewablesResult.data
+                };
+
+                const response = new AllOkRouteSuccess(viewableUser);
+
+                res
+                    .status(AllOkRouteSuccess.statusCode)
+                    .json(response);
+            }
         } else {
-            const response = new UnimplementedRouteFailure();
+            const response = new InternalRouteFailure();
 
             res
-                .status(UnimplementedRouteFailure.statusCode)
+                .status(InternalRouteFailure.statusCode)
                 .json(response);
         }
     }
