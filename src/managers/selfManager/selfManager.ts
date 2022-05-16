@@ -99,11 +99,11 @@ export class SelfManager {
         }
 
         if (parameters.updates.username !== undefined) {
-            const isUserExistsWithUsername = await UsersManager.shared.exists({
+            const user = await UsersManager.shared.user({
                 username: parameters.updates.username
             });
 
-            if (isUserExistsWithUsername) {
+            if (user !== null && user.id !== parameters.id) {
                 const reply = new Failure<SelfUpdationFailureReason>(
                     SelfUpdationFailureReason.otherUserWithThatUsernameAlreadyExists
                 );

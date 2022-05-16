@@ -1,10 +1,15 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 import Joi from "joi";
-import { ViewableUser as User } from "../../../managers/core/models";
 import { SelfManager } from "../../../managers/selfManager/selfManager";
-import { UsersManager } from "../../../managers/usersManager/usersManager";
+import { SelfUpdationFailureReason } from "../../../managers/selfManager/types";
+import { Failure } from "../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../core/override";
-import { NoResourceRouteFailure, OkRouteSuccess, UnimplementedRouteFailure } from "../../core/types";
+import {
+    NoResourceRouteFailure,
+    AllOkRouteSuccess,
+    SemanticRouteFailure,
+    UnimplementedRouteFailure
+} from "../../core/types";
 import { soldier, GroundZero } from "../../middlewares/soldier/soldier";
 import bookmarks from "./bookmarks/bookmarks";
 import followers from "./socials/followers/followers";
@@ -32,10 +37,10 @@ self.get(
         });
 
         if (user !== null) {
-            const response = new OkRouteSuccess(user);
+            const response = new AllOkRouteSuccess(user);
 
             res
-                .status(OkRouteSuccess.statusCode)
+                .status(AllOkRouteSuccess.statusCode)
                 .json(response);
         } else {
             const response = new NoResourceRouteFailure();
@@ -51,19 +56,65 @@ self.patch(
     "/",
     soldier({
         schema: Joi.object({
-            image: Joi.string(),
-            description: Joi.string().max(250),
-            name: Joi.string().max(100),
             username: Joi.string().max(50),
+            name: Joi.string().max(100),
+            description: Joi.string().max(250),
+            image: Joi.string(),
         }),
         groundZero: GroundZero.body
     }),
     async (req, res) => {
-        const response = new UnimplementedRouteFailure();
+        const session = (req as SessionizedRequest).session;
 
-        res
-            .status(UnimplementedRouteFailure.statusCode)
-            .json(response);
+        const parameters = req.body as {
+            username?: String;
+            name?: String;
+            description?: String;
+            image?: String;
+        };
+
+        const selfUpdation = await SelfManager.shared.update({
+            id: session.userId,
+            updates: {
+                username: parameters.username,
+                name: parameters.name,
+                description: parameters.description,
+                image: parameters.image
+            }
+        });
+
+        if (selfUpdation instanceof Failure) {
+            switch (selfUpdation.reason) {
+                case SelfUpdationFailureReason.otherUserWithThatUsernameAlreadyExists: {
+                    const response = new SemanticRouteFailure("That username is not available");
+
+                    res
+                        .status(SemanticRouteFailure.statusCode)
+                        .json(response);
+
+                    break;
+                }
+
+                default: {
+                    const response = new UnimplementedRouteFailure();
+
+                    res
+                        .status(UnimplementedRouteFailure.statusCode)
+                        .json(response);
+
+                    break;
+                }
+            }
+        } else {
+            const updatedUser = selfUpdation.data;
+
+            const response = new AllOkRouteSuccess(updatedUser);
+
+            res
+                .status(AllOkRouteSuccess.statusCode)
+                .json(response);
+        }
+
     }
 );
 

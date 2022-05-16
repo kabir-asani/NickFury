@@ -44,7 +44,7 @@ tokens.post(
         groundZero: GroundZero.body,
     }),
     async (req: Request, res: Response) => {
-        const parameters: {
+        const parameters = req.body as {
             credentials: {
                 token: String;
                 provider: String;
@@ -54,7 +54,7 @@ tokens.post(
                 email: String;
                 image: String;
             }
-        } = req.body;
+        };
 
         const tokenCreation = await TokensManager.shared.createAccessToken({
             credentials: {
