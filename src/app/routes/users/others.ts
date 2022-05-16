@@ -1,9 +1,10 @@
 import { Router, Request, Response } from "express";
-import { ViewableUser } from "../../../managers/core/models";
 import { UsersManager } from "../../../managers/usersManager/usersManager";
-import { Failure } from "../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../core/override";
-import { AllOkRouteSuccess, InternalRouteFailure, UnimplementedRouteFailure } from "../../core/types";
+import {
+    AllOkRouteSuccess,
+    InternalRouteFailure
+} from "../../core/types";
 import followers from "./socials/followers/followers";
 import followings from "./socials/followings/followings";
 import tweets from "./tweets/tweets";
