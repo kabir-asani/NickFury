@@ -11,11 +11,11 @@ import {
     UnimplementedRouteFailure
 } from "../../core/types";
 import { soldier, GroundZero } from "../../middlewares/soldier/soldier";
-import bookmarks from "./bookmarks/bookmarks";
-import followers from "./socials/followers/followers";
-import followings from "./socials/followings/followings";
-import timeline from "./timeline/timeline";
-import tweets from "./tweets/tweets";
+import bookmarks from "../users/bookmarks/bookmarks";
+import followers from "../users/socials/followers/followers";
+import followings from "../users/socials/followings/followings";
+import timeline from "../users/timeline/timeline";
+import tweets from "../users/tweets/tweets";
 
 const self = Router({
     mergeParams: true
