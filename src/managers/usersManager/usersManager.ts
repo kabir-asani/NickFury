@@ -1,5 +1,5 @@
 import { Failure, Success } from "../../utils/typescriptx/typescriptx";
-import { User, UserViewables } from "../core/models";
+import { User, UserViewables, ViewableUser } from "../core/models";
 import { UserViewablesFailureReason } from "./types";
 import * as uuid from "uuid";
 import { Dately } from "../../utils/dately/dately";
@@ -69,6 +69,7 @@ export class UsersManager {
         id?: String;
         email?: String;
         username?: String;
+        viewerId?: String;
     }): Promise<User | null> {
         assert(
             parameters.id !== undefined || parameters.email !== undefined || parameters.username !== undefined,
@@ -111,13 +112,32 @@ export class UsersManager {
             }
 
             const user = querySnapshot.docs[0].data() as unknown as User;
+
+            if (parameters.viewerId !== undefined) {
+                const viewablesResult = await this.viewables({
+                    userId: user.id,
+                    viewerId: parameters.viewerId
+                });
+
+                if (viewablesResult instanceof Failure) {
+                    return null;
+                } else {
+                    const viewableUser: ViewableUser = {
+                        ...user,
+                        viewables: viewablesResult.data
+                    };
+
+                    return viewableUser;
+                }
+            }
+
             return user;
         } catch {
             return null;
         }
     }
 
-    async viewables(
+    private async viewables(
         parameters: {
             userId: String;
         } & ViewablesParameters
