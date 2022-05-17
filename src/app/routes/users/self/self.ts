@@ -1,21 +1,22 @@
 import { Router } from "express";
 import Joi from "joi";
-import { SelfManager } from "../../../managers/selfManager/selfManager";
-import { SelfUpdationFailureReason } from "../../../managers/selfManager/types";
-import { Failure } from "../../../utils/typescriptx/typescriptx";
-import { SessionizedRequest } from "../../core/override";
+import { SelfManager } from "../../../../managers/selfManager/selfManager";
+import { SelfUpdationFailureReason } from "../../../../managers/selfManager/types";
+import { Failure } from "../../../../utils/typescriptx/typescriptx";
+import { SessionizedRequest } from "../../../core/override";
 import {
-    NoResourceRouteFailure,
     AllOkRouteSuccess,
+    NoResourceRouteFailure,
     SemanticRouteFailure,
     UnimplementedRouteFailure
-} from "../../core/types";
-import { soldier, GroundZero } from "../../middlewares/soldier/soldier";
-import bookmarks from "../users/bookmarks/bookmarks";
-import followers from "../users/socials/followers/followers";
-import followings from "../users/socials/followings/followings";
-import timeline from "../users/timeline/timeline";
-import tweets from "../users/tweets/tweets";
+} from "../../../core/types";
+import { soldier, GroundZero } from "../../../middlewares/soldier/soldier";
+import tweets from "../../tweets/tweets";
+import bookmarks from "../bookmarks/bookmarks";
+import followers from "../socials/followers/followers";
+import followings from "../socials/followings/followings";
+import timeline from "../timeline/timeline";
+
 
 const self = Router({
     mergeParams: true

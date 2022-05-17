@@ -1,12 +1,14 @@
 import { Router, Request, Response } from "express";
-import { UnimplementedRouteFailure } from "../../../../core/types";
-import paginated from "../../../../middlewares/paginated/paginated";
+import Joi from "joi";
+import { UnimplementedRouteFailure } from "../../../core/types";
+import paginated from "../../../middlewares/paginated/paginated";
+import { GroundZero, soldier } from "../../../middlewares/soldier/soldier";
 
-const likes = Router({
+const comments = Router({
     mergeParams: true
 });
 
-likes.get(
+comments.get(
     '/',
     paginated(),
     async (req: Request, res: Response) => {
@@ -18,8 +20,14 @@ likes.get(
     }
 );
 
-likes.post(
+comments.post(
     '/',
+    soldier({
+        schema: Joi.object({
+            text: Joi.string().required().min(1).max(280),
+        }),
+        groundZero: GroundZero.body,
+    }),
     async (req: Request, res: Response) => {
         const response = new UnimplementedRouteFailure();
 
@@ -29,4 +37,4 @@ likes.post(
     }
 );
 
-export = likes;
+export = comments;

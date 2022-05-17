@@ -5,9 +5,9 @@ import { gatekeeper } from "./middlewares/gatekeeper/gatekeeper";
 import { soldier, GroundZero } from "./middlewares/soldier/soldier";
 import storyteller from "./middlewares/storyteller/storyteller";
 import tokens from "./routes/tokens/tokens";
-import others from "./routes/others/others";
+import others from "./routes/users/others/others";
 import search from "./routes/users/search";
-import self from "./routes/self/self";
+import self from "./routes/users/self/self";
 
 const app = express();
 

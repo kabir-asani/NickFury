@@ -1,6 +1,6 @@
-import { UsersManager } from "../../../../managers/usersManager/usersManager";
-import { NoResourceRouteFailure } from "../../../core/types";
-import { TxMiddleware } from "../../../middlewares/core/types";
+import { UsersManager } from "../../../../../managers/usersManager/usersManager";
+import { NoResourceRouteFailure } from "../../../../core/types";
+import { TxMiddleware } from "../../../../middlewares/core/types";
 
 export const userExistentialGuard = (): TxMiddleware =>
     async (req, res, next) => {

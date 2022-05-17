@@ -1,13 +1,13 @@
 import { Router, Request, Response } from "express";
-import { UsersManager } from "../../../managers/usersManager/usersManager";
-import { SessionizedRequest } from "../../core/override";
+import { UsersManager } from "../../../../managers/usersManager/usersManager";
+import { SessionizedRequest } from "../../../core/override";
 import {
     AllOkRouteSuccess,
     InternalRouteFailure
-} from "../../core/types";
-import followers from "../users/socials/followers/followers";
-import followings from "../users/socials/followings/followings";
-import tweets from "../users/tweets/tweets";
+} from "../../../core/types";
+import followers from "../socials/followers/followers";
+import followings from "../socials/followings/followings";
+import tweets from "../../tweets/tweets";
 import { userExistentialGuard } from "./middlewares/userExistentialGuard";
 
 const others = Router({
