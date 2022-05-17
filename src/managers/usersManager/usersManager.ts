@@ -112,24 +112,24 @@ export class UsersManager {
             const user = querySnapshot.docs[0].data() as unknown as User;
 
             if (parameters.viewerId !== undefined) {
-                const viewablesResult = await this.viewables({
+                const viewables = await this.viewables({
                     userId: user.id,
                     viewerId: parameters.viewerId
                 });
 
-                if (viewablesResult instanceof Failure) {
-                    return null;
-                } else {
+                if (viewables !== null) {
                     const viewableUser: ViewableUser = {
                         ...user,
-                        viewables: viewablesResult.data
+                        viewables: viewables
                     };
 
                     return viewableUser;
+                } else {
+                    return null;
                 }
+            } else {
+                return user;
             }
-
-            return user;
         } catch {
             return null;
         }
@@ -139,7 +139,7 @@ export class UsersManager {
         parameters: {
             userId: String;
         } & ViewablesParameters
-    ): Promise<Success<UserViewables> | Failure<UserViewablesFailureReason>> {
+    ): Promise<UserViewables | null> {
         const isFollowing = await SocialsManager.shared.isFollowing({
             followerId: parameters.viewerId,
             followingId: parameters.userId
@@ -149,8 +149,6 @@ export class UsersManager {
             following: isFollowing
         };
 
-        const reply = new Success<UserViewables>(viewables);
-
-        return reply;
+        return viewables;
     }
 }
