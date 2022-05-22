@@ -68,7 +68,7 @@ export class UsersManager {
         email?: String;
         username?: String;
         viewerId?: String;
-    }): Promise<User | null> {
+    }): Promise<User | ViewableUser | null> {
         assert(
             parameters.id !== undefined || parameters.email !== undefined || parameters.username !== undefined,
             "At least one of id, email or username should be present"
