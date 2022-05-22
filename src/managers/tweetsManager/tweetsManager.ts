@@ -3,8 +3,8 @@ import { DatabaseAssistant, DatabaseCollections } from "../../assistants/databas
 import { StreamAssistant } from "../../assistants/stream/stream";
 import { Dately } from "../../utils/dately/dately";
 import { Failure, Success } from "../../utils/typescriptx/typescriptx";
-import { Tweet, TweetViewables, ViewableTweet } from "../core/models";
-import { Paginated } from "../core/types";
+import { Tweet, TweetViewables, ViewableTweet, ViewableUser } from "../core/models";
+import { UsersManager } from "../usersManager/usersManager";
 import { TweetCreationFailureReason } from "./types";
 
 export class TweetsManager {
@@ -64,17 +64,69 @@ export class TweetsManager {
         }
     }
 
-    async tweets(parameters: {
-        userId: String;
-    }): Promise<Paginated<Tweet | ViewableTweet> | null> {
-        return null;
+    async tweet(parameters: {
+        tweetId: String;
+        viewerId?: String;
+    }): Promise<Tweet | ViewableTweet | null> {
+        const tweetsCollection = DatabaseAssistant.shared.collection(DatabaseCollections.tweets);
+        const tweetDocumentRef = tweetsCollection.doc(parameters.tweetId.valueOf());
+
+        try {
+            const tweetDocument = await tweetDocumentRef.get();
+
+            if (tweetDocument.exists) {
+                const tweet = tweetDocument.data() as unknown as Tweet;
+
+                if (parameters.viewerId !== undefined) {
+                    const viewables = await this.viewables({
+                        tweetId: tweet.id,
+                        authorId: tweet.authorId,
+                        viewerId: parameters.viewerId
+                    });
+
+                    if (viewables !== null) {
+                        const viewableTweet: ViewableTweet = {
+                            ...tweet,
+                            viewables: viewables
+                        };
+
+                        return viewableTweet;
+                    } else {
+                        return null;
+                    }
+                } else {
+                    return tweet;
+                }
+            } else {
+                return null;
+            }
+        } catch {
+            return null;
+        }
     }
 
     private async viewables(parameters: {
         tweetId: String;
+        authorId: String;
         viewerId: String;
     }): Promise<TweetViewables | null> {
-        // TODO: Implement `TweetsManager.viewables`
-        return null;
+        const viewableAuthor = await UsersManager.shared.user({
+            id: parameters.authorId,
+            viewerId: parameters.viewerId
+        });
+
+        if (viewableAuthor === null) {
+            return null;
+        }
+
+        // TODO: Determine if the tweet is bookmarked by the viewer;
+        const isBookmarked = false;
+
+        const viewables: TweetViewables = {
+            author: viewableAuthor as ViewableUser,
+            bookmarked: isBookmarked
+        };
+
+        return viewables;
     }
 }
