@@ -4,7 +4,7 @@ import { kMaximumPaginatedPageLength } from "../../../managers/core/types";
 import { TweetsManager } from "../../../managers/tweetsManager/tweetsManager";
 import { Failure } from "../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../core/override";
-import { AllOkRouteSuccess, CreationRouteSuccess, InternalRouteFailure, UnimplementedRouteFailure } from "../../core/types";
+import { AllOkRouteSuccess, CreationRouteSuccess, InternalRouteFailure, NoContentRouteSuccess, UnimplementedRouteFailure } from "../../core/types";
 import paginated from "../../middlewares/paginated/paginated";
 import { selfishGuard } from "../../middlewares/selfieGuard/selfieGuard";
 import { GroundZero, soldier } from "../../middlewares/soldier/soldier";
@@ -114,11 +114,25 @@ tweets.delete(
         }),
     ],
     async (req: Request, res: Response) => {
-        const response = new UnimplementedRouteFailure();
+        const tweetId = req.params.tweetId;
 
-        res
-            .status(UnimplementedRouteFailure.statusCode)
-            .json(response);
+        const tweetDeletion = await TweetsManager.shared.delete({
+            tweetId: tweetId
+        });
+
+        if (tweetDeletion instanceof Failure) {
+            const response = new InternalRouteFailure();
+
+            res
+                .status(InternalRouteFailure.statusCode)
+                .json(response);
+        } else {
+            const response = new NoContentRouteSuccess();
+
+            res
+                .status(NoContentRouteSuccess.statusCode)
+                .json(response);
+        }
     }
 )
 
