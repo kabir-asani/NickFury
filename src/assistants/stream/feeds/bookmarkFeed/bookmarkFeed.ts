@@ -29,17 +29,21 @@ export class BookmarkFeedAssistant extends FeedAssistant {
         );
 
         try {
-            const bookmarkActivity = await feed.addActivity({
+            const feedActivityDetails = {
                 actor: parameters.authorId.valueOf(),
                 verb: BookmarkFeedAssistant.verb,
                 object: parameters.tweetId.valueOf(),
-            });
+            };
 
-            const result = new Success<BookmarkActivity>({
-                bookmarkId: bookmarkActivity.id,
+            const feedActivity = await feed.addActivity(feedActivityDetails);
+
+            const bookmarkActivity: BookmarkActivity = {
+                bookmarkId: feedActivity.id,
                 authorId: parameters.authorId,
                 tweetId: parameters.tweetId
-            });
+            };
+
+            const result = new Success<BookmarkActivity>(bookmarkActivity);
 
             return result;
         } catch {
@@ -83,22 +87,24 @@ export class BookmarkFeedAssistant extends FeedAssistant {
         );
 
         try {
+            const limit = Math.min(
+                parameters.limit?.valueOf() || kMaximumPaginatedPageLength,
+                kMaximumPaginatedPageLength
+            );
+
             const flatFeed = await feed.get({
                 id_gt: parameters.nextToken?.valueOf(),
-                limit: Math.min(
-                    parameters.limit?.valueOf() || kMaximumPaginatedPageLength,
-                    kMaximumPaginatedPageLength
-                ),
+                limit: limit,
             });
 
             const flatActivities = flatFeed.results as FlatActivity[];
 
             const bookmarkActivities = flatActivities
-                .map((activity) => {
+                .map((feedActivity) => {
                     const bookmarkActivity: BookmarkActivity = {
-                        bookmarkId: activity.id as String,
-                        authorId: activity.actor as String,
-                        tweetId: activity.object as String,
+                        bookmarkId: feedActivity.id as String,
+                        authorId: feedActivity.actor as String,
+                        tweetId: feedActivity.object as unknown as String,
                     };
 
                     return bookmarkActivity;
@@ -106,14 +112,12 @@ export class BookmarkFeedAssistant extends FeedAssistant {
 
             const result: Paginated<BookmarkActivity> = {
                 page: bookmarkActivities,
-                nextToken: flatFeed.next,
+                nextToken: flatFeed.next || undefined,
             };
 
             return result;
         } catch {
-            const result = null;
-
-            return result;
+            return null;
         }
     }
 }

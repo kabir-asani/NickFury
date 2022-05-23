@@ -1,6 +1,6 @@
 export interface TweetActivity {
     readonly tweetId: String;
-    readonly complimentaryTweetId: String;
+    readonly externalTweetId: String;
     readonly authorId: String;
 }
 

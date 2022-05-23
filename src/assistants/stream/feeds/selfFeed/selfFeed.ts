@@ -12,8 +12,8 @@ import {
 } from "./types";
 
 export class SelfFeedAssistant extends FeedAssistant {
-    public static readonly feed = "self";
-    private static readonly verb = "tweet";
+    static readonly feed = "self";
+    static readonly verb = "tweet";
 
     constructor(parameters: {
         client: StreamClient;
@@ -26,7 +26,7 @@ export class SelfFeedAssistant extends FeedAssistant {
 
     async addTweetActivity(parameters: {
         authorId: String;
-        complimentaryTweetId: String;
+        externalTweetId: String;
     }): Promise<Success<TweetActivity> | Failure<AddTweetActivityFailure>> {
         const feed = this.client.feed(
             this.type.valueOf(),
@@ -34,17 +34,21 @@ export class SelfFeedAssistant extends FeedAssistant {
         );
 
         try {
-            const tweetActivity = await feed.addActivity({
+            const feedActivityDetails = {
                 actor: parameters.authorId.valueOf(),
                 verb: SelfFeedAssistant.verb,
-                object: parameters.complimentaryTweetId.valueOf(),
-            });
+                object: parameters.externalTweetId.valueOf(),
+            };
 
-            const result = new Success<TweetActivity>({
-                tweetId: tweetActivity.id,
+            const feedActivity = await feed.addActivity(feedActivityDetails);
+
+            const tweetActivity: TweetActivity = {
+                tweetId: feedActivity.id,
                 authorId: parameters.authorId,
-                complimentaryTweetId: parameters.complimentaryTweetId,
-            });
+                externalTweetId: parameters.externalTweetId,
+            };
+
+            const result = new Success<TweetActivity>(tweetActivity);
 
             return result;
         } catch {
@@ -89,22 +93,24 @@ export class SelfFeedAssistant extends FeedAssistant {
         );
 
         try {
+            const limit = Math.min(
+                parameters.limit?.valueOf() || kMaximumPaginatedPageLength,
+                kMaximumPaginatedPageLength
+            );
+
             const flatFeed = await feed.get({
                 id_gt: parameters.nextToken?.valueOf(),
-                limit: Math.min(
-                    parameters.limit?.valueOf() || kMaximumPaginatedPageLength,
-                    kMaximumPaginatedPageLength
-                ),
+                limit: limit,
             });
 
             const flatActivities = flatFeed.results as FlatActivity[];
 
             const tweetActivities = flatActivities
-                .map((activity) => {
+                .map((feedActivity) => {
                     const tweetActivity: TweetActivity = {
-                        authorId: activity.actor,
-                        tweetId: activity.id,
-                        complimentaryTweetId: activity.foreign_id as String,
+                        authorId: feedActivity.actor,
+                        tweetId: feedActivity.id,
+                        externalTweetId: feedActivity.object as unknown as String,
                     };
 
                     return tweetActivity;
@@ -112,14 +118,12 @@ export class SelfFeedAssistant extends FeedAssistant {
 
             const result: Paginated<TweetActivity> = {
                 page: tweetActivities,
-                nextToken: flatFeed.next
+                nextToken: flatFeed.next || undefined
             };
 
             return result;
         } catch {
-            const result = null;
-
-            return result;
+            return null;
         }
     }
 }

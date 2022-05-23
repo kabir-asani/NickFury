@@ -81,22 +81,24 @@ export class TimelineFeedAssistant extends FeedAssistant {
         );
 
         try {
+            const limit = Math.min(
+                parameters.limit?.valueOf() || kMaximumPaginatedPageLength,
+                kMaximumPaginatedPageLength
+            );
+
             const flatFeed = await feed.get({
                 id_gt: parameters.nextToken?.valueOf(),
-                limit: Math.min(
-                    parameters.limit?.valueOf() || kMaximumPaginatedPageLength,
-                    kMaximumPaginatedPageLength
-                ),
+                limit: limit,
             });
 
             const flatActivities = flatFeed.results as FlatActivity[];
 
             const tweetActivities = flatActivities
-                .map((activity) => {
+                .map((feedActivity) => {
                     const tweetActivity: TweetActivity = {
-                        authorId: activity.actor,
-                        tweetId: activity.object as String,
-                        complimentaryTweetId: activity.foreign_id as String,
+                        authorId: feedActivity.actor,
+                        tweetId: feedActivity.object as String,
+                        externalTweetId: feedActivity.foreign_id as String,
                     };
 
                     return tweetActivity;
@@ -104,7 +106,7 @@ export class TimelineFeedAssistant extends FeedAssistant {
 
             const result: Paginated<TweetActivity> = {
                 page: tweetActivities,
-                nextToken: flatFeed.next,
+                nextToken: flatFeed.next || undefined,
             };
 
             return result;

@@ -1,4 +1,4 @@
-export interface PartialCommentReaction {
+export interface CommentReaction {
     id: String;
 }
 

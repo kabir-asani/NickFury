@@ -1,4 +1,4 @@
-export interface PartialLikeReaction {
+export interface LikeReaction {
     id: String;
 }
 

@@ -1,11 +1,11 @@
 import { StreamClient } from "getstream";
-import { Paginated, PaginationParameters } from "../../../../managers/core/types";
+import { kMaximumPaginatedPageLength, Paginated, PaginationParameters } from "../../../../managers/core/types";
 import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
-import { ReactionsAssistant } from "../../feeds/reactions";
-import { AddCommentFailure, CommentsListFailure, PartialCommentReaction, RemoveCommentFailure } from "./types";
+import { ReactionsAssistant } from "../reactions";
+import { AddCommentFailure, CommentsListFailure, CommentReaction, RemoveCommentFailure } from "./types";
 
 export class CommentReactionAssistant extends ReactionsAssistant {
-    private static readonly kind = "comment";
+    static readonly kind = "comment";
 
     constructor(parameters: {
         client: StreamClient;
@@ -18,53 +18,21 @@ export class CommentReactionAssistant extends ReactionsAssistant {
 
     async addComment(parameters: {
         tweetId: String;
-    }): Promise<Success<PartialCommentReaction> | Failure<AddCommentFailure>> {
+    }): Promise<Success<CommentReaction> | Failure<AddCommentFailure>> {
         try {
             const comment = await this.client.reactions.add(
                 this.type.valueOf(),
                 parameters.tweetId.valueOf(),
             );
 
-            const partialComment: PartialCommentReaction = {
+            const partialComment: CommentReaction = {
                 id: comment.id
             };
 
-            const result = new Success<PartialCommentReaction>(partialComment);
+            const result = new Success<CommentReaction>(partialComment);
             return result;
         } catch {
             const result = new Failure<AddCommentFailure>(AddCommentFailure.UNKNOWN);
-            return result;
-        }
-    }
-
-    async commentsList(parameters: {
-        tweetId: String;
-    } & PaginationParameters): Promise<Success<Paginated<PartialCommentReaction>> | Failure<CommentsListFailure>> {
-        try {
-            const reactions = await this.client.reactions.filter({
-                activity_id: parameters.tweetId.valueOf(),
-                kind: CommentReactionAssistant.kind,
-                limit: parameters.limit?.valueOf() || 25,
-                id_lt: parameters.nextToken?.valueOf(),
-            });
-
-            const comments = reactions.results.map<PartialCommentReaction>((reaction) => {
-                const comment: PartialCommentReaction = {
-                    id: reaction.id
-                };
-
-                return comment;
-            });
-
-            const paginatedComments: Paginated<PartialCommentReaction> = {
-                page: comments,
-                nextToken: reactions.next,
-            };
-
-            const result = new Success<Paginated<PartialCommentReaction>>(paginatedComments);
-            return result;
-        } catch {
-            const result = new Failure<CommentsListFailure>(CommentsListFailure.UNKNOWN);
             return result;
         }
     }
@@ -80,6 +48,41 @@ export class CommentReactionAssistant extends ReactionsAssistant {
         } catch {
             const result = new Failure<RemoveCommentFailure>(RemoveCommentFailure.UNKNOWN);
             return result;
+        }
+    }
+
+    async comments(parameters: {
+        tweetId: String;
+    } & PaginationParameters): Promise<Paginated<CommentReaction> | null> {
+        try {
+            const limit = Math.min(
+                parameters.limit?.valueOf() || kMaximumPaginatedPageLength,
+                kMaximumPaginatedPageLength
+            );
+
+            const reactions = await this.client.reactions.filter({
+                id_lt: parameters.nextToken?.valueOf(),
+                activity_id: parameters.tweetId.valueOf(),
+                kind: CommentReactionAssistant.kind,
+                limit: limit,
+            });
+
+            const comments = reactions.results.map<CommentReaction>((reaction) => {
+                const comment: CommentReaction = {
+                    id: reaction.id
+                };
+
+                return comment;
+            });
+
+            const result: Paginated<CommentReaction> = {
+                page: comments,
+                nextToken: reactions.next,
+            };
+
+            return result;
+        } catch {
+            return null;
         }
     }
 }
