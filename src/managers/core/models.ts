@@ -63,7 +63,7 @@ export interface ViewableFollowing {
 // Tweet
 export interface Tweet {
     readonly id: String;
-    readonly complimentaryId: String;
+    readonly externalId: String;
     readonly text: String;
     readonly authorId: String;
     readonly creationDate: String;
