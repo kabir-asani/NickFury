@@ -4,7 +4,7 @@ import { StreamAssistant } from "../../assistants/stream/stream";
 import { Dately } from "../../utils/dately/dately";
 import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
 import { Tweet, TweetViewables, User, ViewableTweet, ViewableUser } from "../core/models";
-import { ViewablesParameters } from "../core/types";
+import { Paginated, PaginationParameters, ViewablesParameters } from "../core/types";
 import { UsersManager } from "../usersManager/usersManager";
 import { TweetCreationFailureReason, TweetDeletionFailureReason } from "./types";
 
@@ -34,14 +34,12 @@ export class TweetsManager {
             text: String;
         }
     }): Promise<Success<Tweet> | Failure<TweetCreationFailureReason>> {
-        const complimentaryTweetId = uuid.v4();
-
-        const tweetActivityCreation = await StreamAssistant.shared.selfFeed.addTweetActivity({
+        const tweetActivityAddition = await StreamAssistant.shared.selfFeed.addTweetActivity({
             authorId: parameters.authorId,
-            complimentaryTweetId: complimentaryTweetId
+            externalTweetId: uuid.v4()
         });
 
-        if (tweetActivityCreation instanceof Failure) {
+        if (tweetActivityAddition instanceof Failure) {
             const reply = new Failure<TweetCreationFailureReason>(
                 TweetCreationFailureReason.unknown
             );
@@ -50,9 +48,9 @@ export class TweetsManager {
         }
 
         const tweet: Tweet = {
-            id: tweetActivityCreation.data.tweetId,
-            complimentaryId: tweetActivityCreation.data.complimentaryTweetId,
-            authorId: tweetActivityCreation.data.authorId,
+            id: tweetActivityAddition.data.tweetId,
+            externalId: tweetActivityAddition.data.externalTweetId,
+            authorId: tweetActivityAddition.data.authorId,
             text: parameters.tweet.text,
             creationDate: Dately.shared.now(),
             lastUpdatedDate: Dately.shared.now(),
@@ -63,7 +61,7 @@ export class TweetsManager {
         };
 
         const tweetsCollection = DatabaseAssistant.shared.collection(DatabaseCollections.tweets);
-        const tweetDocumentRef = tweetsCollection.doc(complimentaryTweetId);
+        const tweetDocumentRef = tweetsCollection.doc(tweetActivityAddition.data.tweetId.valueOf());
 
         try {
             await tweetDocumentRef.create(tweet);
@@ -80,10 +78,62 @@ export class TweetsManager {
         }
     }
 
+    async delete(parameters: {
+        tweetId: String;
+    }): Promise<Success<Empty> | Failure<TweetDeletionFailureReason>> {
+        const tweetsCollection = DatabaseAssistant.shared.collection(DatabaseCollections.tweets);
+        const tweetDocumentRef = tweetsCollection.doc(parameters.tweetId.valueOf());
+
+        const tweetDocument = await tweetDocumentRef.get();
+
+        if (tweetDocument.exists) {
+            const tweet = tweetDocument.data() as unknown as Tweet;
+
+            const tweetActivityRemoval = await StreamAssistant.shared.selfFeed.removeTweetActivity({
+                tweetId: tweet.id,
+                authorId: tweet.authorId
+            });
+
+            if (tweetActivityRemoval instanceof Failure) {
+                const reply = new Failure<TweetDeletionFailureReason>(TweetDeletionFailureReason.unknown);
+                return reply;
+            } else {
+                try {
+                    const usersCollection = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+                    const userDocumentRef = usersCollection.doc(tweet.authorId.valueOf());
+
+                    await DatabaseAssistant.shared.runTransaction(async (transaction) => {
+                        const userDocument = await userDocumentRef.get();
+
+                        const user = userDocument.data() as unknown as User;
+
+                        transaction.update(userDocumentRef, {
+                            "activityDetails.tweetsCount": Math.max(
+                                user.activityDetails.tweetsCount.valueOf() - 1,
+                                0
+                            )
+                        });
+
+                        transaction.delete(tweetDocumentRef);
+                    });
+
+                    const reply = new Success<Empty>({});
+                    return reply;
+                } catch {
+                    const reply = new Failure<TweetDeletionFailureReason>(TweetDeletionFailureReason.unknown);
+                    return reply;
+                }
+            }
+        } else {
+
+            const reply = new Failure<TweetDeletionFailureReason>(TweetDeletionFailureReason.tweetWithThatIdDoesNotExists);
+            return reply;
+        }
+    }
+
     async tweet(parameters: {
         tweetId: String;
-        viewerId?: String;
-    }): Promise<Tweet | ViewableTweet | null> {
+    } & ViewablesParameters): Promise<Tweet | ViewableTweet | null> {
         const tweetsCollection = DatabaseAssistant.shared.collection(DatabaseCollections.tweets);
         const tweetDocumentRef = tweetsCollection.doc(parameters.tweetId.valueOf());
 
@@ -121,63 +171,58 @@ export class TweetsManager {
         }
     }
 
-    async delete(parameters: {
-        tweetId: String;
-    }): Promise<Success<Empty> | Failure<TweetDeletionFailureReason>> {
-        const tweetsCollection = DatabaseAssistant.shared.collection(DatabaseCollections.tweets);
-        const tweetDocumentRef = tweetsCollection.doc(parameters.tweetId.valueOf());
 
-        const tweetDocument = await tweetDocumentRef.get();
+    async tweets(parameters: {
+        userId: String;
+    } & ViewablesParameters & PaginationParameters): Promise<Paginated<Tweet | ViewableTweet> | null> {
+        const tweetActivities = await StreamAssistant.shared.selfFeed.activities({
+            authorId: parameters.userId,
+            limit: parameters.limit,
+            nextToken: parameters.nextToken
+        });
 
-        if (tweetDocument.exists) {
-            const tweet = tweetDocument.data() as unknown as Tweet;
+        if (tweetActivities === null) {
+            return null;
+        }
 
-            const tweetActivityDeletion = await StreamAssistant.shared.selfFeed.removeTweetActivity({
-                tweetId: tweet.id,
-                authorId: tweet.authorId
+        const tweets = [];
+
+        for (let tweetActivity of tweetActivities.page) {
+            const tweet = await this.tweet({
+                tweetId: tweetActivity.tweetId,
+                viewerId: parameters.viewerId
             });
 
-            if (tweetActivityDeletion instanceof Failure) {
-                const reply = new Failure<TweetDeletionFailureReason>(TweetDeletionFailureReason.unknown);
-                return reply;
+            if (tweet !== null) {
+                tweets.push(tweet);
             } else {
-                try {
-                    const usersCollection = DatabaseAssistant.shared.collection(DatabaseCollections.users);
-                    const userDocumentRef = usersCollection.doc(tweet.authorId.valueOf());
-
-                    await DatabaseAssistant.shared.runTransaction(async (transaction) => {
-                        const userDocument = await userDocumentRef.get();
-
-                        const user = userDocument.data() as unknown as User;
-
-                        transaction.update(userDocumentRef, {
-                            "activityDetails.tweetsCount": Math.max(
-                                user.activityDetails.tweetsCount.valueOf() - 1,
-                                0
-                            )
-                        });
-
-                        transaction.delete(tweetDocumentRef);
-                    });
-
-                    const reply = new Success<Empty>({});
-                    return reply;
-                } catch {
-                    const reply = new Failure<TweetDeletionFailureReason>(TweetDeletionFailureReason.unknown);
-                    return reply;
-                }
+                return null;
             }
-        } else {
+        }
 
-            const reply = new Failure<TweetDeletionFailureReason>(TweetDeletionFailureReason.tweetWithThatIdDoesNotExists);
+        if (parameters.viewerId !== undefined) {
+            const reply: Paginated<ViewableTweet> = {
+                page: tweets as unknown as ViewableTweet[],
+                nextToken: tweetActivities.nextToken
+            }
+
+            return reply;
+        } else {
+            const reply: Paginated<Tweet> = {
+                page: tweets as unknown as Tweet[],
+                nextToken: tweetActivities.nextToken
+            }
+
             return reply;
         }
     }
 
+
     private async viewables(parameters: {
         tweetId: String;
         authorId: String;
-    } & ViewablesParameters): Promise<TweetViewables | null> {
+        viewerId: String;
+    }): Promise<TweetViewables | null> {
         const viewableAuthor = await UsersManager.shared.user({
             id: parameters.authorId,
             viewerId: parameters.viewerId

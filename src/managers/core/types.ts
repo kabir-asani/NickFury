@@ -4,7 +4,7 @@ export interface PaginationParameters {
 }
 
 export interface ViewablesParameters {
-    viewerId: String;
+    viewerId?: String;
 }
 
 export interface Paginated<T> {

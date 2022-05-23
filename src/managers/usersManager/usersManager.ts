@@ -65,8 +65,7 @@ export class UsersManager {
         id?: String;
         email?: String;
         username?: String;
-        viewerId?: String;
-    }): Promise<User | ViewableUser | null> {
+    } & ViewablesParameters): Promise<User | ViewableUser | null> {
         assert(
             parameters.id !== undefined || parameters.email !== undefined || parameters.username !== undefined,
             "At least one of id, email or username should be present"
@@ -133,11 +132,10 @@ export class UsersManager {
         }
     }
 
-    private async viewables(
-        parameters: {
-            userId: String;
-        } & ViewablesParameters
-    ): Promise<UserViewables | null> {
+    private async viewables(parameters: {
+        userId: String;
+        viewerId: String;
+    }): Promise<UserViewables | null> {
         const isFollowing = await SocialsManager.shared.isFollowing({
             followerId: parameters.viewerId,
             followingId: parameters.userId
