@@ -4,6 +4,7 @@ import { StreamAssistant } from "../../assistants/stream/stream";
 import { Dately } from "../../utils/dately/dately";
 import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
 import { Tweet, TweetViewables, User, ViewableTweet, ViewableUser } from "../core/models";
+import { ViewablesParameters } from "../core/types";
 import { UsersManager } from "../usersManager/usersManager";
 import { TweetCreationFailureReason, TweetDeletionFailureReason } from "./types";
 
@@ -176,8 +177,7 @@ export class TweetsManager {
     private async viewables(parameters: {
         tweetId: String;
         authorId: String;
-        viewerId: String;
-    }): Promise<TweetViewables | null> {
+    } & ViewablesParameters): Promise<TweetViewables | null> {
         const viewableAuthor = await UsersManager.shared.user({
             id: parameters.authorId,
             viewerId: parameters.viewerId

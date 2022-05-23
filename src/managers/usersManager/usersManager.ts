@@ -1,6 +1,4 @@
-import { Failure, Success } from "../../utils/typescriptx/typescriptx";
 import { User, UserViewables, ViewableUser } from "../core/models";
-import { UserViewablesFailureReason } from "./types";
 import { DatabaseAssistant, DatabaseCollections } from "../../assistants/database/database";
 import { assert } from "console";
 import { ViewablesParameters } from "../core/types";
