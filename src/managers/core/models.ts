@@ -93,7 +93,6 @@ export interface Comment {
 }
 
 export interface CommentViewables {
-    tweet: ViewableTweet;
     author: ViewableUser;
 }
 
@@ -110,7 +109,6 @@ export interface Like {
 }
 
 export interface LikeViewables {
-    tweet: ViewableTweet;
     author: ViewableUser;
 }
 
@@ -128,7 +126,6 @@ export interface Bookmark {
 
 export interface BookmarkViewables {
     tweet: ViewableTweet;
-    author: ViewableUser;
 }
 
 export interface ViewableBookmark extends Bookmark {
