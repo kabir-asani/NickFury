@@ -1,7 +1,9 @@
 export enum BookmarkCreationFailureReason {
-    unknown
+    unknown,
+    bookmarkAlreadyExists
 }
 
 export enum BookmarkDeletionFailureReason {
-    unknown
+    unknown,
+    bookmarkDoesNotExists
 }
