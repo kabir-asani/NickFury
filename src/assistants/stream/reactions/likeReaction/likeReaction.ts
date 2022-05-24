@@ -1,8 +1,8 @@
 import { StreamClient } from "getstream";
-import { Paginated, PaginationParameters } from "../../../../managers/core/types";
+import { kMaximumPaginatedPageLength, Paginated, PaginationParameters } from "../../../../managers/core/types";
 import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
 import { ReactionsAssistant } from "../reactions";
-import { AddLikeFailure, LikesListFailure, LikeReaction, RemoveLikeFailure } from "./types";
+import { AddLikeFailure, LikeReaction, RemoveLikeFailure } from "./types";
 
 export class LikeReactionAssistant extends ReactionsAssistant {
     private static readonly kind = "like";
@@ -55,10 +55,15 @@ export class LikeReactionAssistant extends ReactionsAssistant {
         tweetId: String;
     } & PaginationParameters): Promise<Paginated<LikeReaction> | null> {
         try {
+            const limit = Math.min(
+                parameters.limit?.valueOf() || kMaximumPaginatedPageLength,
+                kMaximumPaginatedPageLength
+            );
+
             const reactions = await this.client.reactions.filter({
                 activity_id: parameters.tweetId.valueOf(),
                 kind: LikeReactionAssistant.kind,
-                limit: parameters.limit?.valueOf() || 25,
+                limit: limit,
                 id_lt: parameters.nextToken?.valueOf(),
             });
 
