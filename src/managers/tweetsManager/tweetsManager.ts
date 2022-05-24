@@ -3,6 +3,7 @@ import { DatabaseAssistant, DatabaseCollections } from "../../assistants/databas
 import { StreamAssistant } from "../../assistants/stream/stream";
 import { Dately } from "../../utils/dately/dately";
 import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
+import { BookmarksManager } from "../bookmarksManager/bookmarksManager";
 import { Tweet, TweetViewables, User, ViewableTweet, ViewableUser } from "../core/models";
 import { Paginated, PaginationParameters, ViewablesParameters } from "../core/types";
 import { UsersManager } from "../usersManager/usersManager";
@@ -232,8 +233,12 @@ export class TweetsManager {
             return null;
         }
 
-        // TODO: Determine if the tweet is bookmarked by the viewer;
-        const isBookmarked = false;
+        const isBookmarked = await BookmarksManager.shared.exists({
+            bookmarkDetails: {
+                tweetId: parameters.tweetId,
+                authorId: parameters.viewerId
+            }
+        });
 
         const viewables: TweetViewables = {
             author: viewableAuthor as ViewableUser,
