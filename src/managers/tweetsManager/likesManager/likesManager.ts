@@ -1,9 +1,11 @@
 import { assert } from "console";
 import { DatabaseAssistant, DatabaseCollections } from "../../../assistants/database/database";
 import { Empty, Failure, Success } from "../../../utils/typescriptx/typescriptx";
-import { Like, ViewableLike } from "../../core/models";
+import { Like, ViewableLike, Tweet } from "../../core/models";
 import { Paginated, PaginationParameters, ViewablesParameters } from "../../core/types";
 import { LikeCreationFailureReason, LikeDeletionFailureReason } from "./types";
+import { Dately } from "../../../utils/dately/dately";
+import { StreamAssistant } from "../../../assistants/stream/stream";
 
 export class LikesManager {
     static readonly shared = new LikesManager();
@@ -66,12 +68,78 @@ export class LikesManager {
         tweetId: String;
         authorId: String;
     }): Promise<Success<Like> | Failure<LikeCreationFailureReason>> {
-        // TODO: Implement `LikesManager.create`
-        const reply = new Failure<LikeCreationFailureReason>(
-            LikeCreationFailureReason.unknown
-        );
+        const isLikeExists = await this.exists({
+            likeDetails: {
+                tweetId: parameters.tweetId,
+                authorId: parameters.authorId
+            }
+        });
 
-        return reply;
+        if (isLikeExists) {
+            const reply = new Failure<LikeCreationFailureReason>(
+                LikeCreationFailureReason.likeAlreadyExists
+            );
+
+            return reply;
+        }
+
+        const likeAddition = await StreamAssistant.shared.likeReactions.addLike({
+            tweetId: parameters.tweetId
+        });
+
+        if (likeAddition instanceof Failure) {
+            const reply = new Failure<LikeCreationFailureReason>(
+                LikeCreationFailureReason.unknown
+            );
+
+            return reply;
+        }
+
+        try {
+            const like = await DatabaseAssistant.shared.runTransaction(async (transaction) => {
+                const tweetsCollection = DatabaseAssistant.shared.collection(DatabaseCollections.tweets);
+                const tweetDocumentRef = tweetsCollection.doc(parameters.tweetId.valueOf());
+                const tweetDocument = await transaction.get(tweetDocumentRef);
+
+                const tweet = tweetDocument.data() as unknown as Tweet;
+                const like: Like = {
+                    id: likeAddition.data.id,
+                    authorId: parameters.authorId,
+                    tweetId: parameters.tweetId,
+                    creationDate: Dately.shared.now()
+                };
+
+                const likesCollection = DatabaseAssistant.shared.collection(
+                    DatabaseCollections.tweets
+                    + "/" + parameters.tweetId.valueOf() + "/" +
+                    DatabaseCollections.likes
+                );
+                const likeDocumentRef = likesCollection.doc(like.id.valueOf());
+
+                transaction.create(
+                    likeDocumentRef,
+                    like
+                );
+                transaction.update(
+                    tweetDocumentRef,
+                    {
+                        "interactionDetails.likesCount": tweet.interactionDetails.likesCount.valueOf() + 1
+                    }
+                );
+
+                return like;
+            });
+
+            const reply = new Success<Like>(like);
+
+            return reply;
+        } catch {
+            const reply = new Failure<LikeCreationFailureReason>(
+                LikeCreationFailureReason.unknown
+            );
+
+            return reply;
+        }
     }
 
     async delete(parameters: {
