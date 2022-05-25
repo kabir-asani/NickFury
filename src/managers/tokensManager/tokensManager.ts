@@ -55,7 +55,7 @@ export class TokensManager {
             image: String;
         }
     }): Promise<Success<Credentials> | Failure<TokenCreationFailureReason>> {
-        // TODO: Validate token from credentials is being verified.
+        // TODO: Validate token from credentials
 
         const user = await UsersManager.shared.user({
             email: parameters.details.email
