@@ -1,7 +1,7 @@
 import { assert } from "console";
 import { DatabaseAssistant, DatabaseCollections } from "../../../assistants/database/database";
 import { Empty, Failure, Success } from "../../../utils/typescriptx/typescriptx";
-import { Like, ViewableLike, Tweet } from "../../core/models";
+import { Like, ViewableLike, Tweet, LikeViewables } from "../../core/models";
 import { Paginated, PaginationParameters, ViewablesParameters } from "../../core/types";
 import { LikeCreationFailureReason, LikeDeletionFailureReason } from "./types";
 import { Dately } from "../../../utils/dately/dately";
@@ -209,6 +209,14 @@ export class LikesManager {
     } & PaginationParameters & ViewablesParameters
     ): Promise<Paginated<Like | ViewableLike> | null> {
         // TODO: Implement `LikesManager.likes`
+        return null;
+    }
+
+    private async viewables(parameters: {
+        authorId: String;
+        viewerId: String;
+    }): Promise<LikeViewables | null> {
+        // TODO: Implement `LikesManager.viewables`
         return null;
     }
 }
