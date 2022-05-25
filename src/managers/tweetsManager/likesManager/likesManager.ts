@@ -14,7 +14,7 @@ export class LikesManager {
 
     async exists(parameters: {
         likeId?: String;
-        likeDetails: {
+        likeDetails?: {
             tweetId: String;
             authorId: String;
         }
