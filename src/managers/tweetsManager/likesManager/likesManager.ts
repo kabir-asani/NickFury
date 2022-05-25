@@ -1,11 +1,12 @@
 import { assert } from "console";
 import { DatabaseAssistant, DatabaseCollections } from "../../../assistants/database/database";
 import { Empty, Failure, Success } from "../../../utils/typescriptx/typescriptx";
-import { Like, ViewableLike, Tweet, LikeViewables } from "../../core/models";
+import { Like, ViewableLike, Tweet, LikeViewables, ViewableUser } from "../../core/models";
 import { Paginated, PaginationParameters, ViewablesParameters } from "../../core/types";
 import { LikeCreationFailureReason, LikeDeletionFailureReason } from "./types";
 import { Dately } from "../../../utils/dately/dately";
 import { StreamAssistant } from "../../../assistants/stream/stream";
+import { UsersManager } from "../../usersManager/usersManager";
 
 export class LikesManager {
     static readonly shared = new LikesManager();
@@ -204,19 +205,108 @@ export class LikesManager {
         }
     }
 
+    async like(parameters: {
+        likeId: String;
+    } & ViewablesParameters): Promise<Like | ViewableLike | null> {
+        const likesCollection = DatabaseAssistant.shared.collection(DatabaseCollections.likes);
+        const likeDocumentRef = likesCollection.doc(parameters.likeId.valueOf());
+
+        try {
+            const likeDocument = await likeDocumentRef.get();
+
+            if (likeDocument.exists) {
+                const like = likeDocument.data() as unknown as Like;
+
+                if (parameters.viewerId !== undefined) {
+                    const viewables = await this.viewables({
+                        authorId: like.authorId,
+                        viewerId: parameters.viewerId
+                    });
+
+                    if (viewables !== null) {
+                        const viewableLike: ViewableLike = {
+                            ...like,
+                            viewables: viewables
+                        };
+
+                        return viewableLike;
+                    } else {
+                        return null;
+                    }
+                } else {
+                    return like;
+                }
+            } else {
+                return null;
+            }
+        } catch {
+            return null;
+        }
+    }
+
     async likes(parameters: {
         tweetId: String;
     } & PaginationParameters & ViewablesParameters
     ): Promise<Paginated<Like | ViewableLike> | null> {
-        // TODO: Implement `LikesManager.likes`
-        return null;
+        const likeReactions = await StreamAssistant.shared.likeReactions.likes({
+            tweetId: parameters.tweetId,
+            limit: parameters.limit,
+            nextToken: parameters.nextToken
+        });
+
+        if (likeReactions === null) {
+            return null;
+        }
+
+        const likes = [];
+
+        for (let likeReaction of likeReactions.page) {
+            const tweet = await this.like({
+                likeId: likeReaction.id,
+                viewerId: parameters.viewerId
+            });
+
+            if (tweet !== null) {
+                likes.push(tweet);
+            } else {
+                return null;
+            }
+        }
+
+        if (parameters.viewerId !== undefined) {
+            const reply: Paginated<ViewableLike> = {
+                page: likes as unknown as ViewableLike[],
+                nextToken: likeReactions.nextToken
+            }
+
+            return reply;
+        } else {
+            const reply: Paginated<Like> = {
+                page: likes as unknown as Like[],
+                nextToken: likeReactions.nextToken
+            }
+
+            return reply;
+        }
     }
 
     private async viewables(parameters: {
         authorId: String;
         viewerId: String;
     }): Promise<LikeViewables | null> {
-        // TODO: Implement `LikesManager.viewables`
-        return null;
+        const viewableAuthor = await UsersManager.shared.user({
+            id: parameters.authorId,
+            viewerId: parameters.viewerId
+        });
+
+        if (viewableAuthor == null) {
+            return null;
+        }
+
+        const viewables: LikeViewables = {
+            author: viewableAuthor as ViewableUser
+        }
+
+        return viewables;
     }
 }
