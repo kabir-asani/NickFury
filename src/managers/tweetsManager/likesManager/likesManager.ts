@@ -109,11 +109,7 @@ export class LikesManager {
                     creationDate: Dately.shared.now()
                 };
 
-                const likesCollection = DatabaseAssistant.shared.collection(
-                    DatabaseCollections.tweets
-                    + "/" + parameters.tweetId.valueOf() + "/" +
-                    DatabaseCollections.likes
-                );
+                const likesCollection = DatabaseAssistant.shared.collection(DatabaseCollections.likes);
                 const likeDocumentRef = likesCollection.doc(like.id.valueOf());
 
                 transaction.create(
