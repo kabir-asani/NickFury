@@ -128,7 +128,7 @@ bookmarks.delete(
         if (bookmarkDeletion instanceof Failure) {
             switch (bookmarkDeletion.reason) {
                 case BookmarkDeletionFailureReason.bookmarkDoesNotExists: {
-                    const response = new NoResourceRouteFailure();
+                    const response = new NoResourceRouteFailure('BOOKMARK_DOES_NOT_EXISTS');
 
                     res
                         .status(NoResourceRouteFailure.statusCode)
