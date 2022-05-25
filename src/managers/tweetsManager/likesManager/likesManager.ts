@@ -141,12 +141,67 @@ export class LikesManager {
     async delete(parameters: {
         likeId: String;
     }): Promise<Success<Empty> | Failure<LikeDeletionFailureReason>> {
-        // TODO: Implement `LikesManager.delete`
-        const reply = new Failure<LikeDeletionFailureReason>(
-            LikeDeletionFailureReason.unknown
-        );
+        const isLikeExists = await this.exists({
+            likeId: parameters.likeId
+        });
 
-        return reply;
+        if (!isLikeExists) {
+            const reply = new Failure<LikeDeletionFailureReason>(
+                LikeDeletionFailureReason.likeDoesNotExists
+            );
+
+            return reply;
+        }
+
+        const likeDeletion = await StreamAssistant.shared.likeReactions.removeLike({
+            likeId: parameters.likeId
+        });
+
+        if (likeDeletion instanceof Failure) {
+            const reply = new Failure<LikeDeletionFailureReason>(
+                LikeDeletionFailureReason.unknown
+            );
+
+            return reply;
+        }
+
+        try {
+            await DatabaseAssistant.shared.runTransaction(async (transaction) => {
+                const likesCollection = DatabaseAssistant.shared.collection(DatabaseCollections.likes);
+                const likeDocumentRef = likesCollection.doc(parameters.likeId.valueOf());
+
+                const likeDocument = await transaction.get(likeDocumentRef);
+
+                const like = likeDocument.data() as unknown as Like;
+
+                const tweetsCollection = DatabaseAssistant.shared.collection(DatabaseCollections.tweets);
+                const tweetDocumentRef = tweetsCollection.doc(like.tweetId.valueOf());
+                const tweetDocument = await transaction.get(tweetDocumentRef);
+
+                const tweet = tweetDocument.data() as unknown as Tweet;
+
+                transaction.delete(likeDocumentRef);
+                transaction.update(
+                    tweetDocumentRef,
+                    {
+                        "interactionDetails.likesCount": Math.max(
+                            tweet.interactionDetails.likesCount.valueOf() - 1,
+                            0
+                        )
+                    }
+                );
+            });
+
+            const reply = new Success<Empty>({});
+
+            return reply;
+        } catch {
+            const reply = new Failure<LikeDeletionFailureReason>(
+                LikeDeletionFailureReason.unknown
+            );
+
+            return reply;
+        }
     }
 
     async likes(parameters: {
