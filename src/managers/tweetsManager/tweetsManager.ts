@@ -229,7 +229,7 @@ export class TweetsManager {
 
     async tweetsByIds(parameters: {
         ids: String[];
-    } & PaginationParameters): Promise<{ [key: string]: Tweet } | null> {
+    }): Promise<{ [key: string]: Tweet } | null> {
         const tweetDocumentRefs = parameters.ids.map((tweetId) => {
             const tweetsCollection = DatabaseAssistant.shared.collection(DatabaseCollections.tweets);
             const tweetDocumentRef = tweetsCollection.doc(tweetId.valueOf());
@@ -305,7 +305,7 @@ export class TweetsManager {
 
     async viewableTweetsByIds(parameters: {
         ids: String[];
-    } & ViewablesParameters2 & PaginationParameters): Promise<{ [key: string]: ViewableTweet } | null> {
+    } & ViewablesParameters2): Promise<{ [key: string]: ViewableTweet } | null> {
         const tweets = await this.tweetsByIds({
             ids: parameters.ids
         });
