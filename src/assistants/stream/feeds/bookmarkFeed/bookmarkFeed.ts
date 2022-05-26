@@ -2,19 +2,18 @@ import { FlatActivity, StreamClient } from "getstream";
 import { kMaximumPaginatedPageLength, Paginated, PaginationParameters } from "../../../../managers/core/types";
 import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
 import { FeedAssistant } from "../feed";
-import { SelfFeedAssistant } from "../selfFeed/selfFeed";
 import { BookmarkActivity } from "../types";
 import { AddBookmarkActivityFailure, RemoveBookmarkActivityFailure } from "./types";
 
 export class BookmarkFeedAssistant extends FeedAssistant {
-    public static readonly feed = "bookmark";
-    private static readonly verb = "bookmark";
+    static readonly feed = "bookmark";
+    static readonly verb = "bookmark";
 
     constructor(parameters: {
         client: StreamClient;
     }) {
         super({
-            type: SelfFeedAssistant.feed,
+            type: BookmarkFeedAssistant.feed,
             client: parameters.client
         });
     }
