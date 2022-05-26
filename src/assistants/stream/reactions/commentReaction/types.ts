@@ -2,17 +2,18 @@ export interface CommentReaction {
     id: String;
 }
 
-// Add Like
-export enum AddCommentFailure {
-    UNKNOWN
+// Add Comment
+export enum AddCommentReactionFailureReason {
+    UNKNOWN,
 }
 
-// Remove Like
-export enum RemoveCommentFailure {
-    UNKNOWN
+// Remove Comment
+export enum RemoveCommentReactionFailureReason {
+    unknown,
 }
 
-// LikesList
-export enum CommentsListFailure {
-    UNKNOWN
+// Comments
+export enum PaginatedCommentReactionsFailure {
+    unknown,
+    malformedParameters,
 }

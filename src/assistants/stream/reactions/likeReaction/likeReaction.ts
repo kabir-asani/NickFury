@@ -1,18 +1,30 @@
-import { StreamClient } from "getstream";
-import { kMaximumPaginatedPageLength, Paginated, PaginationParameters } from "../../../../managers/core/types";
-import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
+import { StreamApiError, StreamClient } from "getstream";
+import {
+    kMaximumPaginatedPageLength,
+    Paginated,
+    PaginationParameters,
+} from "../../../../managers/core/types";
+import logger, { LogLevel } from "../../../../utils/logger/logger";
+import {
+    Empty,
+    Failure,
+    Success,
+} from "../../../../utils/typescriptx/typescriptx";
 import { ReactionsAssistant } from "../reactions";
-import { AddLikeFailure, LikeReaction, RemoveLikeFailure } from "./types";
+import {
+    AddLikeFailure,
+    LikeReaction,
+    PaginatedLikeReactionsFailure,
+    RemoveLikeFailure,
+} from "./types";
 
-export class LikeReactionAssistant extends ReactionsAssistant {
+export default class LikeReactionAssistant extends ReactionsAssistant {
     private static readonly kind = "like";
 
-    constructor(parameters: {
-        client: StreamClient;
-    }) {
+    constructor(parameters: { client: StreamClient }) {
         super({
             type: LikeReactionAssistant.kind,
-            client: parameters.client
+            client: parameters.client,
         });
     }
 
@@ -20,19 +32,23 @@ export class LikeReactionAssistant extends ReactionsAssistant {
         tweetId: String;
     }): Promise<Success<LikeReaction> | Failure<AddLikeFailure>> {
         try {
-            const like = await this.client.reactions.add(
+            const reaction = await this.client.reactions.add(
                 this.type.valueOf(),
-                parameters.tweetId.valueOf(),
+                parameters.tweetId.valueOf()
             );
 
-            const partialLike: LikeReaction = {
-                id: like.id
+            const likeReaction: LikeReaction = {
+                id: reaction.id,
             };
 
-            const result = new Success<LikeReaction>(partialLike);
+            const result = new Success<LikeReaction>(likeReaction);
+
             return result;
-        } catch {
-            const result = new Failure<AddLikeFailure>(AddLikeFailure.UNKNOWN);
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.addLike]);
+
+            const result = new Failure<AddLikeFailure>(AddLikeFailure.unknown);
+
             return result;
         }
     }
@@ -44,16 +60,27 @@ export class LikeReactionAssistant extends ReactionsAssistant {
             await this.client.reactions.delete(parameters.likeId.valueOf());
 
             const result = new Success<Empty>({});
+
             return result;
-        } catch {
-            const result = new Failure<RemoveLikeFailure>(RemoveLikeFailure.UNKNOWN);
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.removeLike]);
+
+            const result = new Failure<RemoveLikeFailure>(
+                RemoveLikeFailure.unknown
+            );
+
             return result;
         }
     }
 
-    async likes(parameters: {
-        tweetId: String;
-    } & PaginationParameters): Promise<Paginated<LikeReaction> | null> {
+    async likes(
+        parameters: {
+            tweetId: String;
+        } & PaginationParameters
+    ): Promise<
+        | Success<Paginated<LikeReaction>>
+        | Failure<PaginatedLikeReactionsFailure>
+    > {
         try {
             const limit = Math.min(
                 parameters.limit?.valueOf() || kMaximumPaginatedPageLength,
@@ -69,21 +96,40 @@ export class LikeReactionAssistant extends ReactionsAssistant {
 
             const likes = reactions.results.map<LikeReaction>((reaction) => {
                 const like: LikeReaction = {
-                    id: reaction.id
+                    id: reaction.id,
                 };
 
                 return like;
             });
 
-            const result: Paginated<LikeReaction> = {
+            const paginatedLikeReactions: Paginated<LikeReaction> = {
                 page: likes,
                 nextToken: reactions.next,
             };
 
-            return result;
-        } catch {
-            return null;
+            const reply = new Success<Paginated<LikeReaction>>(
+                paginatedLikeReactions
+            );
+
+            return reply;
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.likes]);
+
+            if (e instanceof StreamApiError) {
+                if (e.response.status === 400) {
+                    const reply = new Failure<PaginatedLikeReactionsFailure>(
+                        PaginatedLikeReactionsFailure.malformedParameters
+                    );
+
+                    return reply;
+                }
+            }
+
+            const reply = new Failure<PaginatedLikeReactionsFailure>(
+                PaginatedLikeReactionsFailure.unknown
+            );
+
+            return reply;
         }
     }
-
 }

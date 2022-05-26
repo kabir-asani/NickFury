@@ -1,20 +1,32 @@
-import { FlatActivity, StreamClient } from "getstream";
-import { kMaximumPaginatedPageLength, Paginated, PaginationParameters } from "../../../../managers/core/types";
-import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
-import { FeedAssistant } from "../feed";
-import { SelfFeedAssistant } from "../selfFeed/selfFeed";
+import { FlatActivity, StreamApiError, StreamClient } from "getstream";
+import { ViewableTweet } from "../../../../managers/core/models";
+import {
+    kMaximumPaginatedPageLength,
+    Paginated,
+    PaginationParameters,
+} from "../../../../managers/core/types";
+import logger, { LogLevel } from "../../../../utils/logger/logger";
+import {
+    Empty,
+    Failure,
+    Success,
+} from "../../../../utils/typescriptx/typescriptx";
+import FeedAssistant from "../feed";
+import SelfFeedAssistant from "../selfFeed/selfFeed";
 import { TweetActivity } from "../types";
-import { FollowFeedFailure, UnfollowFeedFailure } from "./types";
+import {
+    FollowFeedFailure,
+    TimelineTweetActivitiesFailureReason,
+    UnfollowFeedFailure,
+} from "./types";
 
-export class TimelineFeedAssistant extends FeedAssistant {
+export default class TimelineFeedAssistant extends FeedAssistant {
     public static readonly feed = "timeline";
 
-    constructor(parameters: {
-        client: StreamClient;
-    }) {
+    constructor(parameters: { client: StreamClient }) {
         super({
             type: TimelineFeedAssistant.feed,
-            client: parameters.client
+            client: parameters.client,
         });
     }
 
@@ -24,13 +36,13 @@ export class TimelineFeedAssistant extends FeedAssistant {
     }): Promise<Success<Empty> | Failure<FollowFeedFailure>> {
         const timelineFeed = this.client.feed(
             this.type.valueOf(),
-            parameters.followerUserId.valueOf(),
+            parameters.followerUserId.valueOf()
         );
 
         try {
             await timelineFeed.follow(
                 SelfFeedAssistant.feed,
-                parameters.followingUserId.valueOf(),
+                parameters.followingUserId.valueOf()
             );
 
             const result = new Success<Empty>({});
@@ -51,13 +63,13 @@ export class TimelineFeedAssistant extends FeedAssistant {
     }): Promise<Success<Empty> | Failure<UnfollowFeedFailure>> {
         const timelineFeed = this.client.feed(
             this.type.valueOf(),
-            parameters.followerUserId.valueOf(),
+            parameters.followerUserId.valueOf()
         );
 
         try {
             await timelineFeed.unfollow(
                 SelfFeedAssistant.feed,
-                parameters.followingUserId.valueOf(),
+                parameters.followingUserId.valueOf()
             );
 
             const result = new Success<Empty>({});
@@ -72,12 +84,17 @@ export class TimelineFeedAssistant extends FeedAssistant {
         }
     }
 
-    async activities(parameters: {
-        userId: String;
-    } & PaginationParameters): Promise<Paginated<TweetActivity> | null> {
+    async activities(
+        parameters: {
+            userId: String;
+        } & PaginationParameters
+    ): Promise<
+        | Success<Paginated<TweetActivity>>
+        | Failure<TimelineTweetActivitiesFailureReason>
+    > {
         const feed = this.client.feed(
             this.type.valueOf(),
-            parameters.userId.valueOf(),
+            parameters.userId.valueOf()
         );
 
         try {
@@ -93,27 +110,45 @@ export class TimelineFeedAssistant extends FeedAssistant {
 
             const flatActivities = flatFeed.results as FlatActivity[];
 
-            const tweetActivities = flatActivities
-                .map((feedActivity) => {
-                    const tweetActivity: TweetActivity = {
-                        authorId: feedActivity.actor,
-                        tweetId: feedActivity.object as String,
-                        externalTweetId: feedActivity.foreign_id as String,
-                    };
+            const tweetActivities = flatActivities.map((feedActivity) => {
+                const tweetActivity: TweetActivity = {
+                    authorId: feedActivity.actor,
+                    tweetId: feedActivity.object as String,
+                    externalTweetId: feedActivity.foreign_id as String,
+                };
 
-                    return tweetActivity;
-                });
+                return tweetActivity;
+            });
 
-            const result: Paginated<TweetActivity> = {
+            const paginatedTweetActivities: Paginated<TweetActivity> = {
                 page: tweetActivities,
                 nextToken: flatFeed.next || undefined,
             };
 
-            return result;
-        } catch {
-            const result = null;
+            const reply = new Success<Paginated<TweetActivity>>(
+                paginatedTweetActivities
+            );
 
-            return result;
+            return reply;
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.activities]);
+
+            if (e instanceof StreamApiError) {
+                if (e.response.status === 400) {
+                    const reply =
+                        new Failure<TimelineTweetActivitiesFailureReason>(
+                            TimelineTweetActivitiesFailureReason.malformedParameters
+                        );
+
+                    return reply;
+                }
+            }
+
+            const reply = new Failure<TimelineTweetActivitiesFailureReason>(
+                TimelineTweetActivitiesFailureReason.malformedParameters
+            );
+
+            return reply;
         }
     }
 }

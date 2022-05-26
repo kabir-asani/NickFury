@@ -5,3 +5,8 @@ export enum FollowFeedFailure {
 export enum UnfollowFeedFailure {
     unknown,
 }
+
+export enum TimelineTweetActivitiesFailureReason {
+    unknown,
+    malformedParameters,
+}

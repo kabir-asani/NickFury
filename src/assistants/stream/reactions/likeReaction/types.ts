@@ -4,15 +4,16 @@ export interface LikeReaction {
 
 // Add Like
 export enum AddLikeFailure {
-    UNKNOWN
+    unknown,
 }
 
 // Remove Like
 export enum RemoveLikeFailure {
-    UNKNOWN
+    unknown,
 }
 
-// LikesList
-export enum LikesListFailure {
-    UNKNOWN
+// Likes
+export enum PaginatedLikeReactionsFailure {
+    unknown,
+    malformedParameters,
 }

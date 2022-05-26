@@ -1,7 +1,12 @@
 export enum AddTweetActivityFailure {
-    unknown
+    unknown,
 }
 
 export enum RemoveTweetActivityFailure {
-    unknown
-} 
+    unknown,
+}
+
+export enum TweetActivitiesFailureReason {
+    unknown,
+    malformedParameters,
+}

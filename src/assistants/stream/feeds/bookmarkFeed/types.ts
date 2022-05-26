@@ -1,7 +1,12 @@
 export enum AddBookmarkActivityFailure {
-    UNKNOWN
+    unknown,
 }
 
 export enum RemoveBookmarkActivityFailure {
-    UNKNOWN
+    unknown,
+}
+
+export enum BookmarkActivitiesFailureReason {
+    unknown,
+    malformedParameters,
 }

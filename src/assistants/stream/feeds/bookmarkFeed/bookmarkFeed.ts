@@ -1,30 +1,43 @@
-import { FlatActivity, StreamClient } from "getstream";
-import { kMaximumPaginatedPageLength, Paginated, PaginationParameters } from "../../../../managers/core/types";
-import { Empty, Failure, Success } from "../../../../utils/typescriptx/typescriptx";
-import { FeedAssistant } from "../feed";
+import { FlatActivity, StreamApiError, StreamClient } from "getstream";
+import {
+    kMaximumPaginatedPageLength,
+    Paginated,
+    PaginationParameters,
+} from "../../../../managers/core/types";
+import logger, { LogLevel } from "../../../../utils/logger/logger";
+import {
+    Empty,
+    Failure,
+    Success,
+} from "../../../../utils/typescriptx/typescriptx";
+import FeedAssistant from "../feed";
 import { BookmarkActivity } from "../types";
-import { AddBookmarkActivityFailure, RemoveBookmarkActivityFailure } from "./types";
+import {
+    AddBookmarkActivityFailure,
+    BookmarkActivitiesFailureReason,
+    RemoveBookmarkActivityFailure,
+} from "./types";
 
-export class BookmarkFeedAssistant extends FeedAssistant {
+export default class BookmarkFeedAssistant extends FeedAssistant {
     static readonly feed = "bookmark";
     static readonly verb = "bookmark";
 
-    constructor(parameters: {
-        client: StreamClient;
-    }) {
+    constructor(parameters: { client: StreamClient }) {
         super({
             type: BookmarkFeedAssistant.feed,
-            client: parameters.client
+            client: parameters.client,
         });
     }
 
     async addBookmarkActivity(parameters: {
         authorId: String;
         tweetId: String;
-    }): Promise<Success<BookmarkActivity> | Failure<AddBookmarkActivityFailure>> {
+    }): Promise<
+        Success<BookmarkActivity> | Failure<AddBookmarkActivityFailure>
+    > {
         const feed = this.client.feed(
             this.type.valueOf(),
-            parameters.authorId.valueOf(),
+            parameters.authorId.valueOf()
         );
 
         try {
@@ -39,15 +52,17 @@ export class BookmarkFeedAssistant extends FeedAssistant {
             const bookmarkActivity: BookmarkActivity = {
                 bookmarkId: feedActivity.id,
                 authorId: parameters.authorId,
-                tweetId: parameters.tweetId
+                tweetId: parameters.tweetId,
             };
 
             const result = new Success<BookmarkActivity>(bookmarkActivity);
 
             return result;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.removeBookmarkActivity]);
+
             const result = new Failure<AddBookmarkActivityFailure>(
-                AddBookmarkActivityFailure.UNKNOWN
+                AddBookmarkActivityFailure.unknown
             );
 
             return result;
@@ -60,7 +75,7 @@ export class BookmarkFeedAssistant extends FeedAssistant {
     }): Promise<Success<Empty> | Failure<RemoveBookmarkActivityFailure>> {
         const feed = this.client.feed(
             this.type.valueOf(),
-            parameters.authorId.valueOf(),
+            parameters.authorId.valueOf()
         );
 
         try {
@@ -68,21 +83,28 @@ export class BookmarkFeedAssistant extends FeedAssistant {
 
             const result = new Success<Empty>({});
             return result;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.removeBookmarkActivity]);
+
             const result = new Failure<RemoveBookmarkActivityFailure>(
-                RemoveBookmarkActivityFailure.UNKNOWN
+                RemoveBookmarkActivityFailure.unknown
             );
 
             return result;
         }
     }
 
-    async activities(parameters: {
-        authorId: String;
-    } & PaginationParameters): Promise<Paginated<BookmarkActivity> | null> {
+    async activities(
+        parameters: {
+            authorId: String;
+        } & PaginationParameters
+    ): Promise<
+        | Success<Paginated<BookmarkActivity>>
+        | Failure<BookmarkActivitiesFailureReason>
+    > {
         const feed = this.client.feed(
             this.type.valueOf(),
-            parameters.authorId.valueOf(),
+            parameters.authorId.valueOf()
         );
 
         try {
@@ -98,25 +120,44 @@ export class BookmarkFeedAssistant extends FeedAssistant {
 
             const flatActivities = flatFeed.results as FlatActivity[];
 
-            const bookmarkActivities = flatActivities
-                .map((feedActivity) => {
-                    const bookmarkActivity: BookmarkActivity = {
-                        bookmarkId: feedActivity.id as String,
-                        authorId: feedActivity.actor as String,
-                        tweetId: feedActivity.object as unknown as String,
-                    };
+            const bookmarkActivities = flatActivities.map((feedActivity) => {
+                const bookmarkActivity: BookmarkActivity = {
+                    bookmarkId: feedActivity.id as String,
+                    authorId: feedActivity.actor as String,
+                    tweetId: feedActivity.object as unknown as String,
+                };
 
-                    return bookmarkActivity;
-                });
+                return bookmarkActivity;
+            });
 
-            const result: Paginated<BookmarkActivity> = {
+            const paginatedBookmarks: Paginated<BookmarkActivity> = {
                 page: bookmarkActivities,
                 nextToken: flatFeed.next || undefined,
             };
 
-            return result;
-        } catch {
-            return null;
+            const reply = new Success<Paginated<BookmarkActivity>>(
+                paginatedBookmarks
+            );
+
+            return reply;
+        } catch (e) {
+            logger(e, LogLevel.attention);
+
+            if (e instanceof StreamApiError) {
+                if (e.response.status === 400) {
+                    const reply = new Failure<BookmarkActivitiesFailureReason>(
+                        BookmarkActivitiesFailureReason.malformedParameters
+                    );
+
+                    return reply;
+                }
+            }
+
+            const reply = new Failure<BookmarkActivitiesFailureReason>(
+                BookmarkActivitiesFailureReason.unknown
+            );
+
+            return reply;
         }
     }
 }

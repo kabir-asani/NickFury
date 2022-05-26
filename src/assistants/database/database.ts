@@ -1,7 +1,7 @@
 import { firestore } from "firebase-admin";
 import { FirebaseAssistant } from "../firebase/firebase";
 
-export class DatabaseCollections {
+export class DBCollections {
     static readonly sessions = "sessions";
 
     static readonly tweets = "tweets";
