@@ -164,7 +164,7 @@ export class UsersManager {
         return viewables;
     }
 
-    async viewableUsers(parameters: {
+    async viewableUsersByIds(parameters: {
         ids: String[]
     } & ViewablesParameters2): Promise<{ [key: string]: ViewableUser } | null> {
         const userDocumentRefs = parameters.ids.map((id) => {
