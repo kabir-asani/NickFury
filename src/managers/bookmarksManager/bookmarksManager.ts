@@ -1,4 +1,3 @@
-import { assert } from "console";
 import { DatabaseAssistant, DatabaseCollections } from "../../assistants/database/database";
 import { StreamAssistant } from "../../assistants/stream/stream";
 import { Dately } from "../../utils/dately/dately";
@@ -14,44 +13,17 @@ export class BookmarksManager {
     private constructor() { }
 
     async exists(parameters: {
-        bookmarkId?: String;
-        bookmarkDetails?: {
-            tweetId: String;
-            authorId: String;
-        }
+        id: String;
     }): Promise<Boolean> {
-        assert(
-            parameters.bookmarkId !== undefined || parameters.bookmarkDetails !== undefined,
-            "Atleast bookmarkId or bookmarkDetails should be present"
-        );
-
         const bookmarskCollection = DatabaseAssistant.shared.collectionGroup(DatabaseCollections.bookmarks);
 
-        let bookmarksQuery = bookmarskCollection.limit(1);
-
-        if (parameters.bookmarkId !== undefined) {
-            bookmarksQuery = bookmarksQuery
-                .where(
-                    "id",
-                    "==",
-                    parameters.bookmarkId.valueOf()
-                );
-
-        }
-
-        if (parameters.bookmarkDetails !== undefined) {
-            bookmarksQuery = bookmarksQuery
-                .where(
-                    "tweetId",
-                    "==",
-                    parameters.bookmarkDetails.tweetId.valueOf()
-                )
-                .where(
-                    "authorId",
-                    "==",
-                    parameters.bookmarkDetails.authorId.valueOf()
-                );
-        }
+        const bookmarksQuery = bookmarskCollection
+            .where(
+                "id",
+                "==",
+                parameters.id.valueOf()
+            )
+            .limit(1);
 
         try {
             const bookmarksQuerySnapshot = await bookmarksQuery.get();
@@ -66,15 +38,55 @@ export class BookmarksManager {
         }
     }
 
+    async existsByDetails(parameters: {
+        tweetId: String;
+        authorId: String;
+    }): Promise<Boolean> {
+        const bookmarskCollection = DatabaseAssistant.shared.collectionGroup(DatabaseCollections.bookmarks);
+
+        const bookmarksQuery = bookmarskCollection
+            .where(
+                "tweetId",
+                "==",
+                parameters.tweetId.valueOf()
+            )
+            .where(
+                "authorId",
+                "==",
+                parameters.authorId.valueOf()
+            )
+            .limit(1);
+
+        const bookmarksQuerySnapshot = await bookmarksQuery.get();
+
+        return bookmarksQuerySnapshot.docs.length > 0;
+    }
+
+    async bookmarkedStatuses(parameters: {
+        authorId: String;
+        tweetIds: String[]
+    }): Promise<{ [key: string]: Boolean }> {
+        const bookmarkStatuses: { [key: string]: Boolean } = {};
+
+        for (let tweetId of parameters.tweetIds) {
+            const isExists = await this.existsByDetails({
+                authorId: parameters.authorId,
+                tweetId: tweetId
+            });
+
+            bookmarkStatuses[tweetId.valueOf()] = isExists;
+        }
+
+        return bookmarkStatuses;
+    }
+
     async create(parameters: {
         tweetId: String;
         authorId: String;
     }): Promise<Success<Bookmark> | Failure<BookmarkCreationFailureReason>> {
-        const isBookmarkExists = await this.exists({
-            bookmarkDetails: {
-                tweetId: parameters.tweetId,
-                authorId: parameters.authorId
-            }
+        const isBookmarkExists = await this.existsByDetails({
+            tweetId: parameters.tweetId,
+            authorId: parameters.authorId
         });
 
         if (isBookmarkExists) {
