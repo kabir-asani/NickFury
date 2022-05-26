@@ -1,8 +1,7 @@
 import { User, UserViewables, ViewableUser } from "../core/models";
 import { DatabaseAssistant, DatabaseCollections } from "../../assistants/database/database";
-import { assert } from "console";
-import { ViewablesParameters } from "../core/types";
 import { SocialsManager } from "../socialsManager/socialsManager";
+import { ViewablesParameters2 } from "../core/types";
 
 export class UsersManager {
     static readonly shared = new UsersManager();
@@ -10,132 +9,149 @@ export class UsersManager {
     private constructor() { }
 
     async exists(parameters: {
-        id?: String;
-        email?: String;
-        username?: String;
+        id: String;
     }): Promise<Boolean> {
-        assert(
-            parameters.id !== undefined || parameters.email !== undefined || parameters.username !== undefined,
-            "At least one of id, email or username should be present"
-        );
-
         const usersCollection = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+        const userDocumentRef = usersCollection.doc(parameters.id.valueOf());
 
-        let usersQuery = usersCollection.limit(1);
+        const userDocument = await userDocumentRef.get();
 
-        if (parameters.id !== undefined) {
-            usersQuery = usersQuery.where(
-                "id",
-                "==",
-                parameters.id
-            );
-        }
-
-        if (parameters.email !== undefined) {
-            usersQuery = usersQuery.where(
-                "email",
-                "==",
-                parameters.email
-            );
-        }
-
-        if (parameters.username !== undefined) {
-            usersQuery = usersQuery.where(
-                "username",
-                "==",
-                parameters.username
-            );
-        }
-
-        try {
-            const querySnapshot = await usersQuery.get();
-
-            if (querySnapshot.empty) {
-                return false;
-            }
-
-            return true;
-        } catch {
-            return false;
-        }
+        return userDocument.exists;
     }
 
-
-    async user(parameters: {
-        id?: String;
-        email?: String;
-        username?: String;
-    } & ViewablesParameters): Promise<User | ViewableUser | null> {
-        assert(
-            parameters.id !== undefined || parameters.email !== undefined || parameters.username !== undefined,
-            "At least one of id, email or username should be present"
-        );
-
+    async existsByUsername(parameters: {
+        username: String;
+    }): Promise<Boolean> {
         const usersCollection = DatabaseAssistant.shared.collection(DatabaseCollections.users);
 
-        let usersQuery = usersCollection.limit(1);
-
-        if (parameters.id !== undefined) {
-            usersQuery = usersQuery.where(
-                "id",
-                "==",
-                parameters.id
-            );
-        }
-
-        if (parameters.email !== undefined) {
-            usersQuery = usersQuery.where(
-                "email",
-                "==",
-                parameters.email
-            );
-        }
-
-        if (parameters.username !== undefined) {
-            usersQuery = usersQuery.where(
+        const usersQuery = usersCollection
+            .where(
                 "username",
                 "==",
-                parameters.username
-            );
-        }
+                parameters.username.valueOf()
+            )
+            .limit(1);
 
-        try {
-            const querySnapshot = await usersQuery.get();
 
-            if (querySnapshot.empty) {
-                return null;
-            }
+        const usersQuerySnapshot = await usersQuery.get();
 
-            const user = querySnapshot.docs[0].data() as unknown as User;
+        return !usersQuerySnapshot.empty;
+    }
 
-            if (parameters.viewerId !== undefined) {
-                const viewables = await this.viewables({
-                    userId: user.id,
-                    viewerId: parameters.viewerId
-                });
+    async existsByEmail(parameters: {
+        email: String;
+    }): Promise<Boolean> {
+        const usersCollection = DatabaseAssistant.shared.collection(DatabaseCollections.users);
 
-                if (viewables !== null) {
-                    const viewableUser: ViewableUser = {
-                        ...user,
-                        viewables: viewables
-                    };
+        const usersQuery = usersCollection
+            .where(
+                "email",
+                "==",
+                parameters.email.valueOf()
+            )
+            .limit(1);
 
-                    return viewableUser;
-                } else {
-                    return null;
-                }
-            } else {
-                return user;
-            }
-        } catch {
+        const usersQuerySnapshot = await usersQuery.get();
+
+        return !usersQuerySnapshot.empty;
+    }
+
+    async user(parameters: {
+        id: String;
+    }): Promise<User | null> {
+        const usersCollection = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+        const userDocumentRef = usersCollection.doc(parameters.id.valueOf());
+
+        const userDocument = await userDocumentRef.get();
+
+        if (userDocument.exists) {
+            const user = userDocument.data() as unknown as User;
+
+            return user;
+        } else {
             return null;
         }
     }
 
-    private async viewables(parameters: {
+    async userByEmail(parameters: {
+        email: String;
+    }): Promise<User | null> {
+        const usersCollection = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+
+        const usersQuery = usersCollection
+            .where(
+                "email",
+                "==",
+                parameters.email.valueOf()
+            )
+            .limit(1);
+
+        const usersQuerySnapshot = await usersQuery.get();
+
+        if (usersQuerySnapshot.empty) {
+            return null;
+        } else {
+            const user = usersQuerySnapshot.docs[0].data() as unknown as User;
+
+            return user;
+        }
+    }
+
+    async userByUsername(parameters: {
+        username: String;
+    }): Promise<User | null> {
+        const usersCollection = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+
+        const usersQuery = usersCollection
+            .where(
+                "username",
+                "==",
+                parameters.username.valueOf()
+            )
+            .limit(1);
+
+        const usersQuerySnapshot = await usersQuery.get();
+
+        if (usersQuerySnapshot.empty) {
+            return null;
+        } else {
+            const user = usersQuerySnapshot.docs[0].data() as unknown as User;
+
+            return user;
+        }
+    }
+
+    async viewableUser(parameters: {
+        id: String;
+    } & ViewablesParameters2): Promise<ViewableUser | null> {
+        const user = await this.user({
+            id: parameters.id
+        });
+
+        if (user !== null) {
+            const userViewables = await this.userViewables({
+                userId: parameters.id,
+                viewerId: parameters.viewerId
+            });
+
+            if (userViewables !== null) {
+                const viewableUser: ViewableUser = {
+                    ...user,
+                    viewables: userViewables
+                };
+
+                return viewableUser;
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    private async userViewables(parameters: {
         userId: String;
-        viewerId: String;
-    }): Promise<UserViewables | null> {
+    } & ViewablesParameters2): Promise<UserViewables | null> {
         const isFollowing = await SocialsManager.shared.isFollowing({
             followerId: parameters.viewerId,
             followingId: parameters.userId
@@ -146,5 +162,54 @@ export class UsersManager {
         };
 
         return viewables;
+    }
+
+    async viewableUsers(parameters: {
+        ids: String[]
+    } & ViewablesParameters2): Promise<{ [key: string]: ViewableUser } | null> {
+        const userDocumentRefs = parameters.ids.map((id) => {
+            const usersCollection = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+            const userDocumentRef = usersCollection.doc(id.valueOf());
+
+            return userDocumentRef;
+        });
+
+        const userDocuments = await DatabaseAssistant.shared.getAll(...userDocumentRefs);
+
+        const users: { [key: string]: User } = {};
+
+        for (let userDocument of userDocuments) {
+            if (userDocument.exists) {
+                const user = userDocument.data() as unknown as User;
+
+                users[user.id.valueOf()] = user;
+            } else {
+                return null;
+            }
+        }
+
+        const followingStatuses = await SocialsManager.shared.followingStatuses({
+            followerId: parameters.viewerId,
+            followingIds: Object.keys(users)
+        });
+
+        const viewableUsers: { [key: string]: ViewableUser } = {};
+
+        Object.keys(users).forEach((userId) => {
+            const user = users[userId];
+
+            const userViewables: UserViewables = {
+                following: followingStatuses[userId]
+            };
+
+            const viewableUser: ViewableUser = {
+                ...user,
+                viewables: userViewables
+            };
+
+            viewableUsers[viewableUser.id.valueOf()] = viewableUser;
+        });
+
+        return viewableUsers;
     }
 }

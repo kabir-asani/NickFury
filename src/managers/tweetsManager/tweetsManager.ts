@@ -224,7 +224,7 @@ export class TweetsManager {
         authorId: String;
         viewerId: String;
     }): Promise<TweetViewables | null> {
-        const viewableAuthor = await UsersManager.shared.user({
+        const viewableAuthor = await UsersManager.shared.viewableUser({
             id: parameters.authorId,
             viewerId: parameters.viewerId
         });

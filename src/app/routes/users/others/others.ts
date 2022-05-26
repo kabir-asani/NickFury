@@ -29,8 +29,7 @@ others.get(
 
         const userId = req.params.userId as String;
 
-
-        const viewableUser = await UsersManager.shared.user({
+        const viewableUser = await UsersManager.shared.viewableUser({
             id: userId,
             viewerId: session.userId
         });

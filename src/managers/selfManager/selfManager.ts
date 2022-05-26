@@ -16,7 +16,7 @@ export class SelfManager {
         name: String;
         image: String;
     }): Promise<Success<User> | Failure<SelfCreationFailureReason>> {
-        const isOtherUserExists = await UsersManager.shared.exists({
+        const isOtherUserExists = await UsersManager.shared.existsByEmail({
             email: parameters.email
         });
 
@@ -101,7 +101,7 @@ export class SelfManager {
         }
 
         if (parameters.updates.username !== undefined) {
-            const user = await UsersManager.shared.user({
+            const user = await UsersManager.shared.userByUsername({
                 username: parameters.updates.username
             });
 

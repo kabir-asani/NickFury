@@ -294,7 +294,7 @@ export class LikesManager {
         authorId: String;
         viewerId: String;
     }): Promise<LikeViewables | null> {
-        const viewableAuthor = await UsersManager.shared.user({
+        const viewableAuthor = await UsersManager.shared.viewableUser({
             id: parameters.authorId,
             viewerId: parameters.viewerId
         });

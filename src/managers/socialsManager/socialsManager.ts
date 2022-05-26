@@ -2,8 +2,8 @@ import { DatabaseAssistant, DatabaseCollections } from "../../assistants/databas
 import { StreamAssistant } from "../../assistants/stream/stream";
 import { Dately } from "../../utils/dately/dately";
 import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
-import { Following, Follower, User, ViewableUser } from "../core/models";
-import { kMaximumPaginatedPageLength, Paginated, PaginationParameters } from "../core/types";
+import { Following, Follower, User, ViewableFollower, ViewableFollowing, FollowerViewables, FollowingViewables } from "../core/models";
+import { kMaximumPaginatedPageLength, Paginated, PaginationParameters, ViewablesParameters2 } from "../core/types";
 import { UsersManager } from "../usersManager/usersManager";
 import { FollowFailureReason, UnfollowFailureReason } from "./types";
 
@@ -60,6 +60,33 @@ export class SocialsManager {
         } catch {
             return false;
         }
+    }
+
+
+    async followingStatuses(parameters: {
+        followerId: String;
+        followingIds: String[]
+    }): Promise<{ [key: string]: Boolean }> {
+        const usersCollection = DatabaseAssistant.shared.collection(DatabaseCollections.users);
+        const followerDocumentRef = usersCollection.doc(parameters.followerId.valueOf());
+
+        const followingDocumentRefs = parameters.followingIds.map((followingId) => {
+            const followingsCollection = followerDocumentRef.collection(DatabaseCollections.followings);
+            const followingDocumentRef = followingsCollection.doc(followingId.valueOf());
+
+            return followingDocumentRef;
+        });
+
+        const followingDocuments = await DatabaseAssistant.shared.getAll(...followingDocumentRefs);
+
+        const followingStatuses: { [key: string]: Boolean } = {};
+
+
+        for (let followingDocument of followingDocuments) {
+            followingStatuses[followingDocument.id] = followingDocument.exists;
+        }
+
+        return followingStatuses;
     }
 
     async follow(parameters: {
@@ -263,8 +290,64 @@ export class SocialsManager {
 
     async followers(parameters: {
         userId: String;
-        viewerId?: String;
-    } & PaginationParameters): Promise<Paginated<User | ViewableUser> | null> {
+    } & PaginationParameters): Promise<Paginated<Follower> | null> {
+        const followingsCollection = DatabaseAssistant.shared.collection(
+            DatabaseCollections.users
+            + "/" + parameters.userId + "/" +
+            DatabaseCollections.followers
+        );
+
+        const limit = parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
+
+        let query = followingsCollection
+            .orderBy("creationDate")
+            .limit(limit + 1);
+
+        if (parameters.nextToken !== undefined) {
+            query = query.startAt(parameters.nextToken);
+        }
+
+        try {
+            const querySnapshot = await query.get();
+
+            if (querySnapshot.empty) {
+                const reply: Paginated<Follower> = {
+                    page: []
+                };
+
+                return reply;
+            } else {
+                let nextToken = undefined;
+
+                if (querySnapshot.docs.length === limit + 1) {
+                    const lastDocument = querySnapshot.docs.pop();
+
+                    if (lastDocument !== undefined) {
+                        nextToken = (lastDocument.data() as unknown as Follower).creationDate;
+                    }
+                }
+
+                const followers = querySnapshot.docs.map((queryDocument) => {
+                    const follower = queryDocument.data() as unknown as Follower;
+
+                    return follower;
+                });
+
+                const reply: Paginated<Follower> = {
+                    page: followers,
+                    nextToken: nextToken
+                };
+
+                return reply;
+            }
+        } catch {
+            return null;
+        }
+    }
+
+    async viewableFollowers(parameters: {
+        userId: String;
+    } & ViewablesParameters2 & PaginationParameters): Promise<Paginated<ViewableFollower> | null> {
         const followersCollection = DatabaseAssistant.shared.collection(
             DatabaseCollections.users
             + "/" + parameters.userId + "/" +
@@ -285,7 +368,7 @@ export class SocialsManager {
             const querySnapshot = await query.get();
 
             if (querySnapshot.empty) {
-                const reply: Paginated<User> = {
+                const reply: Paginated<ViewableFollower> = {
                     page: []
                 };
 
@@ -301,53 +384,49 @@ export class SocialsManager {
                     }
                 }
 
-                const page = [];
+                const followersData = querySnapshot.docs.map((queryDocument) => {
+                    const followerData = queryDocument.data() as unknown as Follower;
 
-                for (let i = 0; i < querySnapshot.docs.length; ++i) {
-                    const follower = querySnapshot.docs[i].data() as unknown as Follower;
+                    return followerData;
+                });
 
-                    const viewableUser = await UsersManager.shared.user({
-                        id: follower.followerId,
-                        viewerId: parameters.viewerId
-                    });
+                const viewableUsers = await UsersManager.shared.viewableUsers({
+                    ids: followersData.map((followerData) => followerData.followerId),
+                    viewerId: parameters.viewerId
+                });
 
-                    if (viewableUser !== null) {
-                        if (parameters.viewerId !== undefined) {
-                            page.push(viewableUser as ViewableUser);
-                        } else {
-                            page.push(viewableUser as User);
-                        }
-                    } else {
-                        return null;
-                    }
+                if (viewableUsers === null) {
+                    return null;
                 }
 
-                if (parameters.viewerId !== null) {
-                    const reply: Paginated<ViewableUser> = {
-                        page: page as ViewableUser[],
-                        nextToken: nextToken
+                const viewableFollowersData = followersData.map((followerData) => {
+                    const followerViewables: FollowerViewables = {
+                        follower: viewableUsers[followerData.followerId.valueOf()]
                     };
 
-                    return reply;
-                } else {
-                    const reply: Paginated<User> = {
-                        page: page as User[],
-                        nextToken: nextToken
+                    const viewableFollower: ViewableFollower = {
+                        ...followerData,
+                        viewables: followerViewables
                     };
 
-                    return reply;
-                }
+                    return viewableFollower;
+                })
+
+                const reply: Paginated<ViewableFollower> = {
+                    page: viewableFollowersData,
+                    nextToken: nextToken
+                };
+
+                return reply;
             }
         } catch {
             return null;
         }
     }
 
-
     async followings(parameters: {
         userId: String;
-        viewerId?: String;
-    } & PaginationParameters): Promise<Paginated<User | ViewableUser> | null> {
+    } & PaginationParameters): Promise<Paginated<Following> | null> {
         const followingsCollection = DatabaseAssistant.shared.collection(
             DatabaseCollections.users
             + "/" + parameters.userId + "/" +
@@ -368,7 +447,7 @@ export class SocialsManager {
             const querySnapshot = await query.get();
 
             if (querySnapshot.empty) {
-                const reply: Paginated<User> = {
+                const reply: Paginated<Following> = {
                     page: []
                 };
 
@@ -380,46 +459,103 @@ export class SocialsManager {
                     const lastDocument = querySnapshot.docs.pop();
 
                     if (lastDocument !== undefined) {
-                        nextToken = (lastDocument.data() as unknown as Follower).creationDate;
+                        nextToken = (lastDocument.data() as unknown as Following).creationDate;
                     }
                 }
 
-                const page = [];
+                const followings = querySnapshot.docs.map((queryDocument) => {
+                    const following = queryDocument.data() as unknown as Following;
 
-                for (let i = 0; i < querySnapshot.docs.length; ++i) {
-                    const following = querySnapshot.docs[i].data() as unknown as Following;
+                    return following;
+                });
 
-                    const viewableUser = await UsersManager.shared.user({
-                        id: following.followingId,
-                        viewerId: parameters.viewerId
-                    });
+                const reply: Paginated<Following> = {
+                    page: followings,
+                    nextToken: nextToken
+                };
 
-                    if (viewableUser !== null) {
-                        if (parameters.viewerId !== undefined) {
-                            page.push(viewableUser as ViewableUser);
-                        } else {
-                            page.push(viewableUser as User);
-                        }
-                    } else {
-                        return null;
+                return reply;
+            }
+        } catch {
+            return null;
+        }
+    }
+
+
+    async viewableFollowings(parameters: {
+        userId: String;
+    } & ViewablesParameters2 & PaginationParameters): Promise<Paginated<ViewableFollowing> | null> {
+        const followingssCollection = DatabaseAssistant.shared.collection(
+            DatabaseCollections.users
+            + "/" + parameters.userId + "/" +
+            DatabaseCollections.followings
+        );
+
+        const limit = parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
+
+        let query = followingssCollection
+            .orderBy("creationDate")
+            .limit(limit + 1);
+
+        if (parameters.nextToken !== undefined) {
+            query = query.startAt(parameters.nextToken);
+        }
+
+        try {
+            const querySnapshot = await query.get();
+
+            if (querySnapshot.empty) {
+                const reply: Paginated<ViewableFollowing> = {
+                    page: []
+                };
+
+                return reply;
+            } else {
+                let nextToken = undefined;
+
+                if (querySnapshot.docs.length === limit + 1) {
+                    const lastDocument = querySnapshot.docs.pop();
+
+                    if (lastDocument !== undefined) {
+                        nextToken = (lastDocument.data() as unknown as Following).creationDate;
                     }
                 }
 
-                if (parameters.viewerId !== null) {
-                    const reply: Paginated<ViewableUser> = {
-                        page: page as ViewableUser[],
-                        nextToken: nextToken
-                    };
+                const followingsData = querySnapshot.docs.map((queryDocument) => {
+                    const followerData = queryDocument.data() as unknown as Following;
 
-                    return reply;
-                } else {
-                    const reply: Paginated<User> = {
-                        page: page as User[],
-                        nextToken: nextToken
-                    };
+                    return followerData;
+                });
 
-                    return reply;
+                const viewableUsers = await UsersManager.shared.viewableUsers({
+                    ids: followingsData.map((followerData) => followerData.followingId),
+                    viewerId: parameters.viewerId
+                });
+
+
+                if (viewableUsers === null) {
+                    return null;
                 }
+
+                const viewableFollowingsData = followingsData.map((followerData) => {
+                    const followingViewables: FollowingViewables = {
+                        following: viewableUsers[followerData.followingId.valueOf()]
+                    };
+
+                    const viewableFollowing: ViewableFollowing = {
+                        ...followerData,
+                        viewables: followingViewables
+                    };
+
+                    return viewableFollowing;
+                })
+
+                const reply: Paginated<ViewableFollowing> = {
+                    page: viewableFollowingsData,
+                    nextToken: nextToken
+                };
+
+                return reply;
             }
         } catch {
             return null;

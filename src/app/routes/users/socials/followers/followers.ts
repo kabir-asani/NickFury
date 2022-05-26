@@ -20,38 +20,38 @@ followers.get(
         const userId = req.params.userId;
 
         if (userId !== undefined && userId !== null) {
-            const followers = await SocialsManager.shared.followers({
+            const viewableFollowers = await SocialsManager.shared.viewableFollowers({
                 userId: userId,
                 viewerId: session.userId
             });
 
-            if (followers == null) {
+            if (viewableFollowers == null) {
                 const response = new InternalRouteFailure();
 
                 res
                     .status(InternalRouteFailure.statusCode)
                     .json(response);
             } else {
-                const response = new AllOkRouteSuccess(followers);
+                const response = new AllOkRouteSuccess(viewableFollowers);
 
                 res
                     .status(AllOkRouteSuccess.statusCode)
                     .json(response);
             }
         } else {
-            const followers = await SocialsManager.shared.followers({
+            const viewableFollowers = await SocialsManager.shared.viewableFollowers({
                 userId: session.userId,
                 viewerId: session.userId
             });
 
-            if (followers == null) {
+            if (viewableFollowers == null) {
                 const response = new InternalRouteFailure();
 
                 res
                     .status(InternalRouteFailure.statusCode)
                     .json(response);
             } else {
-                const response = new AllOkRouteSuccess(followers);
+                const response = new AllOkRouteSuccess(viewableFollowers);
 
                 res
                     .status(AllOkRouteSuccess.statusCode)

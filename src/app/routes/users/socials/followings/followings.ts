@@ -31,38 +31,38 @@ followings.get(
         const userId = req.params.userId;
 
         if (userId !== undefined && userId !== null) {
-            const followings = await SocialsManager.shared.followings({
+            const viewableFollowings = await SocialsManager.shared.viewableFollowings({
                 userId: userId,
                 viewerId: session.userId
             });
 
-            if (followings == null) {
+            if (viewableFollowings == null) {
                 const response = new InternalRouteFailure();
 
                 res
                     .status(InternalRouteFailure.statusCode)
                     .json(response);
             } else {
-                const response = new AllOkRouteSuccess(followings);
+                const response = new AllOkRouteSuccess(viewableFollowings);
 
                 res
                     .status(AllOkRouteSuccess.statusCode)
                     .json(response);
             }
         } else {
-            const followings = await SocialsManager.shared.followings({
+            const viewableFollowings = await SocialsManager.shared.viewableFollowings({
                 userId: session.userId,
                 viewerId: session.userId
             });
 
-            if (followings == null) {
+            if (viewableFollowings == null) {
                 const response = new InternalRouteFailure();
 
                 res
                     .status(InternalRouteFailure.statusCode)
                     .json(response);
             } else {
-                const response = new AllOkRouteSuccess(followings);
+                const response = new AllOkRouteSuccess(viewableFollowings);
 
                 res
                     .status(AllOkRouteSuccess.statusCode)

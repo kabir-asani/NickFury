@@ -7,6 +7,10 @@ export interface ViewablesParameters {
     viewerId?: String;
 }
 
+export interface ViewablesParameters2 {
+    viewerId: String;
+}
+
 export interface Paginated<T> {
     readonly page: T[];
     readonly nextToken?: String;
