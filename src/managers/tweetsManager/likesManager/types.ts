@@ -1,9 +1,21 @@
 export enum LikeCreationFailureReason {
     unknown,
-    likeAlreadyExists
+    likeAlreadyExists,
 }
 
 export enum LikeDeletionFailureReason {
     unknown,
-    likeDoesNotExists
+    likeDoesNotExists,
+}
+
+export enum PaginatedLikesFailure {
+    unknown,
+    malformedParameters,
+    missingLikes,
+}
+
+export enum PaginatedViewableLikesFailure {
+    unknown,
+    malformedParameters,
+    missingLikes,
 }

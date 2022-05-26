@@ -1,7 +1,15 @@
-import { DatabaseAssistant, DatabaseCollections } from "../../assistants/database/database";
+import {
+    DatabaseAssistant,
+    DBCollections,
+} from "../../assistants/database/database";
 import { Success, Failure, Empty } from "../../utils/typescriptx/typescriptx";
 import { UsersManager } from "../usersManager/usersManager";
-import { TokenCreationFailureReason, Credentials, TokenDeletionFailureReason, TokenValidationFailureReason } from "./types";
+import {
+    TokenCreationFailureReason,
+    Credentials,
+    TokenDeletionFailureReason,
+    TokenValidationFailureReason,
+} from "./types";
 import * as uuid from "uuid";
 import { Session } from "../core/models";
 import { Dately } from "../../utils/dately/dately";
@@ -11,22 +19,26 @@ import { SelfManager } from "../selfManager/selfManager";
 export class TokensManager {
     static readonly shared = new TokensManager();
 
-    private constructor() { }
+    private constructor() {}
 
     async validateAccessToken(parameters: {
         accessToken: String;
     }): Promise<Session | null> {
         const session = Tokenizer.shared.decode<Session>({
-            token: parameters.accessToken
+            token: parameters.accessToken,
         });
 
         if (session !== null) {
             const sessionsCollection = DatabaseAssistant.shared.collection(
-                DatabaseCollections.users
-                + "/" + session.userId + "/" +
-                DatabaseCollections.sessions
+                DBCollections.users +
+                    "/" +
+                    session.userId +
+                    "/" +
+                    DBCollections.sessions
             );
-            const sessionDocumentRef = sessionsCollection.doc(session.id.valueOf());
+            const sessionDocumentRef = sessionsCollection.doc(
+                session.id.valueOf()
+            );
 
             try {
                 const sessionDocument = await sessionDocumentRef.get();
@@ -47,18 +59,18 @@ export class TokensManager {
     async createAccessToken(parameters: {
         credentials: {
             token: String;
-            provider: String,
-        },
+            provider: String;
+        };
         details: {
             name: String;
             email: String;
             image: String;
-        }
+        };
     }): Promise<Success<Credentials> | Failure<TokenCreationFailureReason>> {
         // TODO: Validate token from credentials
 
-        const user = await UsersManager.shared.userByEmail({
-            email: parameters.details.email
+        const user = await UsersManager.shared.userWithEmail({
+            email: parameters.details.email,
         });
 
         const sessionId = uuid.v4();
@@ -68,13 +80,13 @@ export class TokensManager {
             session = {
                 id: sessionId,
                 userId: user.id,
-                creationDate: Dately.shared.now()
-            }
+                creationDate: Dately.shared.now(),
+            };
         } else {
             const selfCreation = await SelfManager.shared.create({
                 email: parameters.details.email,
                 image: parameters.details.image,
-                name: parameters.details.name
+                name: parameters.details.name,
             });
 
             if (selfCreation instanceof Failure) {
@@ -88,14 +100,16 @@ export class TokensManager {
             session = {
                 id: sessionId,
                 userId: selfCreation.data.id,
-                creationDate: Dately.shared.now()
-            }
+                creationDate: Dately.shared.now(),
+            };
         }
 
         const sessionsCollection = DatabaseAssistant.shared.collection(
-            DatabaseCollections.users
-            + "/" + session.userId + "/" +
-            DatabaseCollections.sessions
+            DBCollections.users +
+                "/" +
+                session.userId +
+                "/" +
+                DBCollections.sessions
         );
         const sessionDocumentRef = sessionsCollection.doc(session.id.valueOf());
 
@@ -103,11 +117,11 @@ export class TokensManager {
             await sessionDocumentRef.create(session);
 
             const accessToken = Tokenizer.shared.encode<Session>({
-                payload: session
+                payload: session,
             });
 
             const reply = new Success<Credentials>({
-                accessToken: accessToken
+                accessToken: accessToken,
             });
             return reply;
         } catch {
@@ -122,16 +136,20 @@ export class TokensManager {
         accessToken: String;
     }): Promise<Success<Empty> | Failure<TokenDeletionFailureReason>> {
         const session = Tokenizer.shared.decode<Session>({
-            token: parameters.accessToken
+            token: parameters.accessToken,
         });
 
         if (session !== null) {
             const sessionsCollection = DatabaseAssistant.shared.collection(
-                DatabaseCollections.users
-                + "/" + session.userId + "/" +
-                DatabaseCollections.sessions
+                DBCollections.users +
+                    "/" +
+                    session.userId +
+                    "/" +
+                    DBCollections.sessions
             );
-            const sessionDocumentRef = sessionsCollection.doc(session.id.valueOf());
+            const sessionDocumentRef = sessionsCollection.doc(
+                session.id.valueOf()
+            );
 
             try {
                 await sessionDocumentRef.delete();

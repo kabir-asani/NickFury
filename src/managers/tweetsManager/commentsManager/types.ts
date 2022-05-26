@@ -4,5 +4,5 @@ export enum CommentCreationFailureReason {
 
 export enum CommentDeletionFailureReason {
     unknown,
-    commentDoesNotExists
+    commentDoesNotExists,
 }

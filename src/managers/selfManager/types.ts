@@ -1,9 +1,9 @@
 export enum SelfCreationFailureReason {
     unknown,
-    otherUserWithThatEmailAlreadyExists
+    otherUserWithThatEmailAlreadyExists,
 }
 
 export enum SelfUpdationFailureReason {
     unknown,
-    otherUserWithThatUsernameAlreadyExists
+    otherUserWithThatUsernameAlreadyExists,
 }

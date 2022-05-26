@@ -1,10 +1,18 @@
 export enum FollowFailureReason {
     unknown,
     followerDoesNotExists,
-    followingDoesNotExists
+    followingDoesNotExists,
 }
 
 export enum UnfollowFailureReason {
     unknown,
-    relationshipDoesNotExists
+    relationshipDoesNotExists,
+}
+
+export enum ViewableFollowingsFailureReason {
+    unknown,
+}
+
+export enum ViewableFollowersFailureReason {
+    unknown,
 }

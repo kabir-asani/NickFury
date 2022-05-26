@@ -11,10 +11,10 @@ export interface User {
     readonly socialDetails: {
         followersCount: Number;
         followingsCount: Number;
-    }
+    };
     readonly activityDetails: {
         tweetsCount: Number;
-    }
+    };
 }
 
 export interface UserViewables {
@@ -71,7 +71,7 @@ export interface Tweet {
     readonly interactionDetails: {
         likesCount: Number;
         commentsCount: Number;
-    }
+    };
 }
 
 export interface TweetViewables {

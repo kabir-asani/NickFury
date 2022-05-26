@@ -1,46 +1,77 @@
-import { StreamAssistant } from "../../assistants/stream/stream";
-import { Tweet, ViewableTweet } from "../core/models";
+import { TimelineTweetActivitiesFailureReason } from "../../assistants/stream/feeds/timelineFeed/types";
+import StreamAssistant from "../../assistants/stream/stream";
+import {
+    Failure,
+    Success,
+    valuesOf,
+} from "../../utils/typescriptx/typescriptx";
+import { ViewableTweet } from "../core/models";
 import { Paginated, PaginationParameters } from "../core/types";
 import { TweetsManager } from "../tweetsManager/tweetsManager";
+import { TimelineFailure } from "./types";
 
 export class TimelinesManager {
     static readonly shared = new TimelinesManager();
 
-    private constructor() { }
+    private constructor() {}
 
-    async timeline(parameters: {
-        userId: String
-    } & PaginationParameters): Promise<Paginated<ViewableTweet> | null> {
-        const activities = await StreamAssistant.shared.timelineFeed.activities({
-            userId: parameters.userId,
-            nextToken: parameters.nextToken,
-            limit: parameters.limit,
-        });
+    async timeline(
+        parameters: {
+            userId: String;
+        } & PaginationParameters
+    ): Promise<Success<Paginated<ViewableTweet>> | Failure<TimelineFailure>> {
+        const tweetActivitiesResult =
+            await StreamAssistant.shared.timelineFeed.activities({
+                userId: parameters.userId,
+                nextToken: parameters.nextToken,
+                limit: parameters.limit,
+            });
 
-        if (activities !== null) {
-            let tweets: ViewableTweet[] = [];
+        if (tweetActivitiesResult instanceof Failure) {
+            switch (tweetActivitiesResult.reason) {
+                case TimelineTweetActivitiesFailureReason.malformedParameters: {
+                    const reply = new Failure<TimelineFailure>(
+                        TimelineFailure.malformedParameters
+                    );
 
-            for (let activity of activities.page) {
-                const tweet = await TweetsManager.shared.tweet({
-                    tweetId: activity.tweetId,
-                    viewerId: parameters.userId
-                });
+                    return reply;
+                }
+                default: {
+                    const reply = new Failure<TimelineFailure>(
+                        TimelineFailure.malformedParameters
+                    );
 
-                if (tweet !== null) {
-                    tweets.push(tweet as ViewableTweet);
-                } else {
-                    return null;
+                    return reply;
                 }
             }
+        }
 
-            const reply: Paginated<ViewableTweet> = {
-                page: tweets,
-                nextToken: activities.nextToken
-            };
+        const tweetActivities = tweetActivitiesResult.data;
+
+        const viewableTweetsResult = await TweetsManager.shared.viewableTweets({
+            identifiers: tweetActivities.page.map((tweetActivity) => {
+                return tweetActivity.tweetId;
+            }),
+            viewerId: parameters.userId,
+        });
+
+        if (viewableTweetsResult instanceof Failure) {
+            const reply = new Failure<TimelineFailure>(
+                TimelineFailure.malformedParameters
+            );
 
             return reply;
         }
 
-        return null;
+        const viewableTweets = viewableTweetsResult.data;
+
+        const paginatedTweets: Paginated<ViewableTweet> = {
+            page: valuesOf(viewableTweets),
+            nextToken: tweetActivities.nextToken,
+        };
+
+        const reply = new Success<Paginated<ViewableTweet>>(paginatedTweets);
+
+        return reply;
     }
 }
