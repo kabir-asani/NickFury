@@ -31,8 +31,9 @@ bookmarks.get(
 
         const safeLimit = isNaN(limit) ? kMaximumPaginatedPageLength : limit;
 
-        const bookmarks = await BookmarksManager.shared.bookmarks({
+        const bookmarks = await BookmarksManager.shared.viewableBookmarks({
             userId: session.userId,
+            viewerId: session.userId,
             limit: safeLimit,
             nextToken: nextToken
         });

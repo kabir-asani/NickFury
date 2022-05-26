@@ -3,7 +3,7 @@ import { StreamAssistant } from "../../assistants/stream/stream";
 import { Dately } from "../../utils/dately/dately";
 import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
 import { Bookmark, BookmarkViewables, ViewableBookmark, ViewableTweet } from "../core/models";
-import { Paginated, PaginationParameters } from "../core/types";
+import { Paginated, PaginationParameters, ViewablesParameters2 } from "../core/types";
 import { BookmarkCreationFailureReason, BookmarkDeletionFailureReason } from "./types";
 import { TweetsManager } from "../tweetsManager/tweetsManager";
 
@@ -198,7 +198,8 @@ export class BookmarksManager {
 
     async bookmarks(parameters: {
         userId: String;
-    } & PaginationParameters): Promise<Paginated<ViewableBookmark> | null> {
+    } & PaginationParameters
+    ): Promise<Paginated<Bookmark> | null> {
         const bookmarkActivities = await StreamAssistant.shared.bookmarkFeed.activities({
             authorId: parameters.userId,
             limit: parameters.limit,
@@ -209,58 +210,97 @@ export class BookmarksManager {
             return null;
         }
 
-        const bookmarksCollection = DatabaseAssistant.shared.collection(
-            DatabaseCollections.users
-            + "/" + parameters.userId.valueOf() + "/" +
-            DatabaseCollections.bookmarks
-        );
-
-        const bookmarkIds = bookmarkActivities.page.map((bookmarkActivity) => {
-            return bookmarkActivity.bookmarkId.valueOf();
-        });
-
-        const bookmarksQuery = bookmarksCollection.where(
-            "id",
-            "array-contains-any",
-            bookmarkIds
-        );
-
-        try {
-            const bookmarksQuerySnapshot = await bookmarksQuery.get();
-
-            if (bookmarksQuerySnapshot.empty) {
-                return null;
-            }
-
-            const viewableBookmarks: ViewableBookmark[] = [];
-
-            for (let bookmarkDocument of bookmarksQuerySnapshot.docs) {
-                const bookmark = bookmarkDocument.data() as unknown as Bookmark;
-
-                const viewables = await this.viewables({
-                    tweetId: bookmark.tweetId,
-                    viewerId: parameters.userId
-                });
-
-                if (viewables === null) {
-                    return null;
-                }
-
-                const viewableBookmark: ViewableBookmark = {
-                    ...bookmark,
-                    viewables: viewables
-                };
-
-                viewableBookmarks.push(viewableBookmark);
-            }
-
-            const reply: Paginated<ViewableBookmark> = {
-                page: viewableBookmarks,
-                nextToken: bookmarkActivities.nextToken || undefined
+        if (bookmarkActivities.page.length === 0) {
+            const reply: Paginated<Bookmark> = {
+                page: []
             };
 
             return reply;
-        } catch {
+        }
+
+        const bookmarkDocumentRefs = bookmarkActivities.page.map((bookmarkActivity) => {
+            const bookmarksCollection = DatabaseAssistant.shared.collection(
+                DatabaseCollections.users
+                + "/" + parameters.userId.valueOf() + "/" +
+                DatabaseCollections.bookmarks
+            );
+            const bookmarkDocumentRef = bookmarksCollection.doc(bookmarkActivity.bookmarkId.valueOf());
+
+            return bookmarkDocumentRef;
+        });
+
+        const bookmarkDocuments = await DatabaseAssistant.shared.getAll(...bookmarkDocumentRefs);
+
+        if (bookmarkDocuments.length === 0) {
+            const reply: Paginated<Bookmark> = {
+                page: []
+            };
+
+            return reply;
+        } else {
+            const bookmarks = bookmarkDocuments.map((bookmarkDocument) => {
+                const bookmark = bookmarkDocument.data() as unknown as Bookmark;
+
+                return bookmark;
+            });
+
+            const reply: Paginated<Bookmark> = {
+                page: bookmarks,
+                nextToken: bookmarkActivities.nextToken
+            };
+
+            return reply;
+        }
+    }
+
+    async viewableBookmarks(parameters: {
+        userId: String;
+    } & ViewablesParameters2 & PaginationParameters
+    ): Promise<Paginated<ViewableBookmark> | null> {
+        const bookmarks = await this.bookmarks({
+            userId: parameters.userId,
+            limit: parameters.limit,
+            nextToken: parameters.nextToken
+        });
+
+        if (bookmarks !== null) {
+            if (bookmarks.page.length === 0) {
+                const reply: Paginated<ViewableBookmark> = {
+                    page: []
+                };
+
+                return reply;
+            }
+
+            const viewablesTweets = await TweetsManager.shared.viewableTweetsByIds({
+                ids: bookmarks.page.map((bookmark) => bookmark.tweetId),
+                viewerId: parameters.viewerId
+            });
+
+            if (viewablesTweets !== null) {
+                const viewableBookmarks = bookmarks.page.map((bookmark) => {
+                    const bookmarkViewables: BookmarkViewables = {
+                        tweet: viewablesTweets[bookmark.tweetId.valueOf()]
+                    };
+
+                    const viewableBookmark: ViewableBookmark = {
+                        ...bookmark,
+                        viewables: bookmarkViewables
+                    };
+
+                    return viewableBookmark;
+                });
+
+                const reply: Paginated<ViewableBookmark> = {
+                    page: viewableBookmarks,
+                    nextToken: bookmarks.nextToken
+                };
+
+                return reply;
+            } else {
+                return null;
+            }
+        } else {
             return null;
         }
     }
