@@ -348,50 +348,24 @@ export class SocialsManager {
     async viewableFollowers(parameters: {
         userId: String;
     } & ViewablesParameters2 & PaginationParameters): Promise<Paginated<ViewableFollower> | null> {
-        const followersCollection = DatabaseAssistant.shared.collection(
-            DatabaseCollections.users
-            + "/" + parameters.userId + "/" +
-            DatabaseCollections.followers
-        );
-
         const limit = parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
 
-        let query = followersCollection
-            .orderBy("creationDate")
-            .limit(limit + 1);
+        const followers = await this.followers({
+            userId: parameters.userId,
+            limit: limit,
+            nextToken: parameters.nextToken
+        });
 
-        if (parameters.nextToken !== undefined) {
-            query = query.startAt(parameters.nextToken);
-        }
-
-        try {
-            const querySnapshot = await query.get();
-
-            if (querySnapshot.empty) {
+        if (followers !== null) {
+            if (followers.page.length === 0) {
                 const reply: Paginated<ViewableFollower> = {
                     page: []
                 };
 
                 return reply;
             } else {
-                let nextToken = undefined;
-
-                if (querySnapshot.docs.length === limit + 1) {
-                    const lastDocument = querySnapshot.docs.pop();
-
-                    if (lastDocument !== undefined) {
-                        nextToken = (lastDocument.data() as unknown as Follower).creationDate;
-                    }
-                }
-
-                const followersData = querySnapshot.docs.map((queryDocument) => {
-                    const followerData = queryDocument.data() as unknown as Follower;
-
-                    return followerData;
-                });
-
-                const viewableUsers = await UsersManager.shared.viewableUsers({
-                    ids: followersData.map((followerData) => followerData.followerId),
+                const viewableUsers = await UsersManager.shared.viewableUsersByIds({
+                    ids: followers.page.map((followerData) => followerData.followerId),
                     viewerId: parameters.viewerId
                 });
 
@@ -399,7 +373,7 @@ export class SocialsManager {
                     return null;
                 }
 
-                const viewableFollowersData = followersData.map((followerData) => {
+                const viewableFollowersData = followers.page.map((followerData) => {
                     const followerViewables: FollowerViewables = {
                         follower: viewableUsers[followerData.followerId.valueOf()]
                     };
@@ -414,12 +388,12 @@ export class SocialsManager {
 
                 const reply: Paginated<ViewableFollower> = {
                     page: viewableFollowersData,
-                    nextToken: nextToken
+                    nextToken: followers.nextToken
                 };
 
                 return reply;
             }
-        } catch {
+        } else {
             return null;
         }
     }
@@ -485,50 +459,24 @@ export class SocialsManager {
     async viewableFollowings(parameters: {
         userId: String;
     } & ViewablesParameters2 & PaginationParameters): Promise<Paginated<ViewableFollowing> | null> {
-        const followingssCollection = DatabaseAssistant.shared.collection(
-            DatabaseCollections.users
-            + "/" + parameters.userId + "/" +
-            DatabaseCollections.followings
-        );
-
         const limit = parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
 
-        let query = followingssCollection
-            .orderBy("creationDate")
-            .limit(limit + 1);
+        const followings = await this.followings({
+            userId: parameters.userId,
+            limit: limit,
+            nextToken: parameters.nextToken
+        });
 
-        if (parameters.nextToken !== undefined) {
-            query = query.startAt(parameters.nextToken);
-        }
-
-        try {
-            const querySnapshot = await query.get();
-
-            if (querySnapshot.empty) {
+        if (followings !== null) {
+            if (followings.page.length === 0) {
                 const reply: Paginated<ViewableFollowing> = {
                     page: []
                 };
 
                 return reply;
             } else {
-                let nextToken = undefined;
-
-                if (querySnapshot.docs.length === limit + 1) {
-                    const lastDocument = querySnapshot.docs.pop();
-
-                    if (lastDocument !== undefined) {
-                        nextToken = (lastDocument.data() as unknown as Following).creationDate;
-                    }
-                }
-
-                const followingsData = querySnapshot.docs.map((queryDocument) => {
-                    const followerData = queryDocument.data() as unknown as Following;
-
-                    return followerData;
-                });
-
-                const viewableUsers = await UsersManager.shared.viewableUsers({
-                    ids: followingsData.map((followerData) => followerData.followingId),
+                const viewableUsers = await UsersManager.shared.viewableUsersByIds({
+                    ids: followings.page.map((followerData) => followerData.followingId),
                     viewerId: parameters.viewerId
                 });
 
@@ -537,7 +485,7 @@ export class SocialsManager {
                     return null;
                 }
 
-                const viewableFollowingsData = followingsData.map((followerData) => {
+                const viewableFollowingsData = followings.page.map((followerData) => {
                     const followingViewables: FollowingViewables = {
                         following: viewableUsers[followerData.followingId.valueOf()]
                     };
@@ -552,13 +500,14 @@ export class SocialsManager {
 
                 const reply: Paginated<ViewableFollowing> = {
                     page: viewableFollowingsData,
-                    nextToken: nextToken
+                    nextToken: followings.nextToken
                 };
 
                 return reply;
             }
-        } catch {
+        } else {
             return null;
         }
+
     }
 }
