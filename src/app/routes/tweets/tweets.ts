@@ -36,7 +36,7 @@ tweets.get(
 
         const safeLimit = isNaN(limit) ? kMaximumPaginatedPageLength : limit;
 
-        const tweets = await TweetsManager.shared.tweets({
+        const tweets = await TweetsManager.shared.viewableTweets({
             userId: userId || session.userId,
             viewerId: session.userId,
             nextToken: nextToken,
