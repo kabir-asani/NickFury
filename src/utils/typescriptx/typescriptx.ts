@@ -1,4 +1,4 @@
-export interface Empty { }
+export interface Empty {}
 
 export class Success<Data> {
     data: Data;
@@ -15,3 +15,7 @@ export class Failure<Reason> {
         this.reason = reason;
     }
 }
+
+export const keysOf = (o: object) => Object.keys(o);
+
+export const valuesOf = (o: object) => Object.values(o);

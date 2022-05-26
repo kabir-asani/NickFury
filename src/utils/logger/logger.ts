@@ -1,12 +1,34 @@
+export enum LogLevel {
+    informative,
+    attention,
+}
+
 const logger = (
-    data: Object,
-    options: { enableOnProduction: boolean } = { enableOnProduction: true }
+    data: any,
+    level: LogLevel = LogLevel.informative,
+    location: any = undefined,
+    enableOnProduction: boolean = false
 ) => {
-    let isLogAllowed: boolean = process.env.NODE_ENV === 'production' ? options.enableOnProduction : true;
+    let isLogAllowed: boolean =
+        process.env.NODE_ENV === "production" ? enableOnProduction : true;
 
     if (isLogAllowed) {
-        console.log(data);
+        switch (level) {
+            case LogLevel.informative: {
+                if (location !== undefined) {
+                    console.log(location);
+                }
+                console.log(data);
+                break;
+            }
+            case LogLevel.attention: {
+                if (location !== undefined) {
+                    console.error(location);
+                }
+                console.error(data);
+            }
+        }
     }
 };
 
-export = logger;
+export default logger;

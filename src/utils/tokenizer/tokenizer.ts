@@ -1,15 +1,13 @@
 import * as jwt from "jsonwebtoken";
 
-import Secrets from '../../secrets.json';
+import Secrets from "../../secrets.json";
 
 export class Tokenizer {
     static readonly shared = new Tokenizer();
 
-    private constructor() { }
+    private constructor() {}
 
-    encode<T extends Object>(parameters: {
-        payload: T,
-    }): String {
+    encode<T extends Object>(parameters: { payload: T }): String {
         const token = jwt.sign(
             parameters.payload,
             process.env.JWT_SECRET || Secrets.jwt.secret
@@ -18,9 +16,7 @@ export class Tokenizer {
         return token;
     }
 
-    decode<T extends Object>(parameters: {
-        token: String
-    }): T | null {
+    decode<T extends Object>(parameters: { token: String }): T | null {
         const object = jwt.decode(parameters.token.valueOf());
 
         if (object !== null) {
@@ -32,9 +28,7 @@ export class Tokenizer {
         return null;
     }
 
-    verify(parameters: {
-        token: String
-    }): Boolean {
+    verify(parameters: { token: String }): Boolean {
         try {
             jwt.verify(
                 parameters.token.valueOf(),
