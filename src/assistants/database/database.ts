@@ -9,7 +9,7 @@ export class DBCollections {
     static readonly comments = "comments";
 
     static readonly users = "users";
-    static readonly followings = "followings";
+    static readonly followees = "followees";
     static readonly followers = "followers";
     static readonly bookmarks = "bookmarks";
 }

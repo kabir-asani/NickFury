@@ -1,5 +1,4 @@
 import { FlatActivity, StreamApiError, StreamClient } from "getstream";
-import { ViewableTweet } from "../../../../managers/core/models";
 import {
     kMaximumPaginatedPageLength,
     Paginated,
@@ -32,7 +31,7 @@ export default class TimelineFeedAssistant extends FeedAssistant {
 
     async follow(parameters: {
         followerUserId: String;
-        followingUserId: String;
+        followeeUserId: String;
     }): Promise<Success<Empty> | Failure<FollowFeedFailure>> {
         const timelineFeed = this.client.feed(
             this.type.valueOf(),
@@ -42,7 +41,7 @@ export default class TimelineFeedAssistant extends FeedAssistant {
         try {
             await timelineFeed.follow(
                 SelfFeedAssistant.feed,
-                parameters.followingUserId.valueOf()
+                parameters.followeeUserId.valueOf()
             );
 
             const result = new Success<Empty>({});
@@ -61,7 +60,7 @@ export default class TimelineFeedAssistant extends FeedAssistant {
 
     async unfollow(parameters: {
         followerUserId: String;
-        followingUserId: String;
+        followeeUserId: String;
     }): Promise<Success<Empty> | Failure<UnfollowFeedFailure>> {
         const timelineFeed = this.client.feed(
             this.type.valueOf(),
@@ -71,7 +70,7 @@ export default class TimelineFeedAssistant extends FeedAssistant {
         try {
             await timelineFeed.unfollow(
                 SelfFeedAssistant.feed,
-                parameters.followingUserId.valueOf()
+                parameters.followeeUserId.valueOf()
             );
 
             const result = new Success<Empty>({});
