@@ -3,12 +3,12 @@ import {
     DatabaseAssistant,
     DBCollections,
 } from "../../assistants/database/database";
-import { SocialsManager } from "../socialsManager/socialsManager";
-import { Value, ViewablesParameters2 } from "../core/types";
+import SocialsManager from "../socialsManager/socialsManager";
+import { Value, ViewablesParameters } from "../core/types";
 import { Failure, keysOf, Success } from "../../utils/typescriptx/typescriptx";
-import { ViewableUsersFailureReason } from "./types";
+import { UsersFailureReason, ViewableUsersFailureReason } from "./types";
 
-export class UsersManager {
+export default class UsersManager {
     static readonly shared = new UsersManager();
 
     private constructor() {}
@@ -128,7 +128,7 @@ export class UsersManager {
     async viewableUser(
         parameters: {
             id: String;
-        } & ViewablesParameters2
+        } & ViewablesParameters
     ): Promise<ViewableUser | null> {
         const user = await this.user({
             id: parameters.id,
@@ -156,7 +156,7 @@ export class UsersManager {
     private async userViewables(
         parameters: {
             userId: String;
-        } & ViewablesParameters2
+        } & ViewablesParameters
     ): Promise<UserViewables | null> {
         const isFollowing =
             await SocialsManager.shared.isFollowingRelationshipExists({
@@ -171,14 +171,16 @@ export class UsersManager {
         return viewables;
     }
 
-    async viewableUsers(
-        parameters: {
-            identifiers: String[];
-        } & ViewablesParameters2
-    ): Promise<
-        Success<Value<ViewableUser>> | Failure<ViewableUsersFailureReason>
-    > {
-        const userDocumentRefs = parameters.identifiers.map((id) => {
+    async users(parameters: {
+        userIdentifiers: String[];
+    }): Promise<Success<Value<User>> | Failure<UsersFailureReason>> {
+        if (parameters.userIdentifiers.length === 0) {
+            const reply = new Success<Value<User>>({});
+
+            return reply;
+        }
+
+        const userDocumentRefs = parameters.userIdentifiers.map((id) => {
             const usersCollection = DatabaseAssistant.shared.collection(
                 DBCollections.users
             );
@@ -195,8 +197,8 @@ export class UsersManager {
 
         for (let userDocument of userDocuments) {
             if (!userDocument.exists) {
-                const reply = new Failure<ViewableUsersFailureReason>(
-                    ViewableUsersFailureReason.missingUsers
+                const reply = new Failure<UsersFailureReason>(
+                    UsersFailureReason.missingUsers
                 );
 
                 return reply;
@@ -207,17 +209,58 @@ export class UsersManager {
             users[user.id.valueOf()] = user;
         }
 
-        const userIds = keysOf(users);
+        const reply = new Success<Value<User>>(users);
+
+        return reply;
+    }
+
+    async viewableUsers(
+        parameters: {
+            userIdentifiers: String[];
+        } & ViewablesParameters
+    ): Promise<
+        Success<Value<ViewableUser>> | Failure<ViewableUsersFailureReason>
+    > {
+        if (parameters.userIdentifiers.length === 0) {
+            const reply = new Success<Value<ViewableUser>>({});
+
+            return reply;
+        }
+
+        const usersResult = await this.users({
+            userIdentifiers: parameters.userIdentifiers,
+        });
+
+        if (usersResult instanceof Failure) {
+            switch (usersResult.reason) {
+                case UsersFailureReason.missingUsers: {
+                    const reply = new Failure<ViewableUsersFailureReason>(
+                        ViewableUsersFailureReason.missingUsers
+                    );
+
+                    return reply;
+                }
+                default: {
+                    const reply = new Failure<ViewableUsersFailureReason>(
+                        ViewableUsersFailureReason.unknown
+                    );
+
+                    return reply;
+                }
+            }
+        }
+
+        const users = usersResult.data;
 
         const followingStatuses =
             await SocialsManager.shared.followerRelationshipStatuses({
                 followerId: parameters.viewerId,
-                followingIdentifiers: userIds,
+                followingIdentifiers: keysOf(users),
             });
 
         const viewableUsers: Value<ViewableUser> = {};
 
-        userIds.forEach((userId) => {
+        keysOf(users).forEach((userId) => {
             const user = users[userId];
 
             const userViewables: UserViewables = {

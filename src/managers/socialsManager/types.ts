@@ -9,10 +9,18 @@ export enum UnfollowFailureReason {
     relationshipDoesNotExists,
 }
 
-export enum ViewableFollowingsFailureReason {
+export enum PaginatedFollowingsFailureReason {
     unknown,
 }
 
-export enum ViewableFollowersFailureReason {
+export enum PaginatedFollowersFailureReason {
+    unknown,
+}
+
+export enum PaginatedViewableFollowingsFailureReason {
+    unknown,
+}
+
+export enum PaginatedViewableFollowersFailureReason {
     unknown,
 }

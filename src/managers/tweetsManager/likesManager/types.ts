@@ -8,14 +8,12 @@ export enum LikeDeletionFailureReason {
     likeDoesNotExists,
 }
 
-export enum PaginatedLikesFailure {
+export enum PaginatedLikesFailureReason {
     unknown,
     malformedParameters,
-    missingLikes,
 }
 
-export enum PaginatedViewableLikesFailure {
+export enum PaginatedViewableLikesFailureReason {
     unknown,
     malformedParameters,
-    missingLikes,
 }

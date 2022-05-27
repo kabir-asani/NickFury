@@ -1,4 +1,4 @@
-export enum TimelineFailure {
+export enum TimelineFailureReason {
     unknown,
     malformedParameters,
 }

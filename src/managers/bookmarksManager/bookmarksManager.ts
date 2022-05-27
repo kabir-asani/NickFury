@@ -2,14 +2,8 @@ import {
     DatabaseAssistant,
     DBCollections,
 } from "../../assistants/database/database";
-import StreamAssistant from "../../assistants/stream/stream";
-import { Dately } from "../../utils/dately/dately";
-import {
-    Empty,
-    Failure,
-    Success,
-    valuesOf,
-} from "../../utils/typescriptx/typescriptx";
+import Dately from "../../utils/dately/dately";
+import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
 import {
     Bookmark,
     BookmarkViewables,
@@ -17,10 +11,11 @@ import {
     ViewableTweet,
 } from "../core/models";
 import {
+    kMaximumPaginatedPageLength,
     Paginated,
     PaginationParameters,
     Value,
-    ViewablesParameters2,
+    ViewablesParameters,
 } from "../core/types";
 import {
     BookmarkCreationFailureReason,
@@ -29,13 +24,20 @@ import {
     PaginatedBookmarksFailureReason,
     PaginatedViewableBookmarksFailureReason,
 } from "./types";
-import { TweetsManager } from "../tweetsManager/tweetsManager";
-import { BookmarkActivitiesFailureReason } from "../../assistants/stream/feeds/bookmarkFeed/types";
+import TweetsManager from "../tweetsManager/tweetsManager";
+import logger, { LogLevel } from "../../utils/logger/logger";
 
-export class BookmarksManager {
+export default class BookmarksManager {
     static readonly shared = new BookmarksManager();
 
     private constructor() {}
+
+    private createIdentifier(parameters: {
+        authorId: String;
+        tweetId: String;
+    }): String {
+        return `${parameters.authorId}:${parameters.tweetId}`;
+    }
 
     async exists(parameters: { id: String }): Promise<Boolean> {
         const bookmarskCollection = DatabaseAssistant.shared.collectionGroup(
@@ -63,9 +65,13 @@ export class BookmarksManager {
             DBCollections.bookmarks
         );
 
+        const id = this.createIdentifier({
+            tweetId: parameters.tweetId,
+            authorId: parameters.authorId,
+        });
+
         const bookmarksQuery = bookmarskCollection
-            .where("tweetId", "==", parameters.tweetId.valueOf())
-            .where("authorId", "==", parameters.authorId.valueOf())
+            .where("id", "==", id)
             .limit(1);
 
         const bookmarksQuerySnapshot = await bookmarksQuery.get();
@@ -81,16 +87,39 @@ export class BookmarksManager {
         authorId: String;
         tweetIds: String[];
     }): Promise<Value<Boolean>> {
-        const bookmarkStatuses: Value<Boolean> = {};
+        if (parameters.tweetIds.length === 0) {
+            return {};
+        }
 
-        for (let tweetId of parameters.tweetIds) {
-            const isExists = await this.existsByDetails({
+        const bookmarkDocumentRefs = parameters.tweetIds.map((tweetId) => {
+            const id = this.createIdentifier({
                 authorId: parameters.authorId,
                 tweetId: tweetId,
             });
 
-            bookmarkStatuses[tweetId.valueOf()] = isExists;
-        }
+            const bookmarkDocumentPath =
+                DBCollections.users +
+                `/${parameters.authorId}/` +
+                DBCollections.bookmarks +
+                `/${id}`;
+
+            const bookmarkDocumentRef =
+                DatabaseAssistant.shared.doc(bookmarkDocumentPath);
+
+            return bookmarkDocumentRef;
+        });
+
+        const bookmarkDocuments = await DatabaseAssistant.shared.getAll(
+            ...bookmarkDocumentRefs
+        );
+
+        const bookmarkStatuses: Value<Boolean> = {};
+
+        bookmarkDocuments.forEach((bookmarkDocument) => {
+            const tweetId = bookmarkDocument.id.split(":")[1];
+
+            bookmarkStatuses[tweetId] = bookmarkDocument.exists;
+        });
 
         return bookmarkStatuses;
     }
@@ -112,26 +141,15 @@ export class BookmarksManager {
             return reply;
         }
 
-        const bookmarkAdditionResult =
-            await StreamAssistant.shared.bookmarkFeed.addBookmarkActivity({
-                authorId: parameters.authorId,
-                tweetId: parameters.tweetId,
-            });
-
-        if (bookmarkAdditionResult instanceof Failure) {
-            const reply = new Failure<BookmarkCreationFailureReason>(
-                BookmarkCreationFailureReason.unknown
-            );
-
-            return reply;
-        }
-
-        const bookmarkActivity = bookmarkAdditionResult.data;
+        const id = this.createIdentifier({
+            authorId: parameters.authorId,
+            tweetId: parameters.tweetId,
+        });
 
         const bookmark: Bookmark = {
-            id: bookmarkActivity.bookmarkId,
-            tweetId: bookmarkActivity.tweetId,
-            authorId: bookmarkActivity.authorId,
+            id: id,
+            tweetId: parameters.tweetId,
+            authorId: parameters.authorId,
             creationDate: Dately.shared.now(),
         };
 
@@ -150,7 +168,9 @@ export class BookmarksManager {
             const reply = new Success<Bookmark>(bookmark);
 
             return reply;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.create]);
+
             const reply = new Failure<BookmarkCreationFailureReason>(
                 BookmarkCreationFailureReason.unknown
             );
@@ -174,20 +194,6 @@ export class BookmarksManager {
             return reply;
         }
 
-        const bookmarkRemovalResult =
-            await StreamAssistant.shared.bookmarkFeed.removeBookmarkActivity({
-                authorId: bookmark.authorId,
-                bookmarkId: bookmark.id,
-            });
-
-        if (bookmarkRemovalResult instanceof Failure) {
-            const reply = new Failure<BookmarkDeletionFailureReason>(
-                BookmarkDeletionFailureReason.unknown
-            );
-
-            return reply;
-        }
-
         try {
             const bookmarkDocumentPath =
                 DBCollections.users +
@@ -203,7 +209,9 @@ export class BookmarksManager {
             const reply = new Success<Empty>({});
 
             return reply;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.delete]);
+
             const reply = new Failure<BookmarkDeletionFailureReason>(
                 BookmarkDeletionFailureReason.unknown
             );
@@ -236,7 +244,7 @@ export class BookmarksManager {
     }
 
     async viewableBookmark(
-        parameters: { bookmarkId: String } & ViewablesParameters2
+        parameters: { bookmarkId: String } & ViewablesParameters
     ): Promise<ViewableBookmark | null> {
         const bookmark = await this.bookmark({
             bookmarkId: parameters.bookmarkId,
@@ -266,7 +274,7 @@ export class BookmarksManager {
     private async bookmarkViewables(
         parameters: {
             tweetId: String;
-        } & ViewablesParameters2
+        } & ViewablesParameters
     ): Promise<BookmarkViewables | null> {
         const viewableTweet = await TweetsManager.shared.viewableTweet({
             tweetId: parameters.tweetId,
@@ -288,6 +296,12 @@ export class BookmarksManager {
         userId: String;
         identifiers: String[];
     }): Promise<Success<Value<Bookmark>> | Failure<BookmarksFailureReason>> {
+        if (parameters.identifiers.length === 0) {
+            const reply = new Success<Value<Bookmark>>({});
+
+            return reply;
+        }
+
         const bookmarkDocumentRefs = parameters.identifiers.map(
             (bookmarkId) => {
                 const bookmarkDocumentPath =
@@ -335,75 +349,81 @@ export class BookmarksManager {
     ): Promise<
         Success<Paginated<Bookmark>> | Failure<PaginatedBookmarksFailureReason>
     > {
-        const bookmarkActivitiesResult =
-            await StreamAssistant.shared.bookmarkFeed.activities({
-                authorId: parameters.userId,
-                limit: parameters.limit,
-                nextToken: parameters.nextToken,
-            });
+        const bookmarksCollectionPath =
+            DBCollections.users +
+            `/${parameters.userId}/` +
+            DBCollections.bookmarks;
 
-        if (bookmarkActivitiesResult instanceof Failure) {
-            switch (bookmarkActivitiesResult.reason) {
-                case BookmarkActivitiesFailureReason.malformedParameters: {
-                    const reply = new Failure<PaginatedBookmarksFailureReason>(
-                        PaginatedBookmarksFailureReason.malformedParameters
-                    );
+        const bookmarksCollection = DatabaseAssistant.shared.collection(
+            bookmarksCollectionPath
+        );
 
-                    return reply;
-                }
-                default: {
-                    const reply = new Failure<PaginatedBookmarksFailureReason>(
-                        PaginatedBookmarksFailureReason.unknown
-                    );
+        const limit =
+            parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
 
-                    return reply;
+        let query = bookmarksCollection
+            .orderBy("creationDate")
+            .limit(limit + 1);
+
+        if (parameters.nextToken !== undefined) {
+            query = query.startAt(parameters.nextToken);
+        }
+
+        try {
+            const querySnapshot = await query.get();
+
+            if (querySnapshot.empty) {
+                const paginatedBookmarks: Paginated<Bookmark> = {
+                    page: [],
+                };
+
+                const reply = new Success<Paginated<Bookmark>>(
+                    paginatedBookmarks
+                );
+
+                return reply;
+            }
+
+            let nextToken = undefined;
+
+            if (querySnapshot.docs.length === limit + 1) {
+                const lastDocument = querySnapshot.docs.pop();
+
+                if (lastDocument !== undefined) {
+                    nextToken = (lastDocument.data() as unknown as Bookmark)
+                        .creationDate;
                 }
             }
-        }
 
-        const bookmarkActivities = bookmarkActivitiesResult.data;
+            const bookmarks = querySnapshot.docs.map((queryDocument) => {
+                const bookmark = queryDocument.data() as unknown as Bookmark;
 
-        if (bookmarkActivities.page.length === 0) {
-            const paginatedBookmarks: Paginated<Bookmark> = {
-                page: [],
+                return bookmark;
+            });
+
+            const paginatedFollowers: Paginated<Bookmark> = {
+                page: bookmarks,
+                nextToken: nextToken,
             };
 
-            const reply = new Success<Paginated<Bookmark>>(paginatedBookmarks);
+            const reply = new Success<Paginated<Bookmark>>(paginatedFollowers);
 
             return reply;
-        }
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.paginatedBookmarksOf]);
 
-        const bookmarksResult = await this.bookmarks({
-            userId: parameters.userId,
-            identifiers: bookmarkActivities.page.map((bookmarkActivity) => {
-                return bookmarkActivity.bookmarkId;
-            }),
-        });
-
-        if (bookmarksResult instanceof Failure) {
             const reply = new Failure<PaginatedBookmarksFailureReason>(
                 PaginatedBookmarksFailureReason.unknown
             );
 
             return reply;
         }
-
-        const bookmarks = bookmarksResult.data;
-
-        const paginatedBookmarks: Paginated<Bookmark> = {
-            page: valuesOf(bookmarks),
-            nextToken: bookmarkActivities.nextToken,
-        };
-
-        const reply = new Success<Paginated<Bookmark>>(paginatedBookmarks);
-
-        return reply;
     }
 
     async paginatedViewableBookmarksOf(
         parameters: {
             userId: String;
-        } & ViewablesParameters2 &
+        } & ViewablesParameters &
             PaginationParameters
     ): Promise<
         | Success<Paginated<ViewableBookmark>>
@@ -451,7 +471,7 @@ export class BookmarksManager {
         }
 
         const viewableTweetsResult = await TweetsManager.shared.viewableTweets({
-            identifiers: paginatedBookmarks.page.map(
+            tweetIdentifiers: paginatedBookmarks.page.map(
                 (bookmark) => bookmark.tweetId
             ),
             viewerId: parameters.viewerId,

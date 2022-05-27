@@ -3,7 +3,8 @@ import {
     DBCollections,
 } from "../../assistants/database/database";
 import StreamAssistant from "../../assistants/stream/stream";
-import { Dately } from "../../utils/dately/dately";
+import Dately from "../../utils/dately/dately";
+import logger, { LogLevel } from "../../utils/logger/logger";
 import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
 import {
     Following,
@@ -19,17 +20,19 @@ import {
     Paginated,
     PaginationParameters,
     Value,
-    ViewablesParameters2,
+    ViewablesParameters,
 } from "../core/types";
-import { UsersManager } from "../usersManager/usersManager";
+import UsersManager from "../usersManager/usersManager";
 import {
     FollowFailureReason,
     UnfollowFailureReason,
-    ViewableFollowersFailureReason,
-    ViewableFollowingsFailureReason,
+    PaginatedViewableFollowersFailureReason,
+    PaginatedViewableFollowingsFailureReason,
+    PaginatedFollowersFailureReason,
+    PaginatedFollowingsFailureReason,
 } from "./types";
 
-export class SocialsManager {
+export default class SocialsManager {
     static readonly shared = new SocialsManager();
 
     private constructor() {}
@@ -83,6 +86,10 @@ export class SocialsManager {
         followingIdentifiers: String[];
         followerId: String;
     }): Promise<Value<Boolean>> {
+        if (parameters.followingIdentifiers.length === 0) {
+            return {};
+        }
+
         const followingDocumentRefs = parameters.followingIdentifiers.map(
             (followingId) => {
                 const followingDocumentPath =
@@ -117,6 +124,10 @@ export class SocialsManager {
         followerIdentifiers: String[];
         followingId: String;
     }): Promise<Value<Boolean>> {
+        if (parameters.followerIdentifiers.length === 0) {
+            return {};
+        }
+
         const followerDocumentRefs = parameters.followerIdentifiers.map(
             (followerId) => {
                 const followerDocumentPath =
@@ -255,7 +266,9 @@ export class SocialsManager {
             const reply = new Success<Empty>({});
 
             return reply;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.follow]);
+
             const reply = new Failure<FollowFailureReason>(
                 FollowFailureReason.unknown
             );
@@ -361,7 +374,9 @@ export class SocialsManager {
             const reply = new Success<Empty>({});
 
             return reply;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.unfollow]);
+
             const reply = new Failure<UnfollowFailureReason>(
                 UnfollowFailureReason.unknown
             );
@@ -374,7 +389,9 @@ export class SocialsManager {
         parameters: {
             userId: String;
         } & PaginationParameters
-    ): Promise<Paginated<Follower>> {
+    ): Promise<
+        Success<Paginated<Follower>> | Failure<PaginatedFollowersFailureReason>
+    > {
         const followersCollectionPath =
             DBCollections.users +
             `/${parameters.userId}/` +
@@ -395,55 +412,81 @@ export class SocialsManager {
             query = query.startAt(parameters.nextToken);
         }
 
-        const querySnapshot = await query.get();
+        try {
+            const querySnapshot = await query.get();
 
-        if (querySnapshot.empty) {
-            const reply: Paginated<Follower> = {
-                page: [],
+            if (querySnapshot.empty) {
+                const paginatedFollowers: Paginated<Follower> = {
+                    page: [],
+                };
+
+                const reply = new Success<Paginated<Follower>>(
+                    paginatedFollowers
+                );
+
+                return reply;
+            }
+
+            let nextToken = undefined;
+
+            if (querySnapshot.docs.length === limit + 1) {
+                const lastDocument = querySnapshot.docs.pop();
+
+                if (lastDocument !== undefined) {
+                    nextToken = (lastDocument.data() as unknown as Follower)
+                        .creationDate;
+                }
+            }
+
+            const followers = querySnapshot.docs.map((queryDocument) => {
+                const follower = queryDocument.data() as unknown as Follower;
+
+                return follower;
+            });
+
+            const paginatedFollowers: Paginated<Follower> = {
+                page: followers,
+                nextToken: nextToken,
             };
+
+            const reply = new Success<Paginated<Follower>>(paginatedFollowers);
+
+            return reply;
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.paginatedFollowers]);
+
+            const reply = new Failure<PaginatedFollowersFailureReason>(
+                PaginatedFollowersFailureReason.unknown
+            );
 
             return reply;
         }
-
-        let nextToken = undefined;
-
-        if (querySnapshot.docs.length === limit + 1) {
-            const lastDocument = querySnapshot.docs.pop();
-
-            if (lastDocument !== undefined) {
-                nextToken = (lastDocument.data() as unknown as Follower)
-                    .creationDate;
-            }
-        }
-
-        const followers = querySnapshot.docs.map((queryDocument) => {
-            const follower = queryDocument.data() as unknown as Follower;
-
-            return follower;
-        });
-
-        const reply: Paginated<Follower> = {
-            page: followers,
-            nextToken: nextToken,
-        };
-
-        return reply;
     }
 
     async paginatedViewableFollowers(
         parameters: {
             userId: String;
-        } & ViewablesParameters2 &
+        } & ViewablesParameters &
             PaginationParameters
     ): Promise<
         | Success<Paginated<ViewableFollower>>
-        | Failure<ViewableFollowersFailureReason>
+        | Failure<PaginatedViewableFollowersFailureReason>
     > {
-        const followers = await this.paginatedFollowers({
+        const followersResult = await this.paginatedFollowers({
             userId: parameters.userId,
             limit: parameters.limit,
             nextToken: parameters.nextToken,
         });
+
+        if (followersResult instanceof Failure) {
+            const reply = new Failure<PaginatedViewableFollowersFailureReason>(
+                PaginatedViewableFollowersFailureReason.unknown
+            );
+
+            return reply;
+        }
+
+        const followers = followersResult.data;
 
         if (followers.page.length === 0) {
             const paginatedFollowers: Paginated<ViewableFollower> = {
@@ -458,15 +501,15 @@ export class SocialsManager {
         }
 
         const viewableUsersResult = await UsersManager.shared.viewableUsers({
-            identifiers: followers.page.map(
+            userIdentifiers: followers.page.map(
                 (followerData) => followerData.followerId
             ),
             viewerId: parameters.viewerId,
         });
 
         if (viewableUsersResult instanceof Failure) {
-            const reply = new Failure<ViewableFollowersFailureReason>(
-                ViewableFollowersFailureReason.unknown
+            const reply = new Failure<PaginatedViewableFollowersFailureReason>(
+                PaginatedViewableFollowersFailureReason.unknown
             );
 
             return reply;
@@ -503,12 +546,13 @@ export class SocialsManager {
         parameters: {
             userId: String;
         } & PaginationParameters
-    ): Promise<Paginated<Following>> {
+    ): Promise<
+        | Success<Paginated<Following>>
+        | Failure<PaginatedFollowingsFailureReason>
+    > {
         const followingsCollectionPath =
             DBCollections.users +
-            "/" +
-            parameters.userId +
-            "/" +
+            `/${parameters.userId}/` +
             DBCollections.followings;
 
         const followingsCollection = DatabaseAssistant.shared.collection(
@@ -526,58 +570,86 @@ export class SocialsManager {
             query = query.startAt(parameters.nextToken);
         }
 
-        const querySnapshot = await query.get();
+        try {
+            const querySnapshot = await query.get();
 
-        if (querySnapshot.empty) {
-            const reply: Paginated<Following> = {
-                page: [],
+            if (querySnapshot.empty) {
+                const paginatedFollowings: Paginated<Following> = {
+                    page: [],
+                };
+
+                const reply = new Success<Paginated<Following>>(
+                    paginatedFollowings
+                );
+
+                return reply;
+            }
+
+            let nextToken = undefined;
+
+            if (querySnapshot.docs.length === limit + 1) {
+                const lastDocument = querySnapshot.docs.pop();
+
+                if (lastDocument !== undefined) {
+                    nextToken = (lastDocument.data() as unknown as Following)
+                        .creationDate;
+                }
+            }
+
+            const followings = querySnapshot.docs.map((queryDocument) => {
+                const following = queryDocument.data() as unknown as Following;
+
+                return following;
+            });
+
+            const paginatedFollowings: Paginated<Following> = {
+                page: followings,
+                nextToken: nextToken,
             };
+
+            const reply = new Success<Paginated<Following>>(
+                paginatedFollowings
+            );
+
+            return reply;
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.paginatedFollowings]);
+
+            const reply = new Failure<PaginatedFollowingsFailureReason>(
+                PaginatedFollowingsFailureReason.unknown
+            );
 
             return reply;
         }
-
-        let nextToken = undefined;
-
-        if (querySnapshot.docs.length === limit + 1) {
-            const lastDocument = querySnapshot.docs.pop();
-
-            if (lastDocument !== undefined) {
-                nextToken = (lastDocument.data() as unknown as Following)
-                    .creationDate;
-            }
-        }
-
-        const followings = querySnapshot.docs.map((queryDocument) => {
-            const following = queryDocument.data() as unknown as Following;
-
-            return following;
-        });
-
-        const reply: Paginated<Following> = {
-            page: followings,
-            nextToken: nextToken,
-        };
-
-        return reply;
     }
 
     async paginatedViewableFollowings(
         parameters: {
             userId: String;
-        } & ViewablesParameters2 &
+        } & ViewablesParameters &
             PaginationParameters
     ): Promise<
         | Success<Paginated<ViewableFollowing>>
-        | Failure<ViewableFollowingsFailureReason>
+        | Failure<PaginatedViewableFollowingsFailureReason>
     > {
         const limit =
             parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
 
-        const followings = await this.paginatedFollowings({
+        const followingsResult = await this.paginatedFollowings({
             userId: parameters.userId,
             limit: limit,
             nextToken: parameters.nextToken,
         });
+
+        if (followingsResult instanceof Failure) {
+            const reply = new Failure<PaginatedViewableFollowingsFailureReason>(
+                PaginatedViewableFollowingsFailureReason.unknown
+            );
+
+            return reply;
+        }
+
+        const followings = followingsResult.data;
 
         if (followings.page.length === 0) {
             const paginatedFollowings: Paginated<ViewableFollowing> = {
@@ -592,15 +664,15 @@ export class SocialsManager {
         }
 
         const viewableUsersResult = await UsersManager.shared.viewableUsers({
-            identifiers: followings.page.map(
+            userIdentifiers: followings.page.map(
                 (followerData) => followerData.followingId
             ),
             viewerId: parameters.viewerId,
         });
 
         if (viewableUsersResult instanceof Failure) {
-            const reply = new Failure<ViewableFollowingsFailureReason>(
-                ViewableFollowingsFailureReason.unknown
+            const reply = new Failure<PaginatedViewableFollowingsFailureReason>(
+                PaginatedViewableFollowingsFailureReason.unknown
             );
 
             return reply;

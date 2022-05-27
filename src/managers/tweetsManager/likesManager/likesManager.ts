@@ -1,4 +1,3 @@
-import { assert } from "console";
 import {
     DatabaseAssistant,
     DBCollections,
@@ -18,20 +17,22 @@ import {
 import {
     Paginated,
     PaginationParameters,
+    Value,
     ViewablesParameters,
-    ViewablesParameters2,
 } from "../../core/types";
 import {
     LikeCreationFailureReason,
     LikeDeletionFailureReason,
-    PaginatedLikesFailure,
+    PaginatedLikesFailureReason,
+    PaginatedViewableLikesFailureReason,
 } from "./types";
-import { Dately } from "../../../utils/dately/dately";
+import Dately from "../../../utils/dately/dately";
 import StreamAssistant from "../../../assistants/stream/stream";
-import { UsersManager } from "../../usersManager/usersManager";
+import UsersManager from "../../usersManager/usersManager";
 import { PaginatedLikeReactionsFailure } from "../../../assistants/stream/reactions/likeReaction/types";
+import logger, { LogLevel } from "../../../utils/logger/logger";
 
-export class LikesManager {
+export default class LikesManager {
     static readonly shared = new LikesManager();
 
     private constructor() {}
@@ -69,6 +70,28 @@ export class LikesManager {
         }
 
         return false;
+    }
+
+    async likeStatuses(parameters: {
+        authorId: String;
+        tweetIds: String[];
+    }): Promise<Value<Boolean>> {
+        if (parameters.tweetIds.length === 0) {
+            return {};
+        }
+
+        const bookmarkStatuses: Value<Boolean> = {};
+
+        for (let tweetId of parameters.tweetIds) {
+            const isExists = await this.existsByDetails({
+                authorId: parameters.authorId,
+                tweetId: tweetId,
+            });
+
+            bookmarkStatuses[tweetId.valueOf()] = isExists;
+        }
+
+        return bookmarkStatuses;
     }
 
     async create(parameters: {
@@ -139,7 +162,9 @@ export class LikesManager {
             const reply = new Success<Like>(like);
 
             return reply;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.create]);
+
             const reply = new Failure<LikeCreationFailureReason>(
                 LikeCreationFailureReason.unknown
             );
@@ -216,7 +241,9 @@ export class LikesManager {
             const reply = new Success<Empty>({});
 
             return reply;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.delete]);
+
             const reply = new Failure<LikeDeletionFailureReason>(
                 LikeDeletionFailureReason.unknown
             );
@@ -241,7 +268,7 @@ export class LikesManager {
     }
 
     async viewableLike(
-        parameters: { likeId: String } & ViewablesParameters2
+        parameters: { likeId: String } & ViewablesParameters
     ): Promise<ViewableLike | null> {
         const like = await this.like({ likeId: parameters.likeId });
 
@@ -290,7 +317,9 @@ export class LikesManager {
         parameters: {
             tweetId: String;
         } & PaginationParameters
-    ): Promise<Success<Paginated<Like>> | Failure<PaginatedLikesFailure>> {
+    ): Promise<
+        Success<Paginated<Like>> | Failure<PaginatedLikesFailureReason>
+    > {
         const likeReactionsResult =
             await StreamAssistant.shared.likeReactions.likes({
                 tweetId: parameters.tweetId,
@@ -301,15 +330,15 @@ export class LikesManager {
         if (likeReactionsResult instanceof Failure) {
             switch (likeReactionsResult.reason) {
                 case PaginatedLikeReactionsFailure.malformedParameters: {
-                    const reply = new Failure<PaginatedLikesFailure>(
-                        PaginatedLikesFailure.malformedParameters
+                    const reply = new Failure<PaginatedLikesFailureReason>(
+                        PaginatedLikesFailureReason.malformedParameters
                     );
 
                     return reply;
                 }
                 default: {
-                    const reply = new Failure<PaginatedLikesFailure>(
-                        PaginatedLikesFailure.unknown
+                    const reply = new Failure<PaginatedLikesFailureReason>(
+                        PaginatedLikesFailureReason.unknown
                     );
 
                     return reply;
@@ -345,8 +374,8 @@ export class LikesManager {
 
         for (let likeDocument of likeDocuments) {
             if (!likeDocument.exists) {
-                const reply = new Failure<PaginatedLikesFailure>(
-                    PaginatedLikesFailure.missingLikes
+                const reply = new Failure<PaginatedLikesFailureReason>(
+                    PaginatedLikesFailureReason.unknown
                 );
 
                 return reply;
@@ -363,6 +392,98 @@ export class LikesManager {
         };
 
         const reply = new Success<Paginated<Like>>(paginatedLikes);
+
+        return reply;
+    }
+
+    async viewableLikes(
+        parameters: {
+            tweetId: String;
+        } & PaginationParameters &
+            ViewablesParameters
+    ): Promise<
+        | Success<Paginated<ViewableLike>>
+        | Failure<PaginatedViewableLikesFailureReason>
+    > {
+        const likeReactionsResult = await this.likes({
+            tweetId: parameters.tweetId,
+            limit: parameters.limit,
+            nextToken: parameters.nextToken,
+        });
+
+        if (likeReactionsResult instanceof Failure) {
+            switch (likeReactionsResult.reason) {
+                case PaginatedLikesFailureReason.malformedParameters: {
+                    const reply =
+                        new Failure<PaginatedViewableLikesFailureReason>(
+                            PaginatedViewableLikesFailureReason.malformedParameters
+                        );
+
+                    return reply;
+                }
+                default: {
+                    const reply =
+                        new Failure<PaginatedViewableLikesFailureReason>(
+                            PaginatedViewableLikesFailureReason.unknown
+                        );
+
+                    return reply;
+                }
+            }
+        }
+
+        const likeReactions = likeReactionsResult.data;
+
+        if (likeReactions.page.length === 0) {
+            const paginatedViewableLikes: Paginated<ViewableLike> = {
+                page: [],
+            };
+
+            const reply = new Success<Paginated<ViewableLike>>(
+                paginatedViewableLikes
+            );
+
+            return reply;
+        }
+
+        const viewableUsersResult = await UsersManager.shared.viewableUsers({
+            userIdentifiers: likeReactions.page.map((like) => {
+                return like.authorId;
+            }),
+            viewerId: parameters.viewerId,
+        });
+
+        if (viewableUsersResult instanceof Failure) {
+            const reply = new Failure<PaginatedViewableLikesFailureReason>(
+                PaginatedViewableLikesFailureReason.unknown
+            );
+
+            return reply;
+        }
+
+        const viewableUsers = viewableUsersResult.data;
+
+        const viewablesLikes = likeReactions.page.map((likeReaction) => {
+            const likeViewables: LikeViewables = {
+                author: viewableUsers[likeReaction.authorId.valueOf()],
+            };
+
+            const viewableLike: ViewableLike = {
+                ...likeReaction,
+                viewables: likeViewables,
+            };
+
+            return viewableLike;
+        });
+
+        const paginatedViewableLikes: Paginated<ViewableLike> = {
+            page: viewablesLikes,
+            nextToken: likeReactions.nextToken,
+        };
+
+        const reply = new Success<Paginated<ViewableLike>>(
+            paginatedViewableLikes
+        );
 
         return reply;
     }

@@ -3,7 +3,7 @@ import {
     DBCollections,
 } from "../../assistants/database/database";
 import { Success, Failure, Empty } from "../../utils/typescriptx/typescriptx";
-import { UsersManager } from "../usersManager/usersManager";
+import UsersManager from "../usersManager/usersManager";
 import {
     TokenCreationFailureReason,
     Credentials,
@@ -12,11 +12,12 @@ import {
 } from "./types";
 import * as uuid from "uuid";
 import { Session } from "../core/models";
-import { Dately } from "../../utils/dately/dately";
-import { Tokenizer } from "../../utils/tokenizer/tokenizer";
-import { SelfManager } from "../selfManager/selfManager";
+import Dately from "../../utils/dately/dately";
+import Tokenizer from "../../utils/tokenizer/tokenizer";
+import SelfManager from "../selfManager/selfManager";
+import logger, { LogLevel } from "../../utils/logger/logger";
 
-export class TokensManager {
+export default class TokensManager {
     static readonly shared = new TokensManager();
 
     private constructor() {}
@@ -48,7 +49,9 @@ export class TokensManager {
                 }
 
                 return null;
-            } catch {
+            } catch (e) {
+                logger(e, LogLevel.attention, [this, this.validateAccessToken]);
+
                 return null;
             }
         }
@@ -124,10 +127,13 @@ export class TokensManager {
                 accessToken: accessToken,
             });
             return reply;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.createAccessToken]);
+
             const reply = new Failure<TokenCreationFailureReason>(
                 TokenCreationFailureReason.unknown
             );
+
             return reply;
         }
     }
@@ -156,7 +162,9 @@ export class TokensManager {
 
                 const reply = new Success<Empty>({});
                 return reply;
-            } catch {
+            } catch (e) {
+                logger(e, LogLevel.attention, [this, this.deleteAccessToken]);
+
                 const reply = new Failure<TokenDeletionFailureReason>(
                     TokenDeletionFailureReason.unknown
                 );
@@ -167,6 +175,7 @@ export class TokensManager {
         const reply = new Failure<TokenDeletionFailureReason>(
             TokenDeletionFailureReason.unknown
         );
+
         return reply;
     }
 }

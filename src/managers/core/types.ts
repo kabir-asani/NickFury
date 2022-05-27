@@ -4,10 +4,6 @@ export interface PaginationParameters {
 }
 
 export interface ViewablesParameters {
-    viewerId?: String;
-}
-
-export interface ViewablesParameters2 {
     viewerId: String;
 }
 

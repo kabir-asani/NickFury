@@ -7,10 +7,10 @@ import {
 } from "../../utils/typescriptx/typescriptx";
 import { ViewableTweet } from "../core/models";
 import { Paginated, PaginationParameters } from "../core/types";
-import { TweetsManager } from "../tweetsManager/tweetsManager";
-import { TimelineFailure } from "./types";
+import TweetsManager from "../tweetsManager/tweetsManager";
+import { TimelineFailureReason } from "./types";
 
-export class TimelinesManager {
+export default class TimelinesManager {
     static readonly shared = new TimelinesManager();
 
     private constructor() {}
@@ -19,7 +19,9 @@ export class TimelinesManager {
         parameters: {
             userId: String;
         } & PaginationParameters
-    ): Promise<Success<Paginated<ViewableTweet>> | Failure<TimelineFailure>> {
+    ): Promise<
+        Success<Paginated<ViewableTweet>> | Failure<TimelineFailureReason>
+    > {
         const tweetActivitiesResult =
             await StreamAssistant.shared.timelineFeed.activities({
                 userId: parameters.userId,
@@ -30,15 +32,15 @@ export class TimelinesManager {
         if (tweetActivitiesResult instanceof Failure) {
             switch (tweetActivitiesResult.reason) {
                 case TimelineTweetActivitiesFailureReason.malformedParameters: {
-                    const reply = new Failure<TimelineFailure>(
-                        TimelineFailure.malformedParameters
+                    const reply = new Failure<TimelineFailureReason>(
+                        TimelineFailureReason.malformedParameters
                     );
 
                     return reply;
                 }
                 default: {
-                    const reply = new Failure<TimelineFailure>(
-                        TimelineFailure.malformedParameters
+                    const reply = new Failure<TimelineFailureReason>(
+                        TimelineFailureReason.malformedParameters
                     );
 
                     return reply;
@@ -49,15 +51,15 @@ export class TimelinesManager {
         const tweetActivities = tweetActivitiesResult.data;
 
         const viewableTweetsResult = await TweetsManager.shared.viewableTweets({
-            identifiers: tweetActivities.page.map((tweetActivity) => {
+            tweetIdentifiers: tweetActivities.page.map((tweetActivity) => {
                 return tweetActivity.tweetId;
             }),
             viewerId: parameters.userId,
         });
 
         if (viewableTweetsResult instanceof Failure) {
-            const reply = new Failure<TimelineFailure>(
-                TimelineFailure.malformedParameters
+            const reply = new Failure<TimelineFailureReason>(
+                TimelineFailureReason.malformedParameters
             );
 
             return reply;

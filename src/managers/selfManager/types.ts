@@ -5,5 +5,5 @@ export enum SelfCreationFailureReason {
 
 export enum SelfUpdationFailureReason {
     unknown,
-    otherUserWithThatUsernameAlreadyExists,
+    usernameUnavailable,
 }

@@ -5,13 +5,14 @@ import {
     DBCollections,
 } from "../../assistants/database/database";
 import StreamAssistant from "../../assistants/stream/stream";
-import { Dately } from "../../utils/dately/dately";
+import Dately from "../../utils/dately/dately";
+import logger, { LogLevel } from "../../utils/logger/logger";
 import { Success, Failure } from "../../utils/typescriptx/typescriptx";
 import { User } from "../core/models";
-import { UsersManager } from "../usersManager/usersManager";
+import UsersManager from "../usersManager/usersManager";
 import { SelfCreationFailureReason, SelfUpdationFailureReason } from "./types";
 
-export class SelfManager {
+export default class SelfManager {
     static readonly shared = new SelfManager();
 
     async create(parameters: {
@@ -57,7 +58,7 @@ export class SelfManager {
         try {
             await userDocumentRef.create(user);
 
-            // TODO: Ignoring for now. This works. But eventually handle failure of follow feed too.
+            // TODO: Ignoring failure check for now. This works. But eventually handle failure of follow feed too.
             const followResult =
                 await StreamAssistant.shared.timelineFeed.follow({
                     followerUserId: user.id,
@@ -66,7 +67,9 @@ export class SelfManager {
 
             const reply = new Success<User>(user);
             return reply;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.create]);
+
             const reply = new Failure<SelfCreationFailureReason>(
                 SelfCreationFailureReason.unknown
             );
@@ -109,7 +112,7 @@ export class SelfManager {
 
             if (user !== null && user.id !== parameters.id) {
                 const reply = new Failure<SelfUpdationFailureReason>(
-                    SelfUpdationFailureReason.otherUserWithThatUsernameAlreadyExists
+                    SelfUpdationFailureReason.usernameUnavailable
                 );
 
                 return reply;
@@ -158,7 +161,9 @@ export class SelfManager {
             const reply = new Success<User>(updatedUser);
 
             return reply;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.update]);
+
             const reply = new Failure<SelfUpdationFailureReason>(
                 SelfUpdationFailureReason.unknown
             );

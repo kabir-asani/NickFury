@@ -1,17 +1,15 @@
 export class AuthProvider {
     static readonly apple = new AuthProvider({
-        value: "apple"
+        value: "apple",
     });
 
     static readonly google = new AuthProvider({
-        value: "google"
+        value: "google",
     });
 
     private readonly value: String;
 
-    constructor(parameters: {
-        value: String
-    }) {
+    constructor(parameters: { value: String }) {
         this.value = parameters.value;
     }
 
@@ -26,13 +24,13 @@ export interface Credentials {
 
 export enum TokenValidationFailureReason {
     unknown,
-    invalid
+    invalidToken,
 }
 
 export enum TokenCreationFailureReason {
-    unknown
+    unknown,
 }
 
 export enum TokenDeletionFailureReason {
-    unknown
+    unknown,
 }

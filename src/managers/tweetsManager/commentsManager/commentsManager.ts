@@ -14,7 +14,7 @@ import {
     CommentDeletionFailureReason,
 } from "./types";
 
-export class CommentsManager {
+export default class CommentsManager {
     static readonly shared = new CommentsManager();
 
     private constructor() {}

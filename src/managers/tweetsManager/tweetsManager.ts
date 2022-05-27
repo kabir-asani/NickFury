@@ -5,14 +5,15 @@ import {
 } from "../../assistants/database/database";
 import { TweetActivitiesFailureReason } from "../../assistants/stream/feeds/selfFeed/types";
 import StreamAssistant from "../../assistants/stream/stream";
-import { Dately } from "../../utils/dately/dately";
+import Dately from "../../utils/dately/dately";
+import logger, { LogLevel } from "../../utils/logger/logger";
 import {
     Empty,
     Failure,
     Success,
     valuesOf,
 } from "../../utils/typescriptx/typescriptx";
-import { BookmarksManager } from "../bookmarksManager/bookmarksManager";
+import BookmarksManager from "../bookmarksManager/bookmarksManager";
 import {
     Tweet,
     TweetViewables,
@@ -24,9 +25,9 @@ import {
     Paginated,
     PaginationParameters,
     Value,
-    ViewablesParameters2,
+    ViewablesParameters,
 } from "../core/types";
-import { UsersManager } from "../usersManager/usersManager";
+import UsersManager from "../usersManager/usersManager";
 import {
     TweetCreationFailureReason,
     TweetDeletionFailureReason,
@@ -36,7 +37,7 @@ import {
     ViewableTweetsFailureReason,
 } from "./types";
 
-export class TweetsManager {
+export default class TweetsManager {
     static readonly shared = new TweetsManager();
 
     private constructor() {}
@@ -119,7 +120,9 @@ export class TweetsManager {
             const reply = new Success<Tweet>(tweet);
 
             return reply;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.create]);
+
             const reply = new Failure<TweetCreationFailureReason>(
                 TweetCreationFailureReason.unknown
             );
@@ -186,7 +189,9 @@ export class TweetsManager {
             const reply = new Success<Empty>({});
 
             return reply;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.delete]);
+
             const reply = new Failure<TweetDeletionFailureReason>(
                 TweetDeletionFailureReason.unknown
             );
@@ -218,7 +223,7 @@ export class TweetsManager {
     async viewableTweet(
         parameters: {
             tweetId: String;
-        } & ViewablesParameters2
+        } & ViewablesParameters
     ): Promise<ViewableTweet | null> {
         const tweetsCollection = DatabaseAssistant.shared.collection(
             DBCollections.tweets
@@ -315,6 +320,14 @@ export class TweetsManager {
 
         const tweetActivities = tweetActivitiesResult.data;
 
+        if (tweetActivities.page.length === 0) {
+            const paginatedTweets: Paginated<Tweet> = { page: [] };
+
+            const reply = new Success<Paginated<Tweet>>(paginatedTweets);
+
+            return reply;
+        }
+
         const tweetDocumentRefs = tweetActivities.page.map((tweetActivity) => {
             const tweetsCollection = DatabaseAssistant.shared.collection(
                 DBCollections.tweets
@@ -349,7 +362,7 @@ export class TweetsManager {
     async paginatedViewableTweetsOf(
         parameters: {
             userId: String;
-        } & ViewablesParameters2 &
+        } & ViewablesParameters &
             PaginationParameters
     ): Promise<
         | Success<Paginated<ViewableTweet>>
@@ -397,7 +410,7 @@ export class TweetsManager {
         }
 
         const viewableUsersResult = await UsersManager.shared.viewableUsers({
-            identifiers: paginatedTweets.page.map((tweet) => {
+            userIdentifiers: paginatedTweets.page.map((tweet) => {
                 return tweet.authorId;
             }),
             viewerId: parameters.viewerId,
@@ -448,9 +461,15 @@ export class TweetsManager {
     }
 
     private async tweets(parameters: {
-        identifiers: String[];
+        tweetIdentifiers: String[];
     }): Promise<Success<Value<Tweet>> | Failure<TweetsFailureReason>> {
-        const tweetDocumentRefs = parameters.identifiers.map((tweetId) => {
+        if (parameters.tweetIdentifiers.length === 0) {
+            const reply = new Success<Value<Tweet>>({});
+
+            return reply;
+        }
+
+        const tweetDocumentRefs = parameters.tweetIdentifiers.map((tweetId) => {
             const tweetDocumentPath = DBCollections.tweets + `/${tweetId}`;
 
             const tweetDocumentRef =
@@ -486,13 +505,19 @@ export class TweetsManager {
 
     async viewableTweets(
         parameters: {
-            identifiers: String[];
-        } & ViewablesParameters2
+            tweetIdentifiers: String[];
+        } & ViewablesParameters
     ): Promise<
         Success<Value<ViewableTweet>> | Failure<ViewableTweetsFailureReason>
     > {
+        if (parameters.tweetIdentifiers.length === 0) {
+            const reply = new Success<Value<ViewableTweet>>({});
+
+            return reply;
+        }
+
         const tweetsResult = await this.tweets({
-            identifiers: parameters.identifiers,
+            tweetIdentifiers: parameters.tweetIdentifiers,
         });
 
         if (tweetsResult instanceof Failure) {
@@ -515,7 +540,7 @@ export class TweetsManager {
         }
 
         const viewableUsersResult = await UsersManager.shared.viewableUsers({
-            identifiers: valuesOf(tweetsResult).map((tweet) => {
+            userIdentifiers: valuesOf(tweetsResult).map((tweet) => {
                 return tweet.authorId;
             }),
             viewerId: parameters.viewerId,
