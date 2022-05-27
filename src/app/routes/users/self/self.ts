@@ -7,6 +7,7 @@ import { Failure } from "../../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../../core/override";
 import {
     AllOkRouteSuccess,
+    ConflictRouteFailure,
     InternalRouteFailure,
     NoResourceRouteFailure,
     SemanticRouteFailure,
@@ -52,10 +53,10 @@ self.patch(
     "/",
     soldier({
         schema: Joi.object({
-            username: Joi.string().max(50),
-            name: Joi.string().max(100),
-            description: Joi.string().max(250),
-            image: Joi.string(),
+            username: Joi.string().max(50).optional(),
+            name: Joi.string().max(100).optional(),
+            description: Joi.string().max(250).optional(),
+            image: Joi.string().optional(),
         }),
         groundZero: GroundZero.body,
     }),
@@ -86,9 +87,9 @@ self.patch(
 
             switch (selfUpdationResult.reason) {
                 case SelfUpdationFailureReason.usernameUnavailable: {
-                    const response = new SemanticRouteFailure(message);
+                    const response = new ConflictRouteFailure(message);
 
-                    res.status(SemanticRouteFailure.statusCode).json(response);
+                    res.status(ConflictRouteFailure.statusCode).json(response);
 
                     return;
                 }

@@ -12,6 +12,7 @@ import { Failure } from "../../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../../core/override";
 import {
     AllOkRouteSuccess,
+    ConflictRouteFailure,
     IncorrectParametersRouteFailure,
     InternalRouteFailure,
     NoContentRouteSuccess,
@@ -54,13 +55,9 @@ bookmarks.get(
 
             switch (paginatedViewableBookmarksResult.reason) {
                 case PaginatedViewableBookmarksFailureReason.malformedParameters: {
-                    const response = new IncorrectParametersRouteFailure(
-                        message
-                    );
+                    const response = new SemanticRouteFailure(message);
 
-                    res.status(IncorrectParametersRouteFailure.statusCode).json(
-                        response
-                    );
+                    res.status(SemanticRouteFailure.statusCode).json(response);
 
                     return;
                 }
@@ -112,9 +109,9 @@ bookmarks.post(
 
             switch (bookmarkCreationResult.reason) {
                 case BookmarkCreationFailureReason.bookmarkAlreadyExists: {
-                    const response = new SemanticRouteFailure(message);
+                    const response = new ConflictRouteFailure(message);
 
-                    res.status(SemanticRouteFailure.statusCode).json(response);
+                    res.status(ConflictRouteFailure.statusCode).json(response);
 
                     return;
                 }

@@ -10,9 +10,11 @@ import { Failure } from "../../../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../../../core/override";
 import {
     AllOkRouteSuccess,
+    ConflictRouteFailure,
     InternalRouteFailure,
     NoContentRouteSuccess,
     NoResourceRouteFailure,
+    SemanticRouteFailure,
 } from "../../../../core/types";
 import paginated from "../../../../middlewares/paginated/paginated";
 import selfishGuard from "../../../../middlewares/selfieGuard/selfieGuard";
@@ -28,7 +30,7 @@ followings.get("/", paginated(), async (req: Request, res: Response) => {
     const userId = req.params.userId || session.userId;
 
     const paginatedViewableFollowingsResult =
-        await SocialsManager.shared.paginatedViewableFollowings({
+        await SocialsManager.shared.paginatedViewableFollowees({
             userId: userId,
             viewerId: session.userId,
         });
@@ -77,7 +79,14 @@ followings.post(
             );
 
             switch (followResult.reason) {
-                case FollowFailureReason.followingDoesNotExists: {
+                case FollowFailureReason.relationshipAlreadyExists: {
+                    const response = new ConflictRouteFailure(message);
+
+                    res.status(ConflictRouteFailure.statusCode).json(response);
+
+                    return;
+                }
+                case FollowFailureReason.followeeDoesNotExists: {
                     const response = new NoResourceRouteFailure(message);
 
                     res.status(NoResourceRouteFailure.statusCode).json(
@@ -129,7 +138,7 @@ followings.delete(
 
         const unfollowResult = await SocialsManager.shared.unfollow({
             followerId: session.userId,
-            followingId: userId,
+            followeeId: userId,
         });
 
         if (unfollowResult instanceof Failure) {

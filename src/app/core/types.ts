@@ -76,6 +76,14 @@ export class NoResourceRouteFailure extends RouteFailure {
     }
 }
 
+export class ConflictRouteFailure extends RouteFailure {
+    static readonly statusCode = 409;
+
+    constructor(reason?: Object) {
+        super(reason || "Conflict");
+    }
+}
+
 export class SemanticRouteFailure extends RouteFailure {
     static readonly statusCode = 422;
 

@@ -7,7 +7,6 @@ import { Failure } from "../../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../../core/override";
 import {
     AllOkRouteSuccess,
-    IncorrectParametersRouteFailure,
     InternalRouteFailure,
     SemanticRouteFailure,
 } from "../../../core/types";
@@ -42,13 +41,9 @@ timeline.get(
 
             switch (timelineResult.reason) {
                 case TimelineFailureReason.malformedParameters: {
-                    const response = new IncorrectParametersRouteFailure(
-                        message
-                    );
+                    const response = new SemanticRouteFailure(message);
 
-                    res.status(IncorrectParametersRouteFailure.statusCode).json(
-                        response
-                    );
+                    res.status(SemanticRouteFailure.statusCode).json(response);
 
                     return;
                 }

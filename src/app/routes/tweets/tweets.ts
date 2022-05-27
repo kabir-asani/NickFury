@@ -11,6 +11,7 @@ import {
     IncorrectParametersRouteFailure,
     InternalRouteFailure,
     NoContentRouteSuccess,
+    SemanticRouteFailure,
 } from "../../core/types";
 import paginated from "../../middlewares/paginated/paginated";
 import selfishGuard from "../../middlewares/selfieGuard/selfieGuard";
@@ -45,11 +46,9 @@ tweets.get("/", paginated(), async (req: Request, res: Response) => {
     if (paginatedViewableTweetsResult instanceof Failure) {
         switch (paginatedViewableTweetsResult.reason) {
             case PaginatedViewableTweetsFailureReason.malformedParameters: {
-                const response = new IncorrectParametersRouteFailure();
+                const response = new SemanticRouteFailure();
 
-                res.status(IncorrectParametersRouteFailure.statusCode).json(
-                    response
-                );
+                res.status(SemanticRouteFailure.statusCode).json(response);
 
                 return;
             }
