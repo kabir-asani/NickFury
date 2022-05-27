@@ -291,56 +291,6 @@ export default class BookmarksManager {
         return viewables;
     }
 
-    async bookmarks(parameters: {
-        userId: String;
-        identifiers: String[];
-    }): Promise<Success<Value<Bookmark>> | Failure<BookmarksFailureReason>> {
-        if (parameters.identifiers.length === 0) {
-            const reply = new Success<Value<Bookmark>>({});
-
-            return reply;
-        }
-
-        const bookmarkDocumentRefs = parameters.identifiers.map(
-            (bookmarkId) => {
-                const bookmarkDocumentPath =
-                    DBCollections.users +
-                    `/${parameters.userId}/` +
-                    DBCollections.bookmarks +
-                    `/${bookmarkId}`;
-
-                const bookmarkDocumentRef =
-                    DatabaseAssistant.shared.doc(bookmarkDocumentPath);
-
-                return bookmarkDocumentRef;
-            }
-        );
-
-        const bookmarkDocuments = await DatabaseAssistant.shared.getAll(
-            ...bookmarkDocumentRefs
-        );
-
-        const bookmarks: Value<Bookmark> = {};
-
-        for (let bookmarkDocument of bookmarkDocuments) {
-            if (!bookmarkDocument.exists) {
-                const reply = new Failure<BookmarksFailureReason>(
-                    BookmarksFailureReason.missingBookmarks
-                );
-
-                return reply;
-            }
-
-            const bookmark = bookmarkDocument.data() as unknown as Bookmark;
-
-            bookmarks[bookmark.id.valueOf()] = bookmark;
-        }
-
-        const reply = new Success<Value<Bookmark>>(bookmarks);
-
-        return reply;
-    }
-
     async paginatedBookmarksOf(
         parameters: {
             userId: String;
