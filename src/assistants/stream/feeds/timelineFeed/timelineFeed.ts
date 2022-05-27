@@ -48,7 +48,9 @@ export default class TimelineFeedAssistant extends FeedAssistant {
             const result = new Success<Empty>({});
 
             return result;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.follow]);
+
             const result = new Failure<FollowFeedFailure>(
                 FollowFeedFailure.unknown
             );
@@ -75,7 +77,9 @@ export default class TimelineFeedAssistant extends FeedAssistant {
             const result = new Success<Empty>({});
 
             return result;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.unfollow]);
+
             const result = new Failure<UnfollowFeedFailure>(
                 UnfollowFeedFailure.unknown
             );

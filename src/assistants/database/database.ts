@@ -1,5 +1,5 @@
 import { firestore } from "firebase-admin";
-import { FirebaseAssistant } from "../firebase/firebase";
+import FirebaseAssistant from "../firebase/firebase";
 
 export class DBCollections {
     static readonly sessions = "sessions";
@@ -14,8 +14,8 @@ export class DBCollections {
     static readonly bookmarks = "bookmarks";
 }
 
-export class DatabaseAssistant {
+export default class DatabaseAssistant {
     public static readonly shared = firestore(FirebaseAssistant.shared().app());
 
-    private constructor() { }
+    private constructor() {}
 }

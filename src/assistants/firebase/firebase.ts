@@ -2,7 +2,7 @@ import admin from "firebase-admin";
 import { App } from "firebase-admin/app";
 import Secrets from "../../secrets.json";
 
-export class FirebaseAssistant {
+export default class FirebaseAssistant {
     private static _shared = new FirebaseAssistant();
     public static shared = () => this._shared;
 

@@ -10,7 +10,7 @@ export class NetworkResult {
     }
 }
 
-export class NetworkAssistant {
+export default class NetworkAssistant {
     private static _shared = new NetworkAssistant();
     public static shared = (): NetworkAssistant => this._shared;
 
