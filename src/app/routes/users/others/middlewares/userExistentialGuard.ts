@@ -1,22 +1,20 @@
-import { UsersManager } from "../../../../../managers/usersManager/usersManager";
+import UsersManager from "../../../../../managers/usersManager/usersManager";
 import { NoResourceRouteFailure } from "../../../../core/types";
-import { TxMiddleware } from "../../../../middlewares/core/types";
+import TxMiddleware from "../../../../middlewares/core/types";
 
-export const userExistentialGuard = (): TxMiddleware =>
-    async (req, res, next) => {
+export const userExistentialGuard =
+    (): TxMiddleware => async (req, res, next) => {
         const userId = req.params.userId as String;
 
         const isUserExists = await UsersManager.shared.exists({
-            id: userId
+            id: userId,
         });
 
         if (isUserExists) {
             next();
         } else {
-            const response = new NoResourceRouteFailure();
+            const response = new NoResourceRouteFailure("Non-existent User");
 
-            res
-                .status(NoResourceRouteFailure.statusCode)
-                .json(response);
+            res.status(NoResourceRouteFailure.statusCode).json(response);
         }
-    }
+    };

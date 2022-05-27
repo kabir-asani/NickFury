@@ -1,17 +1,14 @@
 import { Router, Request, Response } from "express";
-import { UsersManager } from "../../../../managers/usersManager/usersManager";
+import UsersManager from "../../../../managers/usersManager/usersManager";
 import { SessionizedRequest } from "../../../core/override";
-import {
-    AllOkRouteSuccess,
-    InternalRouteFailure
-} from "../../../core/types";
+import { AllOkRouteSuccess, InternalRouteFailure } from "../../../core/types";
 import followers from "../socials/followers/followers";
 import followings from "../socials/followings/followings";
 import tweets from "../../tweets/tweets";
 import { userExistentialGuard } from "./middlewares/userExistentialGuard";
 
 const others = Router({
-    mergeParams: true
+    mergeParams: true,
 });
 
 others.use(userExistentialGuard());
@@ -22,32 +19,27 @@ others.use("/followings", followings);
 
 others.use("/tweets", tweets);
 
-others.get(
-    "/",
-    async (req: Request, res: Response) => {
-        const session = (req as SessionizedRequest).session;
+others.get("/", async (req: Request, res: Response) => {
+    const session = (req as SessionizedRequest).session;
 
-        const userId = req.params.userId as String;
+    const userId = req.params.userId as String;
 
-        const viewableUser = await UsersManager.shared.viewableUser({
-            id: userId,
-            viewerId: session.userId
-        });
+    const viewableUser = await UsersManager.shared.viewableUser({
+        id: userId,
+        viewerId: session.userId,
+    });
 
-        if (viewableUser !== null) {
-            const response = new AllOkRouteSuccess(viewableUser);
+    if (viewableUser === null) {
+        const response = new InternalRouteFailure();
 
-            res
-                .status(AllOkRouteSuccess.statusCode)
-                .json(response);
-        } else {
-            const response = new InternalRouteFailure();
+        res.status(InternalRouteFailure.statusCode).json(response);
 
-            res
-                .status(InternalRouteFailure.statusCode)
-                .json(response);
-        }
+        return;
     }
-);
 
-export = others;
+    const response = new AllOkRouteSuccess(viewableUser);
+
+    res.status(AllOkRouteSuccess.statusCode).json(response);
+});
+
+export default others;

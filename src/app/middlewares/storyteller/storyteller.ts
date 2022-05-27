@@ -1,5 +1,5 @@
 import logger from "../../../utils/logger/logger";
-import { TxMiddleware } from "../core/types";
+import TxMiddleware from "../core/types";
 
 const storyteller = (): TxMiddleware => (req, res, next) => {
     const details = {
@@ -10,11 +10,11 @@ const storyteller = (): TxMiddleware => (req, res, next) => {
         query: req.query,
     };
 
-    logger('----------REQUEST-----------');
+    logger("----------REQUEST-----------");
     logger(details);
-    logger('----------------------------');
+    logger("----------------------------");
 
     return next();
 };
 
-export = storyteller;
+export default storyteller;

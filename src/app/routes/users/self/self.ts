@@ -1,25 +1,25 @@
 import { Router } from "express";
 import Joi from "joi";
-import { SelfManager } from "../../../../managers/selfManager/selfManager";
+import SelfManager from "../../../../managers/selfManager/selfManager";
 import { SelfUpdationFailureReason } from "../../../../managers/selfManager/types";
+import { sentenceCasize } from "../../../../utils/caser/caser";
 import { Failure } from "../../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../../core/override";
 import {
     AllOkRouteSuccess,
+    InternalRouteFailure,
     NoResourceRouteFailure,
     SemanticRouteFailure,
-    UnimplementedRouteFailure
 } from "../../../core/types";
-import { soldier, GroundZero } from "../../../middlewares/soldier/soldier";
+import soldier, { GroundZero } from "../../../middlewares/soldier/soldier";
 import tweets from "../../tweets/tweets";
 import bookmarks from "../bookmarks/bookmarks";
 import followers from "../socials/followers/followers";
 import followings from "../socials/followings/followings";
 import timeline from "../timeline/timeline";
 
-
 const self = Router({
-    mergeParams: true
+    mergeParams: true,
 });
 
 self.use("/timeline", timeline);
@@ -28,30 +28,25 @@ self.use("/followings", followings);
 self.use("/tweets", tweets);
 self.use("/bookmarks", bookmarks);
 
-self.get(
-    "/",
-    async (req, res) => {
-        const session = (req as SessionizedRequest).session;
+self.get("/", async (req, res) => {
+    const session = (req as SessionizedRequest).session;
 
-        const user = await SelfManager.shared.self({
-            id: session.userId
-        });
+    const selfUser = await SelfManager.shared.self({
+        id: session.userId,
+    });
 
-        if (user !== null) {
-            const response = new AllOkRouteSuccess(user);
+    if (selfUser === null) {
+        const response = new NoResourceRouteFailure();
 
-            res
-                .status(AllOkRouteSuccess.statusCode)
-                .json(response);
-        } else {
-            const response = new NoResourceRouteFailure();
+        res.status(NoResourceRouteFailure.statusCode).json(response);
 
-            res
-                .status(NoResourceRouteFailure.statusCode)
-                .json(response);
-        }
+        return;
     }
-);
+
+    const response = new AllOkRouteSuccess(selfUser);
+
+    res.status(AllOkRouteSuccess.statusCode).json(response);
+});
 
 self.patch(
     "/",
@@ -62,7 +57,7 @@ self.patch(
             description: Joi.string().max(250),
             image: Joi.string(),
         }),
-        groundZero: GroundZero.body
+        groundZero: GroundZero.body,
     }),
     async (req, res) => {
         const session = (req as SessionizedRequest).session;
@@ -74,49 +69,45 @@ self.patch(
             image?: String;
         };
 
-        const selfUpdation = await SelfManager.shared.update({
+        const selfUpdationResult = await SelfManager.shared.update({
             id: session.userId,
             updates: {
                 username: parameters.username,
                 name: parameters.name,
                 description: parameters.description,
-                image: parameters.image
-            }
+                image: parameters.image,
+            },
         });
 
-        if (selfUpdation instanceof Failure) {
-            switch (selfUpdation.reason) {
-                case SelfUpdationFailureReason.otherUserWithThatUsernameAlreadyExists: {
-                    const response = new SemanticRouteFailure("That username is not available");
+        if (selfUpdationResult instanceof Failure) {
+            const message = sentenceCasize(
+                SelfUpdationFailureReason[selfUpdationResult.reason]
+            );
 
-                    res
-                        .status(SemanticRouteFailure.statusCode)
-                        .json(response);
+            switch (selfUpdationResult.reason) {
+                case SelfUpdationFailureReason.usernameUnavailable: {
+                    const response = new SemanticRouteFailure(message);
 
-                    break;
+                    res.status(SemanticRouteFailure.statusCode).json(response);
+
+                    return;
                 }
-
                 default: {
-                    const response = new UnimplementedRouteFailure();
+                    const response = new InternalRouteFailure(message);
 
-                    res
-                        .status(UnimplementedRouteFailure.statusCode)
-                        .json(response);
+                    res.status(InternalRouteFailure.statusCode).json(response);
 
-                    break;
+                    return;
                 }
             }
-        } else {
-            const updatedUser = selfUpdation.data;
-
-            const response = new AllOkRouteSuccess(updatedUser);
-
-            res
-                .status(AllOkRouteSuccess.statusCode)
-                .json(response);
         }
 
+        const updatedUser = selfUpdationResult.data;
+
+        const response = new AllOkRouteSuccess(updatedUser);
+
+        res.status(AllOkRouteSuccess.statusCode).json(response);
     }
 );
 
-export = self;
+export default self;

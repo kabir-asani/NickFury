@@ -1,27 +1,24 @@
-import { Router, Request, Response } from "express";
+import { Request, Response, Router } from "express";
 import Joi from "joi";
 import { UnimplementedRouteFailure } from "../../../core/types";
 import paginated from "../../../middlewares/paginated/paginated";
 import soldier, { GroundZero } from "../../../middlewares/soldier/soldier";
 
-const comments = Router({
+const search = Router({
     mergeParams: true,
 });
 
-comments.get("/", paginated(), async (req: Request, res: Response) => {
-    const response = new UnimplementedRouteFailure();
-
-    res.status(UnimplementedRouteFailure.statusCode).json(response);
-});
-
-comments.post(
+search.get(
     "/",
-    soldier({
-        schema: Joi.object({
-            text: Joi.string().required().min(1).max(280),
+    [
+        paginated(),
+        soldier({
+            schema: Joi.object({
+                keyword: Joi.string().required(),
+            }).unknown(true),
+            groundZero: GroundZero.query,
         }),
-        groundZero: GroundZero.body,
-    }),
+    ],
     async (req: Request, res: Response) => {
         const response = new UnimplementedRouteFailure();
 
@@ -29,4 +26,4 @@ comments.post(
     }
 );
 
-export default comments;
+export default search;

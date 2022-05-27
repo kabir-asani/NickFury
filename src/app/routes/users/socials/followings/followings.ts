@@ -1,10 +1,11 @@
 import { Router, Request, Response } from "express";
 import Joi from "joi";
-import { SocialsManager } from "../../../../../managers/socialsManager/socialsManager";
+import SocialsManager from "../../../../../managers/socialsManager/socialsManager";
 import {
     FollowFailureReason,
-    UnfollowFailureReason
+    UnfollowFailureReason,
 } from "../../../../../managers/socialsManager/types";
+import { sentenceCasize } from "../../../../../utils/caser/caser";
 import { Failure } from "../../../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../../../core/override";
 import {
@@ -12,65 +13,40 @@ import {
     InternalRouteFailure,
     NoContentRouteSuccess,
     NoResourceRouteFailure,
-    UnimplementedRouteFailure
 } from "../../../../core/types";
 import paginated from "../../../../middlewares/paginated/paginated";
-import { selfishGuard } from "../../../../middlewares/selfieGuard/selfieGuard";
-import { GroundZero, soldier } from "../../../../middlewares/soldier/soldier";
+import selfishGuard from "../../../../middlewares/selfieGuard/selfieGuard";
+import soldier, { GroundZero } from "../../../../middlewares/soldier/soldier";
 
 const followings = Router({
-    mergeParams: true
+    mergeParams: true,
 });
 
-followings.get(
-    "/",
-    paginated(),
-    async (req: Request, res: Response) => {
-        const session = (req as SessionizedRequest).session;
+followings.get("/", paginated(), async (req: Request, res: Response) => {
+    const session = (req as SessionizedRequest).session;
 
-        const userId = req.params.userId;
+    const userId = req.params.userId || session.userId;
 
-        if (userId !== undefined && userId !== null) {
-            const viewableFollowings = await SocialsManager.shared.viewableFollowings({
-                userId: userId,
-                viewerId: session.userId
-            });
+    const paginatedViewableFollowingsResult =
+        await SocialsManager.shared.paginatedViewableFollowings({
+            userId: userId,
+            viewerId: session.userId,
+        });
 
-            if (viewableFollowings == null) {
-                const response = new InternalRouteFailure();
+    if (paginatedViewableFollowingsResult instanceof Failure) {
+        const response = new InternalRouteFailure();
 
-                res
-                    .status(InternalRouteFailure.statusCode)
-                    .json(response);
-            } else {
-                const response = new AllOkRouteSuccess(viewableFollowings);
+        res.status(InternalRouteFailure.statusCode).json(response);
 
-                res
-                    .status(AllOkRouteSuccess.statusCode)
-                    .json(response);
-            }
-        } else {
-            const viewableFollowings = await SocialsManager.shared.viewableFollowings({
-                userId: session.userId,
-                viewerId: session.userId
-            });
+        return;
+    }
 
-            if (viewableFollowings == null) {
-                const response = new InternalRouteFailure();
+    const paginatedViewableFollowings = paginatedViewableFollowingsResult.data;
 
-                res
-                    .status(InternalRouteFailure.statusCode)
-                    .json(response);
-            } else {
-                const response = new AllOkRouteSuccess(viewableFollowings);
+    const response = new AllOkRouteSuccess(paginatedViewableFollowings);
 
-                res
-                    .status(AllOkRouteSuccess.statusCode)
-                    .json(response);
-            }
-        }
-    },
-);
+    res.status(AllOkRouteSuccess.statusCode).json(response);
+});
 
 followings.post(
     "/",
@@ -81,49 +57,58 @@ followings.post(
                 userId: Joi.string().required(),
             }),
             groundZero: GroundZero.body,
-        })
+        }),
     ],
     async (req: Request, res: Response) => {
         const session = (req as SessionizedRequest).session;
 
         const parameters = req.body as {
-            userId: String
+            userId: String;
         };
 
         const followResult = await SocialsManager.shared.follow({
             followerId: session.userId,
-            followingId: parameters.userId
+            followingId: parameters.userId,
         });
 
         if (followResult instanceof Failure) {
+            const message = sentenceCasize(
+                FollowFailureReason[followResult.reason]
+            );
+
             switch (followResult.reason) {
                 case FollowFailureReason.followingDoesNotExists: {
-                    const response = new NoResourceRouteFailure();
+                    const response = new NoResourceRouteFailure(message);
 
-                    res
-                        .status(NoResourceRouteFailure.statusCode)
-                        .json(response);
+                    res.status(NoResourceRouteFailure.statusCode).json(
+                        response
+                    );
 
-                    break;
+                    return;
+                }
+                case FollowFailureReason.followerDoesNotExists: {
+                    const response = new NoResourceRouteFailure(message);
+
+                    res.status(NoResourceRouteFailure.statusCode).json(
+                        response
+                    );
+
+                    return;
                 }
                 default: {
-                    const response = new InternalRouteFailure();
+                    const response = new InternalRouteFailure(message);
 
-                    res
-                        .status(InternalRouteFailure.statusCode)
-                        .json(response);
+                    res.status(InternalRouteFailure.statusCode).json(response);
 
-                    break;
+                    return;
                 }
             }
-        } else {
-            const response = new NoContentRouteSuccess();
-
-            res
-                .status(NoContentRouteSuccess.statusCode)
-                .json(response);
         }
-    },
+
+        const response = new NoContentRouteSuccess();
+
+        res.status(NoContentRouteSuccess.statusCode).json(response);
+    }
 );
 
 followings.delete(
@@ -135,16 +120,16 @@ followings.delete(
                 userId: Joi.string().required(),
             }),
             groundZero: GroundZero.parameters,
-        })
+        }),
     ],
     async (req: Request, res: Response) => {
         const session = (req as SessionizedRequest).session;
 
-        const userId = req.params.userId as String;
+        const userId = req.params.userId;
 
         const unfollowResult = await SocialsManager.shared.unfollow({
             followerId: session.userId,
-            followingId: userId
+            followingId: userId,
         });
 
         if (unfollowResult instanceof Failure) {
@@ -152,30 +137,26 @@ followings.delete(
                 case UnfollowFailureReason.relationshipDoesNotExists: {
                     const response = new NoResourceRouteFailure();
 
-                    res
-                        .status(NoResourceRouteFailure.statusCode)
-                        .json(response);
+                    res.status(NoResourceRouteFailure.statusCode).json(
+                        response
+                    );
 
-                    break;
+                    return;
                 }
                 default: {
                     const response = new InternalRouteFailure();
 
-                    res
-                        .status(InternalRouteFailure.statusCode)
-                        .json(response);
+                    res.status(InternalRouteFailure.statusCode).json(response);
 
-                    break;
+                    return;
                 }
             }
-        } else {
-            const response = new NoContentRouteSuccess();
-
-            res
-                .status(NoContentRouteSuccess.statusCode)
-                .json(response);
         }
-    }
-)
 
-export = followings;
+        const response = new NoContentRouteSuccess();
+
+        res.status(NoContentRouteSuccess.statusCode).json(response);
+    }
+);
+
+export default followings;

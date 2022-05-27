@@ -1,7 +1,7 @@
 import { camelCasize } from "../../../utils/caser/caser";
-import { TxMiddleware } from "../core/types";
+import TxMiddleware from "../core/types";
 
-export const caseme = (): TxMiddleware => async (req, res, next) => {
+const caseme = (): TxMiddleware => async (req, res, next) => {
     const camelizedQuery = camelCasize(req.query) as { [key: string]: any };
     req.query = camelizedQuery;
 
@@ -9,4 +9,6 @@ export const caseme = (): TxMiddleware => async (req, res, next) => {
     req.body = camelizedBody;
 
     return next();
-}
+};
+
+export default caseme;

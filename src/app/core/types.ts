@@ -48,7 +48,7 @@ export class IncorrectParametersRouteFailure extends RouteFailure {
     static readonly statusCode = 400;
 
     constructor(reason?: Object) {
-        super(reason || "Incorrect parameters");
+        super(reason || "Incorrect Parameters");
     }
 }
 

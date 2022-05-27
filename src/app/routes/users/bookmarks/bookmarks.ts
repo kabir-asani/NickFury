@@ -1,28 +1,34 @@
 import { Router, Request, Response } from "express";
 import Joi from "joi";
-import { BookmarksManager } from "../../../../managers/bookmarksManager/bookmarksManager";
-import { BookmarkCreationFailureReason, BookmarkDeletionFailureReason } from "../../../../managers/bookmarksManager/types";
+import BookmarksManager from "../../../../managers/bookmarksManager/bookmarksManager";
+import {
+    BookmarkCreationFailureReason,
+    BookmarkDeletionFailureReason,
+    PaginatedViewableBookmarksFailureReason,
+} from "../../../../managers/bookmarksManager/types";
 import { kMaximumPaginatedPageLength } from "../../../../managers/core/types";
+import { sentenceCasize } from "../../../../utils/caser/caser";
 import { Failure } from "../../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../../core/override";
-import { AllOkRouteSuccess, InternalRouteFailure, NoContentRouteSuccess, NoResourceRouteFailure, SemanticRouteFailure } from "../../../core/types";
-import paginated from "../../../middlewares/paginated/paginated";
-import { selfishGuard } from "../../../middlewares/selfieGuard/selfieGuard";
 import {
-    GroundZero,
-    soldier
-} from "../../../middlewares/soldier/soldier";
+    AllOkRouteSuccess,
+    IncorrectParametersRouteFailure,
+    InternalRouteFailure,
+    NoContentRouteSuccess,
+    NoResourceRouteFailure,
+    SemanticRouteFailure,
+} from "../../../core/types";
+import paginated from "../../../middlewares/paginated/paginated";
+import selfishGuard from "../../../middlewares/selfieGuard/selfieGuard";
+import soldier, { GroundZero } from "../../../middlewares/soldier/soldier";
 
 const bookmarks = Router({
-    mergeParams: true
+    mergeParams: true,
 });
 
 bookmarks.get(
     "/",
-    [
-        selfishGuard(),
-        paginated(),
-    ],
+    [selfishGuard(), paginated()],
     async (req: Request, res: Response) => {
         const session = (req as SessionizedRequest).session;
 
@@ -31,27 +37,50 @@ bookmarks.get(
 
         const safeLimit = isNaN(limit) ? kMaximumPaginatedPageLength : limit;
 
-        const bookmarks = await BookmarksManager.shared.viewableBookmarks({
-            userId: session.userId,
-            viewerId: session.userId,
-            limit: safeLimit,
-            nextToken: nextToken
-        });
+        const paginatedViewableBookmarksResult =
+            await BookmarksManager.shared.paginatedViewableBookmarksOf({
+                userId: session.userId,
+                viewerId: session.userId,
+                limit: safeLimit,
+                nextToken: nextToken,
+            });
 
-        if (bookmarks !== null) {
-            const response = new AllOkRouteSuccess(bookmarks);
+        if (paginatedViewableBookmarksResult instanceof Failure) {
+            const message = sentenceCasize(
+                PaginatedViewableBookmarksFailureReason[
+                    paginatedViewableBookmarksResult.reason
+                ]
+            );
 
-            res
-                .status(AllOkRouteSuccess.statusCode)
-                .json(response);
-        } else {
-            const response = new InternalRouteFailure();
+            switch (paginatedViewableBookmarksResult.reason) {
+                case PaginatedViewableBookmarksFailureReason.malformedParameters: {
+                    const response = new IncorrectParametersRouteFailure(
+                        message
+                    );
 
-            res
-                .status(InternalRouteFailure.statusCode)
-                .json(response);
+                    res.status(IncorrectParametersRouteFailure.statusCode).json(
+                        response
+                    );
+
+                    return;
+                }
+                default: {
+                    const response = new InternalRouteFailure(message);
+
+                    res.status(InternalRouteFailure.statusCode).json(response);
+
+                    return;
+                }
+            }
         }
-    },
+
+        const paginatedViewableBookmarks =
+            paginatedViewableBookmarksResult.data;
+
+        const response = new AllOkRouteSuccess(paginatedViewableBookmarks);
+
+        res.status(AllOkRouteSuccess.statusCode).json(response);
+    }
 );
 
 bookmarks.post(
@@ -63,7 +92,7 @@ bookmarks.post(
                 tweetId: Joi.string().required(),
             }),
             groundZero: GroundZero.body,
-        })
+        }),
     ],
     async (req: Request, res: Response) => {
         const session = (req as SessionizedRequest).session;
@@ -71,41 +100,38 @@ bookmarks.post(
             tweetId: String;
         };
 
-        const bookmarkCreation = await BookmarksManager.shared.create({
+        const bookmarkCreationResult = await BookmarksManager.shared.create({
             authorId: session.userId,
-            tweetId: parameters.tweetId
+            tweetId: parameters.tweetId,
         });
 
+        if (bookmarkCreationResult instanceof Failure) {
+            const message = sentenceCasize(
+                BookmarkCreationFailureReason[bookmarkCreationResult.reason]
+            );
 
-        if (bookmarkCreation instanceof Failure) {
-            switch (bookmarkCreation.reason) {
+            switch (bookmarkCreationResult.reason) {
                 case BookmarkCreationFailureReason.bookmarkAlreadyExists: {
-                    const response = new SemanticRouteFailure("BOOKMARK_ALREADY_EXISTS");
+                    const response = new SemanticRouteFailure(message);
 
-                    res
-                        .status(SemanticRouteFailure.statusCode)
-                        .json(response);
+                    res.status(SemanticRouteFailure.statusCode).json(response);
 
-                    break;
+                    return;
                 }
                 default: {
-                    const response = new InternalRouteFailure();
+                    const response = new InternalRouteFailure(message);
 
-                    res
-                        .status(InternalRouteFailure.statusCode)
-                        .json(response);
+                    res.status(InternalRouteFailure.statusCode).json(response);
 
-                    break;
+                    return;
                 }
             }
-        } else {
-            const response = new NoContentRouteSuccess();
-
-            res
-                .status(NoContentRouteSuccess.statusCode)
-                .json(response);
         }
-    },
+
+        const response = new NoContentRouteSuccess();
+
+        res.status(NoContentRouteSuccess.statusCode).json(response);
+    }
 );
 
 bookmarks.delete(
@@ -122,39 +148,39 @@ bookmarks.delete(
     async (req: Request, res: Response) => {
         const bookmarkId = req.params.bookmarkId;
 
-        const bookmarkDeletion = await BookmarksManager.shared.delete({
-            bookmarkId: bookmarkId
+        const bookmarkDeletionResult = await BookmarksManager.shared.delete({
+            bookmarkId: bookmarkId,
         });
 
-        if (bookmarkDeletion instanceof Failure) {
-            switch (bookmarkDeletion.reason) {
+        if (bookmarkDeletionResult instanceof Failure) {
+            const message = sentenceCasize(
+                BookmarkDeletionFailureReason[bookmarkDeletionResult.reason]
+            );
+
+            switch (bookmarkDeletionResult.reason) {
                 case BookmarkDeletionFailureReason.bookmarkDoesNotExists: {
-                    const response = new NoResourceRouteFailure('BOOKMARK_DOES_NOT_EXISTS');
+                    const response = new NoResourceRouteFailure(message);
 
-                    res
-                        .status(NoResourceRouteFailure.statusCode)
-                        .json(response);
+                    res.status(NoResourceRouteFailure.statusCode).json(
+                        response
+                    );
 
-                    break;
+                    return;
                 }
                 default: {
-                    const response = new InternalRouteFailure();
+                    const response = new InternalRouteFailure(message);
 
-                    res
-                        .status(InternalRouteFailure.statusCode)
-                        .json(response);
+                    res.status(InternalRouteFailure.statusCode).json(response);
 
-                    break;
+                    return;
                 }
             }
-        } else {
-            const response = new NoContentRouteSuccess();
-
-            res
-                .status(NoContentRouteSuccess.statusCode)
-                .json(response);
         }
-    },
-)
 
-export = bookmarks;
+        const response = new NoContentRouteSuccess();
+
+        res.status(NoContentRouteSuccess.statusCode).json(response);
+    }
+);
+
+export default bookmarks;
