@@ -1,6 +1,4 @@
-import DatabaseAssistant, {
-    DBCollections,
-} from "../../assistants/database/database";
+import DatabaseAssistant from "../../assistants/database/database";
 import { Success, Failure, Empty } from "../../utils/typescriptx/typescriptx";
 import UsersManager from "../usersManager/usersManager";
 import {
@@ -29,16 +27,11 @@ export default class TokensManager {
         });
 
         if (session !== null) {
-            const sessionsCollection = DatabaseAssistant.shared.collection(
-                DBCollections.users +
-                    "/" +
-                    session.userId +
-                    "/" +
-                    DBCollections.sessions
-            );
-            const sessionDocumentRef = sessionsCollection.doc(
-                session.id.valueOf()
-            );
+            const sessionDocumentRef =
+                DatabaseAssistant.shared.sessionDocumentRef({
+                    userId: session.userId,
+                    sessionId: session.id,
+                });
 
             try {
                 const sessionDocument = await sessionDocumentRef.get();
@@ -106,14 +99,10 @@ export default class TokensManager {
             };
         }
 
-        const sessionsCollection = DatabaseAssistant.shared.collection(
-            DBCollections.users +
-                "/" +
-                session.userId +
-                "/" +
-                DBCollections.sessions
-        );
-        const sessionDocumentRef = sessionsCollection.doc(session.id.valueOf());
+        const sessionDocumentRef = DatabaseAssistant.shared.sessionDocumentRef({
+            userId: session.userId,
+            sessionId: session.id,
+        });
 
         try {
             await sessionDocumentRef.create(session);
@@ -145,16 +134,11 @@ export default class TokensManager {
         });
 
         if (session !== null) {
-            const sessionsCollection = DatabaseAssistant.shared.collection(
-                DBCollections.users +
-                    "/" +
-                    session.userId +
-                    "/" +
-                    DBCollections.sessions
-            );
-            const sessionDocumentRef = sessionsCollection.doc(
-                session.id.valueOf()
-            );
+            const sessionDocumentRef =
+                DatabaseAssistant.shared.sessionDocumentRef({
+                    userId: session.userId,
+                    sessionId: session.id,
+                });
 
             try {
                 await sessionDocumentRef.delete();

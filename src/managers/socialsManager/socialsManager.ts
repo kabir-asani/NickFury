@@ -1,6 +1,4 @@
-import DatabaseAssistant, {
-    DBCollections,
-} from "../../assistants/database/database";
+import DatabaseAssistant from "../../assistants/database/database";
 import StreamAssistant from "../../assistants/stream/stream";
 import Dately from "../../utils/dately/dately";
 import logger, { LogLevel } from "../../utils/logger/logger";
@@ -40,15 +38,11 @@ export default class SocialsManager {
         followeeId: String;
         followerId: String;
     }): Promise<Boolean> {
-        const followingDocumentPath =
-            DBCollections.users +
-            `/${parameters.followerId}/` +
-            `/${DBCollections.followees}/` +
-            parameters.followeeId;
-
-        const followeeDocumentRef = DatabaseAssistant.shared.doc(
-            followingDocumentPath
-        );
+        const followeeDocumentRef =
+            DatabaseAssistant.shared.followeeDocumentRef({
+                userId: parameters.followerId,
+                followeeId: parameters.followeeId,
+            });
 
         const followeeDocument = await followeeDocumentRef.get();
 
@@ -63,14 +57,11 @@ export default class SocialsManager {
         followeeId: String;
         followerId: String;
     }): Promise<Boolean> {
-        const followerDocumentPath =
-            DBCollections.users +
-            `/${parameters.followeeId}/` +
-            `/${DBCollections.followers}/` +
-            parameters.followerId;
-
         const followerDocumentRef =
-            DatabaseAssistant.shared.doc(followerDocumentPath);
+            DatabaseAssistant.shared.followerDocumentRef({
+                userId: parameters.followeeId,
+                followerId: parameters.followerId,
+            });
 
         const followerDocument = await followerDocumentRef.get();
 
@@ -90,21 +81,18 @@ export default class SocialsManager {
         }
 
         const followeeDocumentRefs = parameters.followeeIdentifiers.map(
-            (followingId) => {
-                const followeeDocumentPath =
-                    DBCollections.users +
-                    `/${parameters.followerId}/` +
-                    DBCollections.followees +
-                    `/${followingId}`;
-
+            (followeeId) => {
                 const followeeDocumentRef =
-                    DatabaseAssistant.shared.doc(followeeDocumentPath);
+                    DatabaseAssistant.shared.followeeDocumentRef({
+                        userId: parameters.followerId,
+                        followeeId: followeeId,
+                    });
 
                 return followeeDocumentRef;
             }
         );
 
-        const followeeDocuments = await DatabaseAssistant.shared.getAll(
+        const followeeDocuments = await DatabaseAssistant.shared.all(
             ...followeeDocumentRefs
         );
 
@@ -128,20 +116,17 @@ export default class SocialsManager {
 
         const followerDocumentRefs = parameters.followerIdentifiers.map(
             (followerId) => {
-                const followerDocumentPath =
-                    DBCollections.users +
-                    `/${parameters.followeeId}/` +
-                    DBCollections.followers +
-                    `/${followerId}`;
-
                 const followerDocumentRef =
-                    DatabaseAssistant.shared.doc(followerDocumentPath);
+                    DatabaseAssistant.shared.followerDocumentRef({
+                        userId: parameters.followeeId,
+                        followerId: followerId,
+                    });
 
                 return followerDocumentRef;
             }
         );
 
-        const followerDocuments = await DatabaseAssistant.shared.getAll(
+        const followerDocuments = await DatabaseAssistant.shared.all(
             ...followerDocumentRefs
         );
 
@@ -156,11 +141,11 @@ export default class SocialsManager {
     }
 
     async follow(parameters: {
-        followingId: String;
+        followeeId: String;
         followerId: String;
     }): Promise<Success<Empty> | Failure<FollowFailureReason>> {
         const isFolloweeExists = await UsersManager.shared.exists({
-            id: parameters.followingId,
+            id: parameters.followeeId,
         });
 
         if (!isFolloweeExists) {
@@ -186,7 +171,7 @@ export default class SocialsManager {
         const isFollowRelationshipExists =
             await this.isFollowingRelationshipExists({
                 followerId: parameters.followerId,
-                followeeId: parameters.followingId,
+                followeeId: parameters.followeeId,
             });
 
         if (isFollowRelationshipExists) {
@@ -199,7 +184,7 @@ export default class SocialsManager {
 
         const followFeed = StreamAssistant.shared.timelineFeed.follow({
             followerUserId: parameters.followerId,
-            followeeUserId: parameters.followingId,
+            followeeUserId: parameters.followeeId,
         });
 
         if (followFeed instanceof Failure) {
@@ -216,64 +201,61 @@ export default class SocialsManager {
         };
 
         const followeeData: Following = {
-            followeeId: parameters.followingId,
+            followeeId: parameters.followeeId,
             creationDate: Dately.shared.now(),
         };
 
-        const usersCollection = DatabaseAssistant.shared.collection(
-            DBCollections.users
-        );
+        const followeeUserDocumentRef =
+            DatabaseAssistant.shared.userDocumentRef({
+                userId: parameters.followeeId,
+            });
+        const followerUserDocumentRef =
+            DatabaseAssistant.shared.userDocumentRef({
+                userId: parameters.followerId,
+            });
 
-        const followeeUserDocumentRef = usersCollection.doc(
-            parameters.followingId.valueOf()
-        );
-        const followerUserDocumentRef = usersCollection.doc(
-            parameters.followerId.valueOf()
-        );
+        const followersCollection =
+            DatabaseAssistant.shared.followersCollectionRef({
+                userId: parameters.followeeId,
+            });
 
-        const followersCollection = followeeUserDocumentRef.collection(
-            DBCollections.followers
-        );
-        const followeesCollectin = followerUserDocumentRef.collection(
-            DBCollections.followees
-        );
+        const followeesCollectin =
+            DatabaseAssistant.shared.followeesCollectionRef({
+                userId: parameters.followerId,
+            });
 
         const followerDataDocumentRef = followersCollection.doc(
             parameters.followerId.valueOf()
         );
         const followeeDataDocumentRef = followeesCollectin.doc(
-            parameters.followingId.valueOf()
+            parameters.followeeId.valueOf()
         );
 
         try {
-            await DatabaseAssistant.shared.runTransaction(
-                async (transaction) => {
-                    const followeeUserDocument =
-                        await followeeUserDocumentRef.get();
-                    const followerUserDocument =
-                        await followerUserDocumentRef.get();
+            await DatabaseAssistant.shared.transaction(async (transaction) => {
+                const followeeUserDocument =
+                    await followeeUserDocumentRef.get();
+                const followerUserDocument =
+                    await followerUserDocumentRef.get();
 
-                    const followeeUser =
-                        followeeUserDocument.data() as unknown as User;
-                    const followerUser =
-                        followerUserDocument.data() as unknown as User;
+                const followeeUser =
+                    followeeUserDocument.data() as unknown as User;
+                const followerUser =
+                    followerUserDocument.data() as unknown as User;
 
-                    transaction.set(followeeDataDocumentRef, followeeData);
-                    transaction.set(followerDataDocumentRef, followerData);
+                transaction.set(followeeDataDocumentRef, followeeData);
+                transaction.set(followerDataDocumentRef, followerData);
 
-                    transaction.update(followerUserDocumentRef, {
-                        "socialDetails.followingsCount":
-                            followerUser.socialDetails.followeesCount.valueOf() +
-                            1,
-                    });
+                transaction.update(followerUserDocumentRef, {
+                    "socialDetails.followingsCount":
+                        followerUser.socialDetails.followeesCount.valueOf() + 1,
+                });
 
-                    transaction.update(followeeUserDocumentRef, {
-                        "socialDetails.followersCount":
-                            followeeUser.socialDetails.followersCount.valueOf() +
-                            1,
-                    });
-                }
-            );
+                transaction.update(followeeUserDocumentRef, {
+                    "socialDetails.followersCount":
+                        followeeUser.socialDetails.followersCount.valueOf() + 1,
+                });
+            });
 
             const reply = new Success<Empty>({});
 
@@ -326,23 +308,24 @@ export default class SocialsManager {
             return reply;
         }
 
-        const usersCollection = DatabaseAssistant.shared.collection(
-            DBCollections.users
-        );
+        const followeeUserDocumentRef =
+            DatabaseAssistant.shared.userDocumentRef({
+                userId: parameters.followeeId,
+            });
+        const followerUserDocumentRef =
+            DatabaseAssistant.shared.userDocumentRef({
+                userId: parameters.followerId,
+            });
 
-        const followeeUserDocumentRef = usersCollection.doc(
-            parameters.followeeId.valueOf()
-        );
-        const followerUserDocumentRef = usersCollection.doc(
-            parameters.followerId.valueOf()
-        );
+        const followersCollection =
+            DatabaseAssistant.shared.followersCollectionRef({
+                userId: parameters.followeeId,
+            });
 
-        const followersCollection = followeeUserDocumentRef.collection(
-            DBCollections.followers
-        );
-        const followeesCollectin = followerUserDocumentRef.collection(
-            DBCollections.followees
-        );
+        const followeesCollectin =
+            DatabaseAssistant.shared.followeesCollectionRef({
+                userId: parameters.followerId,
+            });
 
         const followerDataDocumentRef = followersCollection.doc(
             parameters.followerId.valueOf()
@@ -352,38 +335,34 @@ export default class SocialsManager {
         );
 
         try {
-            await DatabaseAssistant.shared.runTransaction(
-                async (transaction) => {
-                    const followeeUserDocument =
-                        await followeeUserDocumentRef.get();
-                    const followerUserDocument =
-                        await followerUserDocumentRef.get();
+            await DatabaseAssistant.shared.transaction(async (transaction) => {
+                const followeeUserDocument =
+                    await followeeUserDocumentRef.get();
+                const followerUserDocument =
+                    await followerUserDocumentRef.get();
 
-                    const followeeUser =
-                        followeeUserDocument.data() as unknown as User;
-                    const followerUser =
-                        followerUserDocument.data() as unknown as User;
+                const followeeUser =
+                    followeeUserDocument.data() as unknown as User;
+                const followerUser =
+                    followerUserDocument.data() as unknown as User;
 
-                    transaction.delete(followeeDataDocumentRef);
-                    transaction.delete(followerDataDocumentRef);
+                transaction.delete(followeeDataDocumentRef);
+                transaction.delete(followerDataDocumentRef);
 
-                    transaction.update(followerUserDocumentRef, {
-                        "socialDetails.followingsCount": Math.max(
-                            followerUser.socialDetails.followeesCount.valueOf() -
-                                1,
-                            0
-                        ),
-                    });
+                transaction.update(followerUserDocumentRef, {
+                    "socialDetails.followingsCount": Math.max(
+                        followerUser.socialDetails.followeesCount.valueOf() - 1,
+                        0
+                    ),
+                });
 
-                    transaction.update(followeeUserDocumentRef, {
-                        "socialDetails.followersCount": Math.max(
-                            followeeUser.socialDetails.followersCount.valueOf() -
-                                1,
-                            0
-                        ),
-                    });
-                }
-            );
+                transaction.update(followeeUserDocumentRef, {
+                    "socialDetails.followersCount": Math.max(
+                        followeeUser.socialDetails.followersCount.valueOf() - 1,
+                        0
+                    ),
+                });
+            });
 
             const reply = new Success<Empty>({});
 
@@ -406,14 +385,10 @@ export default class SocialsManager {
     ): Promise<
         Success<Paginated<Follower>> | Failure<PaginatedFollowersFailureReason>
     > {
-        const followersCollectionPath =
-            DBCollections.users +
-            `/${parameters.userId}/` +
-            DBCollections.followers;
-
-        const followersCollection = DatabaseAssistant.shared.collection(
-            followersCollectionPath
-        );
+        const followersCollection =
+            DatabaseAssistant.shared.followeesCollectionRef({
+                userId: parameters.userId,
+            });
 
         const limit =
             parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
@@ -563,14 +538,10 @@ export default class SocialsManager {
     ): Promise<
         Success<Paginated<Following>> | Failure<PaginatedFolloweesFailureReason>
     > {
-        const followeesCollectionPath =
-            DBCollections.users +
-            `/${parameters.userId}/` +
-            DBCollections.followees;
-
-        const followeesCollection = DatabaseAssistant.shared.collection(
-            followeesCollectionPath
-        );
+        const followeesCollection =
+            DatabaseAssistant.shared.followeesCollectionRef({
+                userId: parameters.userId,
+            });
 
         const limit =
             parameters.limit?.valueOf() || kMaximumPaginatedPageLength;

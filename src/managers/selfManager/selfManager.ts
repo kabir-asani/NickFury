@@ -1,8 +1,6 @@
 import * as uuid from "uuid";
 
-import DatabaseAssistant, {
-    DBCollections,
-} from "../../assistants/database/database";
+import DatabaseAssistant from "../../assistants/database/database";
 import StreamAssistant from "../../assistants/stream/stream";
 import Dately from "../../utils/dately/dately";
 import logger, { LogLevel } from "../../utils/logger/logger";
@@ -31,8 +29,9 @@ export default class SelfManager {
         }
 
         const userId = uuid.v4();
-        const username =
-            parameters.email.split("@")[0] + userId.substring(0, 5);
+        const username = (
+            parameters.email.split("@")[0] + userId.substring(0, 5)
+        ).toLocaleLowerCase();
 
         const user: User = {
             id: userId,
@@ -52,8 +51,10 @@ export default class SelfManager {
             lastUpdatedDate: Dately.shared.now(),
         };
 
-        const userDocumentPath = DBCollections.users + `/${userId}`;
-        const userDocumentRef = DatabaseAssistant.shared.doc(userDocumentPath);
+        const userDocumentRef = DatabaseAssistant.shared.userDocumentRef({
+            userId: userId,
+        });
+
         try {
             await userDocumentRef.create(user);
 
@@ -77,8 +78,9 @@ export default class SelfManager {
     }
 
     async self(parameters: { id: String }): Promise<User | null> {
-        const userDocumentPath = DBCollections.users + `/${parameters.id}`;
-        const userDocumentRef = DatabaseAssistant.shared.doc(userDocumentPath);
+        const userDocumentRef = DatabaseAssistant.shared.userDocumentRef({
+            userId: parameters.id,
+        });
 
         const userDocument = await userDocumentRef.get();
 
@@ -131,12 +133,12 @@ export default class SelfManager {
         }
 
         try {
-            const updatedUser = await DatabaseAssistant.shared.runTransaction(
+            const updatedUser = await DatabaseAssistant.shared.transaction(
                 async (transaction) => {
-                    const userDocumentPath =
-                        DBCollections.users + `/${parameters.id}`;
                     const userDocumentRef =
-                        DatabaseAssistant.shared.doc(userDocumentPath);
+                        DatabaseAssistant.shared.userDocumentRef({
+                            userId: parameters.id,
+                        });
 
                     const userDocument = await transaction.get(userDocumentRef);
 

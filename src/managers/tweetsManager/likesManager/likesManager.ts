@@ -1,6 +1,4 @@
-import DatabaseAssistant, {
-    DBCollections,
-} from "../../../assistants/database/database";
+import DatabaseAssistant from "../../../assistants/database/database";
 import {
     Empty,
     Failure,
@@ -43,9 +41,8 @@ export default class LikesManager {
     }
 
     async exists(parameters: { likeId: String }): Promise<Boolean> {
-        const likesCollection = DatabaseAssistant.shared.collectionGroup(
-            DBCollections.likes
-        );
+        const likesCollection =
+            DatabaseAssistant.shared.likesCollectionGroupRef();
 
         const likesQuery = likesCollection
             .where("id", "==", parameters.likeId.valueOf())
@@ -69,12 +66,10 @@ export default class LikesManager {
             authorId: parameters.authorId,
         });
 
-        const likeDocumentPath =
-            DBCollections.tweets +
-            `/${parameters.tweetId}/` +
-            DBCollections.likes +
-            `/${likeId}`;
-        const likeDocumentRef = DatabaseAssistant.shared.doc(likeDocumentPath);
+        const likeDocumentRef = DatabaseAssistant.shared.likeDocumentRef({
+            tweetId: parameters.tweetId,
+            likeId: likeId,
+        });
 
         const likeDocument = await likeDocumentRef.get();
 
@@ -99,19 +94,15 @@ export default class LikesManager {
                 tweetId: tweetId,
             });
 
-            const likeDocumentPath =
-                DBCollections.tweets +
-                `/${tweetId}/` +
-                DBCollections.likes +
-                `/${likeId}`;
-
-            const likeDocumentRef =
-                DatabaseAssistant.shared.doc(likeDocumentPath);
+            const likeDocumentRef = DatabaseAssistant.shared.likeDocumentRef({
+                tweetId: tweetId,
+                likeId: likeId,
+            });
 
             return likeDocumentRef;
         });
 
-        const likeDocuments = await DatabaseAssistant.shared.getAll(
+        const likeDocuments = await DatabaseAssistant.shared.all(
             ...likeDocumentRefs
         );
 
@@ -156,34 +147,30 @@ export default class LikesManager {
         };
 
         try {
-            await DatabaseAssistant.shared.runTransaction(
-                async (transaction) => {
-                    const tweetDocumentPath =
-                        DBCollections.tweets + `/${parameters.tweetId}`;
-                    const tweetDocumentRef =
-                        DatabaseAssistant.shared.doc(tweetDocumentPath);
-
-                    const tweetDocument = await transaction.get(
-                        tweetDocumentRef
-                    );
-
-                    const tweet = tweetDocument.data() as unknown as Tweet;
-
-                    const likeDocumentPath =
-                        tweetDocumentPath +
-                        `/${DBCollections.likes}/${like.id}`;
-                    const likeDocumentRef =
-                        DatabaseAssistant.shared.doc(likeDocumentPath);
-
-                    transaction.create(likeDocumentRef, like);
-                    transaction.update(tweetDocumentRef, {
-                        "interactionDetails.likesCount":
-                            tweet.interactionDetails.likesCount.valueOf() + 1,
+            await DatabaseAssistant.shared.transaction(async (transaction) => {
+                const tweetDocumentRef =
+                    DatabaseAssistant.shared.tweetDocumentRef({
+                        tweetId: parameters.tweetId,
                     });
 
-                    return like;
-                }
-            );
+                const tweetDocument = await transaction.get(tweetDocumentRef);
+
+                const tweet = tweetDocument.data() as unknown as Tweet;
+
+                const likeDocumentRef =
+                    DatabaseAssistant.shared.likeDocumentRef({
+                        tweetId: parameters.tweetId,
+                        likeId: like.id,
+                    });
+
+                transaction.create(likeDocumentRef, like);
+                transaction.update(tweetDocumentRef, {
+                    "interactionDetails.likesCount":
+                        tweet.interactionDetails.likesCount.valueOf() + 1,
+                });
+
+                return like;
+            });
 
             const reply = new Success<Like>(like);
 
@@ -215,44 +202,36 @@ export default class LikesManager {
         }
 
         try {
-            await DatabaseAssistant.shared.runTransaction(
-                async (transaction) => {
-                    const likesCollection =
-                        DatabaseAssistant.shared.collectionGroup(
-                            DBCollections.likes
-                        );
-                    const likesQuery = likesCollection
-                        .where("id", "==", parameters.likeId.valueOf())
-                        .limit(1);
+            await DatabaseAssistant.shared.transaction(async (transaction) => {
+                const likesCollection =
+                    DatabaseAssistant.shared.likesCollectionGroupRef();
 
-                    const querySnapshot = await transaction.get(likesQuery);
+                const likesQuery = likesCollection
+                    .where("id", "==", parameters.likeId.valueOf())
+                    .limit(1);
 
-                    const likeDocumentRef = querySnapshot.docs[0].ref;
-                    const like =
-                        querySnapshot.docs[0].data() as unknown as Like;
+                const querySnapshot = await transaction.get(likesQuery);
 
-                    const tweetsCollection =
-                        DatabaseAssistant.shared.collection(
-                            DBCollections.tweets
-                        );
-                    const tweetDocumentRef = tweetsCollection.doc(
-                        like.tweetId.valueOf()
-                    );
-                    const tweetDocument = await transaction.get(
-                        tweetDocumentRef
-                    );
+                const likeDocumentRef = querySnapshot.docs[0].ref;
+                const like = querySnapshot.docs[0].data() as unknown as Like;
 
-                    const tweet = tweetDocument.data() as unknown as Tweet;
-
-                    transaction.delete(likeDocumentRef);
-                    transaction.update(tweetDocumentRef, {
-                        "interactionDetails.likesCount": Math.max(
-                            tweet.interactionDetails.likesCount.valueOf() - 1,
-                            0
-                        ),
+                const tweetDocumentRef =
+                    DatabaseAssistant.shared.tweetDocumentRef({
+                        tweetId: like.tweetId,
                     });
-                }
-            );
+
+                const tweetDocument = await transaction.get(tweetDocumentRef);
+
+                const tweet = tweetDocument.data() as unknown as Tweet;
+
+                transaction.delete(likeDocumentRef);
+                transaction.update(tweetDocumentRef, {
+                    "interactionDetails.likesCount": Math.max(
+                        tweet.interactionDetails.likesCount.valueOf() - 1,
+                        0
+                    ),
+                });
+            });
 
             const reply = new Success<Empty>({});
 
@@ -269,9 +248,8 @@ export default class LikesManager {
     }
 
     async like(parameters: { likeId: String }): Promise<Like | null> {
-        const likesCollection = DatabaseAssistant.shared.collectionGroup(
-            DBCollections.likes
-        );
+        const likesCollection =
+            DatabaseAssistant.shared.likesCollectionGroupRef();
 
         const likesQuery = likesCollection
             .where("id", "==", parameters.likeId.valueOf())
@@ -341,13 +319,9 @@ export default class LikesManager {
     ): Promise<
         Success<Paginated<Like>> | Failure<PaginatedLikesFailureReason>
     > {
-        const likesCollectionPath =
-            DBCollections.tweets +
-            `/${parameters.tweetId}/` +
-            DBCollections.likes;
-
-        const likesCollection =
-            DatabaseAssistant.shared.collection(likesCollectionPath);
+        const likesCollection = DatabaseAssistant.shared.likesCollectionRef({
+            tweetId: parameters.tweetId,
+        });
 
         const limit =
             parameters.limit?.valueOf() || kMaximumPaginatedPageLength;

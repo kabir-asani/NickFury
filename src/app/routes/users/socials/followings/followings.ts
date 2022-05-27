@@ -70,7 +70,7 @@ followings.post(
 
         const followResult = await SocialsManager.shared.follow({
             followerId: session.userId,
-            followingId: parameters.userId,
+            followeeId: parameters.userId,
         });
 
         if (followResult instanceof Failure) {

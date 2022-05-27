@@ -1,7 +1,5 @@
 import * as uuid from "uuid";
-import DatabaseAssistant, {
-    DBCollections,
-} from "../../assistants/database/database";
+import DatabaseAssistant from "../../assistants/database/database";
 import { TweetActivitiesFailureReason } from "../../assistants/stream/feeds/selfFeed/types";
 import StreamAssistant from "../../assistants/stream/stream";
 import Dately from "../../utils/dately/dately";
@@ -43,11 +41,9 @@ export default class TweetsManager {
     private constructor() {}
 
     async exists(parameters: { tweetId: String }): Promise<Boolean> {
-        const tweetDocumentPath =
-            DBCollections.tweets + `/${parameters.tweetId}`;
-
-        const tweetDocumentRef =
-            DatabaseAssistant.shared.doc(tweetDocumentPath);
+        const tweetDocumentRef = DatabaseAssistant.shared.tweetDocumentRef({
+            tweetId: parameters.tweetId,
+        });
 
         const tweetDocument = await tweetDocumentRef.get();
 
@@ -94,28 +90,26 @@ export default class TweetsManager {
         };
 
         try {
-            const userDocumentPath = DBCollections.users + `/${tweet.authorId}`;
-            const userDocumentRef =
-                DatabaseAssistant.shared.doc(userDocumentPath);
+            const userDocumentRef = DatabaseAssistant.shared.userDocumentRef({
+                userId: tweet.authorId,
+            });
 
-            const tweetDocumentPath = DBCollections.tweets + `/${tweet.id}`;
-            const tweetDocumentRef =
-                DatabaseAssistant.shared.doc(tweetDocumentPath);
+            const tweetDocumentRef = DatabaseAssistant.shared.tweetDocumentRef({
+                tweetId: tweet.id,
+            });
 
-            await DatabaseAssistant.shared.runTransaction(
-                async (transaction) => {
-                    const userDocument = await userDocumentRef.get();
+            await DatabaseAssistant.shared.transaction(async (transaction) => {
+                const userDocument = await userDocumentRef.get();
 
-                    const user = userDocument.data() as unknown as User;
+                const user = userDocument.data() as unknown as User;
 
-                    transaction.create(tweetDocumentRef, tweet);
+                transaction.create(tweetDocumentRef, tweet);
 
-                    transaction.update(userDocumentRef, {
-                        "activityDetails.tweetsCount":
-                            user.activityDetails.tweetsCount.valueOf() + 1,
-                    });
-                }
-            );
+                transaction.update(userDocumentRef, {
+                    "activityDetails.tweetsCount":
+                        user.activityDetails.tweetsCount.valueOf() + 1,
+                });
+            });
 
             const reply = new Success<Tweet>(tweet);
 
@@ -161,30 +155,28 @@ export default class TweetsManager {
         }
 
         try {
-            const userDocumentPath = DBCollections.users + `/${tweet.authorId}`;
-            const userDocumentRef =
-                DatabaseAssistant.shared.doc(userDocumentPath);
+            const userDocumentRef = DatabaseAssistant.shared.userDocumentRef({
+                userId: tweet.authorId,
+            });
 
-            const tweetDocumentPath = DBCollections.tweets + `/${tweet.id}`;
-            const tweetDocumentRef =
-                DatabaseAssistant.shared.doc(tweetDocumentPath);
+            const tweetDocumentRef = DatabaseAssistant.shared.tweetDocumentRef({
+                tweetId: tweet.id,
+            });
 
-            await DatabaseAssistant.shared.runTransaction(
-                async (transaction) => {
-                    const userDocument = await userDocumentRef.get();
+            await DatabaseAssistant.shared.transaction(async (transaction) => {
+                const userDocument = await userDocumentRef.get();
 
-                    const user = userDocument.data() as unknown as User;
+                const user = userDocument.data() as unknown as User;
 
-                    transaction.update(userDocumentRef, {
-                        "activityDetails.tweetsCount": Math.max(
-                            user.activityDetails.tweetsCount.valueOf() - 1,
-                            0
-                        ),
-                    });
+                transaction.update(userDocumentRef, {
+                    "activityDetails.tweetsCount": Math.max(
+                        user.activityDetails.tweetsCount.valueOf() - 1,
+                        0
+                    ),
+                });
 
-                    transaction.delete(tweetDocumentRef);
-                }
-            );
+                transaction.delete(tweetDocumentRef);
+            });
 
             const reply = new Success<Empty>({});
 
@@ -203,11 +195,9 @@ export default class TweetsManager {
     private async tweet(parameters: {
         tweetId: String;
     }): Promise<Tweet | null> {
-        const tweetDocumentPath =
-            DBCollections.tweets + `/${parameters.tweetId}`;
-
-        const tweetDocumentRef =
-            DatabaseAssistant.shared.doc(tweetDocumentPath);
+        const tweetDocumentRef = DatabaseAssistant.shared.tweetDocumentRef({
+            tweetId: parameters.tweetId,
+        });
 
         const tweetDocument = await tweetDocumentRef.get();
 
@@ -328,17 +318,14 @@ export default class TweetsManager {
         }
 
         const tweetDocumentRefs = tweetActivities.page.map((tweetActivity) => {
-            const tweetsCollection = DatabaseAssistant.shared.collection(
-                DBCollections.tweets
-            );
-            const tweetDocumentRef = tweetsCollection.doc(
-                tweetActivity.tweetId.valueOf()
-            );
+            const tweetDocumentRef = DatabaseAssistant.shared.tweetDocumentRef({
+                tweetId: tweetActivity.tweetId,
+            });
 
             return tweetDocumentRef;
         });
 
-        const tweetDocuments = await DatabaseAssistant.shared.getAll(
+        const tweetDocuments = await DatabaseAssistant.shared.all(
             ...tweetDocumentRefs
         );
 
@@ -477,15 +464,14 @@ export default class TweetsManager {
         }
 
         const tweetDocumentRefs = parameters.tweetIdentifiers.map((tweetId) => {
-            const tweetDocumentPath = DBCollections.tweets + `/${tweetId}`;
-
-            const tweetDocumentRef =
-                DatabaseAssistant.shared.doc(tweetDocumentPath);
+            const tweetDocumentRef = DatabaseAssistant.shared.tweetDocumentRef({
+                tweetId: tweetId,
+            });
 
             return tweetDocumentRef;
         });
 
-        const tweetDocuments = await DatabaseAssistant.shared.getAll(
+        const tweetDocuments = await DatabaseAssistant.shared.all(
             ...tweetDocumentRefs
         );
 

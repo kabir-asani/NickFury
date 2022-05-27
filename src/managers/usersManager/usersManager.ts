@@ -1,7 +1,5 @@
-import { Follower, User, UserViewables, ViewableUser } from "../core/models";
-import DatabaseAssistant, {
-    DBCollections,
-} from "../../assistants/database/database";
+import { User, UserViewables, ViewableUser } from "../core/models";
+import DatabaseAssistant from "../../assistants/database/database";
 import SocialsManager from "../socialsManager/socialsManager";
 import {
     kMaximumPaginatedPageLength,
@@ -25,10 +23,9 @@ export default class UsersManager {
     private constructor() {}
 
     async exists(parameters: { id: String }): Promise<Boolean> {
-        const usersCollection = DatabaseAssistant.shared.collection(
-            DBCollections.users
-        );
-        const userDocumentRef = usersCollection.doc(parameters.id.valueOf());
+        const userDocumentRef = DatabaseAssistant.shared.userDocumentRef({
+            userId: parameters.id,
+        });
 
         const userDocument = await userDocumentRef.get();
 
@@ -42,9 +39,7 @@ export default class UsersManager {
     async existsWithUsername(parameters: {
         username: String;
     }): Promise<Boolean> {
-        const usersCollection = DatabaseAssistant.shared.collection(
-            DBCollections.users
-        );
+        const usersCollection = DatabaseAssistant.shared.usersCollectionRef();
 
         const usersQuery = usersCollection
             .where("username", "==", parameters.username.valueOf())
@@ -60,9 +55,7 @@ export default class UsersManager {
     }
 
     async existsWithEmail(parameters: { email: String }): Promise<Boolean> {
-        const usersCollection = DatabaseAssistant.shared.collection(
-            DBCollections.users
-        );
+        const usersCollection = DatabaseAssistant.shared.usersCollectionRef();
 
         const usersQuery = usersCollection
             .where("email", "==", parameters.email.valueOf())
@@ -78,10 +71,9 @@ export default class UsersManager {
     }
 
     async user(parameters: { id: String }): Promise<User | null> {
-        const usersCollection = DatabaseAssistant.shared.collection(
-            DBCollections.users
-        );
-        const userDocumentRef = usersCollection.doc(parameters.id.valueOf());
+        const userDocumentRef = DatabaseAssistant.shared.userDocumentRef({
+            userId: parameters.id,
+        });
 
         const userDocument = await userDocumentRef.get();
 
@@ -95,9 +87,7 @@ export default class UsersManager {
     }
 
     async userWithEmail(parameters: { email: String }): Promise<User | null> {
-        const usersCollection = DatabaseAssistant.shared.collection(
-            DBCollections.users
-        );
+        const usersCollection = DatabaseAssistant.shared.usersCollectionRef();
 
         const usersQuery = usersCollection
             .where("email", "==", parameters.email.valueOf())
@@ -117,9 +107,7 @@ export default class UsersManager {
     async userWithUsername(parameters: {
         username: String;
     }): Promise<User | null> {
-        const usersCollection = DatabaseAssistant.shared.collection(
-            DBCollections.users
-        );
+        const usersCollection = DatabaseAssistant.shared.usersCollectionRef();
 
         const usersQuery = usersCollection
             .where("username", "==", parameters.username.valueOf())
@@ -191,16 +179,15 @@ export default class UsersManager {
             return reply;
         }
 
-        const userDocumentRefs = parameters.userIdentifiers.map((id) => {
-            const usersCollection = DatabaseAssistant.shared.collection(
-                DBCollections.users
-            );
-            const userDocumentRef = usersCollection.doc(id.valueOf());
+        const userDocumentRefs = parameters.userIdentifiers.map((userId) => {
+            const userDocumentRef = DatabaseAssistant.shared.userDocumentRef({
+                userId: userId,
+            });
 
             return userDocumentRef;
         });
 
-        const userDocuments = await DatabaseAssistant.shared.getAll(
+        const userDocuments = await DatabaseAssistant.shared.all(
             ...userDocumentRefs
         );
 
@@ -299,16 +286,17 @@ export default class UsersManager {
     ): Promise<
         Success<Paginated<ViewableUser>> | Failure<SearchFailureReason>
     > {
-        const usersCollection = DatabaseAssistant.shared.collection(
-            DBCollections.users
-        );
+        const usersCollection = DatabaseAssistant.shared.usersCollectionRef();
 
         const limit =
             parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
 
+        const lowercasePrefix = parameters.prefix.toLowerCase();
+
         let query = usersCollection
             .orderBy("username")
-            .where("username", ">=", parameters.prefix.valueOf())
+            .where("username", ">=", lowercasePrefix.valueOf())
+            .where("username", "<=", lowercasePrefix + "\uf7ff")
             .limit(limit + 1);
 
         if (parameters.nextToken !== undefined) {

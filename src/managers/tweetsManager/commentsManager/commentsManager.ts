@@ -23,9 +23,7 @@ import {
     PaginatedViewableCommentsFailureReason,
 } from "./types";
 import * as uuid from "uuid";
-import DatabaseAssistant, {
-    DBCollections,
-} from "../../../assistants/database/database";
+import DatabaseAssistant from "../../../assistants/database/database";
 import Dately from "../../../utils/dately/dately";
 import logger, { LogLevel } from "../../../utils/logger/logger";
 import UsersManager from "../../usersManager/usersManager";
@@ -36,9 +34,8 @@ export default class CommentsManager {
     private constructor() {}
 
     async exists(parameters: { commentId: String }): Promise<Boolean> {
-        const commentsCollection = DatabaseAssistant.shared.collectionGroup(
-            DBCollections.comments
-        );
+        const commentsCollection =
+            DatabaseAssistant.shared.commentsCollectionGroupRef();
 
         const commentsQuery = commentsCollection
             .where("id", "==", parameters.commentId.valueOf())
@@ -69,35 +66,30 @@ export default class CommentsManager {
         };
 
         try {
-            await DatabaseAssistant.shared.runTransaction(
-                async (transaction) => {
-                    const tweetDocumentPath =
-                        DBCollections.tweets + `/${parameters.tweetId}`;
-                    const tweetDocumentRef =
-                        DatabaseAssistant.shared.doc(tweetDocumentPath);
-
-                    const tweetDocument = await transaction.get(
-                        tweetDocumentRef
-                    );
-
-                    const tweet = tweetDocument.data() as unknown as Tweet;
-
-                    const commentDocumentPath =
-                        tweetDocumentPath +
-                        `/${DBCollections.comments}/${comment.id}`;
-                    const commentDocumentRef =
-                        DatabaseAssistant.shared.doc(commentDocumentPath);
-
-                    transaction.create(commentDocumentRef, comment);
-                    transaction.update(tweetDocumentRef, {
-                        "interactionDetails.commentsCount":
-                            tweet.interactionDetails.commentsCount.valueOf() +
-                            1,
+            await DatabaseAssistant.shared.transaction(async (transaction) => {
+                const tweetDocumentRef =
+                    DatabaseAssistant.shared.tweetDocumentRef({
+                        tweetId: parameters.tweetId,
                     });
 
-                    return comment;
-                }
-            );
+                const tweetDocument = await transaction.get(tweetDocumentRef);
+
+                const tweet = tweetDocument.data() as unknown as Tweet;
+
+                const commentDocumentRef =
+                    DatabaseAssistant.shared.commentDocumentRef({
+                        tweetId: parameters.tweetId,
+                        commentId: comment.id,
+                    });
+
+                transaction.create(commentDocumentRef, comment);
+                transaction.update(tweetDocumentRef, {
+                    "interactionDetails.commentsCount":
+                        tweet.interactionDetails.commentsCount.valueOf() + 1,
+                });
+
+                return comment;
+            });
 
             const reply = new Success<Comment>(comment);
 
@@ -129,46 +121,37 @@ export default class CommentsManager {
         }
 
         try {
-            await DatabaseAssistant.shared.runTransaction(
-                async (transaction) => {
-                    const commentsCollection =
-                        DatabaseAssistant.shared.collectionGroup(
-                            DBCollections.comments
-                        );
+            await DatabaseAssistant.shared.transaction(async (transaction) => {
+                const commentsCollection =
+                    DatabaseAssistant.shared.commentsCollectionGroupRef();
 
-                    const commentsQuery = commentsCollection
-                        .where("id", "==", parameters.commentId.valueOf())
-                        .limit(1);
+                const commentsQuery = commentsCollection
+                    .where("id", "==", parameters.commentId.valueOf())
+                    .limit(1);
 
-                    const querySnapshot = await transaction.get(commentsQuery);
+                const querySnapshot = await transaction.get(commentsQuery);
 
-                    const commentDocumentRef = querySnapshot.docs[0].ref;
-                    const comment =
-                        querySnapshot.docs[0].data() as unknown as Comment;
+                const commentDocumentRef = querySnapshot.docs[0].ref;
+                const comment =
+                    querySnapshot.docs[0].data() as unknown as Comment;
 
-                    const tweetsCollection =
-                        DatabaseAssistant.shared.collection(
-                            DBCollections.tweets
-                        );
-                    const tweetDocumentRef = tweetsCollection.doc(
-                        comment.tweetId.valueOf()
-                    );
-                    const tweetDocument = await transaction.get(
-                        tweetDocumentRef
-                    );
-
-                    const tweet = tweetDocument.data() as unknown as Tweet;
-
-                    transaction.delete(commentDocumentRef);
-                    transaction.update(tweetDocumentRef, {
-                        "interactionDetails.commentsCount": Math.max(
-                            tweet.interactionDetails.commentsCount.valueOf() -
-                                1,
-                            0
-                        ),
+                const tweetDocumentRef =
+                    DatabaseAssistant.shared.tweetDocumentRef({
+                        tweetId: comment.tweetId,
                     });
-                }
-            );
+
+                const tweetDocument = await transaction.get(tweetDocumentRef);
+
+                const tweet = tweetDocument.data() as unknown as Tweet;
+
+                transaction.delete(commentDocumentRef);
+                transaction.update(tweetDocumentRef, {
+                    "interactionDetails.commentsCount": Math.max(
+                        tweet.interactionDetails.commentsCount.valueOf() - 1,
+                        0
+                    ),
+                });
+            });
 
             const reply = new Success<Empty>({});
 
@@ -185,9 +168,8 @@ export default class CommentsManager {
     }
 
     async comment(parameters: { commentId: String }): Promise<Comment | null> {
-        const commentsCollection = DatabaseAssistant.shared.collectionGroup(
-            DBCollections.comments
-        );
+        const commentsCollection =
+            DatabaseAssistant.shared.commentsCollectionGroupRef();
 
         const commentsQuery = commentsCollection
             .where("id", "==", parameters.commentId.valueOf())
@@ -258,14 +240,10 @@ export default class CommentsManager {
     ): Promise<
         Success<Paginated<Comment>> | Failure<PaginatedCommentsFailureReason>
     > {
-        const commentsCollectionPath =
-            DBCollections.tweets +
-            `/${parameters.tweetId}/` +
-            DBCollections.comments;
-
-        const commentsCollection = DatabaseAssistant.shared.collection(
-            commentsCollectionPath
-        );
+        const commentsCollection =
+            DatabaseAssistant.shared.commentsCollectionRef({
+                tweetId: parameters.tweetId,
+            });
 
         const limit =
             parameters.limit?.valueOf() || kMaximumPaginatedPageLength;

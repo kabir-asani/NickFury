@@ -1,6 +1,4 @@
-import DatabaseAssistant, {
-    DBCollections,
-} from "../../assistants/database/database";
+import DatabaseAssistant from "../../assistants/database/database";
 import Dately from "../../utils/dately/dately";
 import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
 import {
@@ -19,7 +17,6 @@ import {
 import {
     BookmarkCreationFailureReason,
     BookmarkDeletionFailureReason,
-    BookmarksFailureReason,
     PaginatedBookmarksFailureReason,
     PaginatedViewableBookmarksFailureReason,
 } from "./types";
@@ -39,9 +36,8 @@ export default class BookmarksManager {
     }
 
     async exists(parameters: { id: String }): Promise<Boolean> {
-        const bookmarskCollection = DatabaseAssistant.shared.collectionGroup(
-            DBCollections.bookmarks
-        );
+        const bookmarskCollection =
+            DatabaseAssistant.shared.bookmarksCollectionGroupRef();
 
         const bookmarksQuery = bookmarskCollection
             .where("id", "==", parameters.id.valueOf())
@@ -65,14 +61,12 @@ export default class BookmarksManager {
             authorId: parameters.authorId,
         });
 
-        const bookmarkDocumentPath =
-            DBCollections.users +
-            `/${parameters.authorId}` +
-            `/${DBCollections.bookmarks}` +
-            `/${bookmarkId}`;
-
-        const bookmarkDocumentRef =
-            DatabaseAssistant.shared.doc(bookmarkDocumentPath);
+        const bookmarkDocumentRef = DatabaseAssistant.shared.bookmarkDocumenRef(
+            {
+                userId: parameters.authorId,
+                bookmarkId: bookmarkId,
+            }
+        );
 
         const bookmarkDocument = await bookmarkDocumentRef.get();
 
@@ -97,19 +91,16 @@ export default class BookmarksManager {
                 tweetId: tweetId,
             });
 
-            const bookmarkDocumentPath =
-                DBCollections.users +
-                `/${parameters.authorId}/` +
-                DBCollections.bookmarks +
-                `/${bookmarkId}`;
-
             const bookmarkDocumentRef =
-                DatabaseAssistant.shared.doc(bookmarkDocumentPath);
+                DatabaseAssistant.shared.bookmarkDocumenRef({
+                    userId: parameters.authorId,
+                    bookmarkId: bookmarkId,
+                });
 
             return bookmarkDocumentRef;
         });
 
-        const bookmarkDocuments = await DatabaseAssistant.shared.getAll(
+        const bookmarkDocuments = await DatabaseAssistant.shared.all(
             ...bookmarkDocumentRefs
         );
 
@@ -153,14 +144,12 @@ export default class BookmarksManager {
             creationDate: Dately.shared.now(),
         };
 
-        const bookmarkDocumentPath =
-            DBCollections.users +
-            `/${parameters.authorId}/` +
-            DBCollections.bookmarks +
-            `/${bookmark.id}`;
-
-        const bookmarkDocumentRef =
-            DatabaseAssistant.shared.doc(bookmarkDocumentPath);
+        const bookmarkDocumentRef = DatabaseAssistant.shared.bookmarkDocumenRef(
+            {
+                userId: parameters.authorId,
+                bookmarkId: bookmarkId,
+            }
+        );
 
         try {
             await bookmarkDocumentRef.create(bookmark);
@@ -195,14 +184,11 @@ export default class BookmarksManager {
         }
 
         try {
-            const bookmarkDocumentPath =
-                DBCollections.users +
-                `/${bookmark.authorId}/` +
-                DBCollections.bookmarks +
-                `/${bookmark.id}`;
-
             const bookmarkDocumentRef =
-                DatabaseAssistant.shared.doc(bookmarkDocumentPath);
+                DatabaseAssistant.shared.bookmarkDocumenRef({
+                    userId: bookmark.authorId,
+                    bookmarkId: bookmark.id,
+                });
 
             await bookmarkDocumentRef.delete();
 
@@ -223,9 +209,8 @@ export default class BookmarksManager {
     async bookmark(parameters: {
         bookmarkId: String;
     }): Promise<Bookmark | null> {
-        const bookmarskCollection = DatabaseAssistant.shared.collectionGroup(
-            DBCollections.bookmarks
-        );
+        const bookmarskCollection =
+            DatabaseAssistant.shared.bookmarksCollectionGroupRef();
 
         const bookmarksQuery = bookmarskCollection
             .where("id", "==", parameters.bookmarkId.valueOf())
@@ -299,14 +284,10 @@ export default class BookmarksManager {
     ): Promise<
         Success<Paginated<Bookmark>> | Failure<PaginatedBookmarksFailureReason>
     > {
-        const bookmarksCollectionPath =
-            DBCollections.users +
-            `/${parameters.userId}/` +
-            DBCollections.bookmarks;
-
-        const bookmarksCollection = DatabaseAssistant.shared.collection(
-            bookmarksCollectionPath
-        );
+        const bookmarksCollection =
+            DatabaseAssistant.shared.bookmarksCollectionRef({
+                userId: parameters.userId,
+            });
 
         const limit =
             parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
