@@ -43,12 +43,17 @@ export default class LikesManager {
     }
 
     async exists(parameters: { likeId: String }): Promise<Boolean> {
-        const likeDocumentPath = DBCollections.likes + `/${parameters.likeId}`;
-        const likeDocumentRef = DatabaseAssistant.shared.doc(likeDocumentPath);
+        const likesCollection = DatabaseAssistant.shared.collectionGroup(
+            DBCollections.likes
+        );
 
-        const likeDocument = await likeDocumentRef.get();
+        const likesQuery = likesCollection
+            .where("id", "==", parameters.likeId.valueOf())
+            .limit(1);
 
-        if (likeDocument.exists) {
+        const querySnapshot = await likesQuery.get();
+
+        if (querySnapshot.docs.length > 0) {
             return true;
         }
 
@@ -59,20 +64,21 @@ export default class LikesManager {
         tweetId: String;
         authorId: String;
     }): Promise<Boolean> {
-        const likesCollection = DatabaseAssistant.shared.collectionGroup(
-            DBCollections.bookmarks
-        );
-
-        const id = this.createIdentifier({
+        const likeId = this.createIdentifier({
             tweetId: parameters.tweetId,
             authorId: parameters.authorId,
         });
 
-        const likesQuery = likesCollection.where("id", "==", id).limit(1);
+        const likeDocumentPath =
+            DBCollections.tweets +
+            `/${parameters.tweetId}/` +
+            DBCollections.likes +
+            `/${likeId}`;
+        const likeDocumentRef = DatabaseAssistant.shared.doc(likeDocumentPath);
 
-        const likesQuerySnapshot = await likesQuery.get();
+        const likeDocument = await likeDocumentRef.get();
 
-        if (likesQuerySnapshot.docs.length > 0) {
+        if (likeDocument.exists) {
             return true;
         }
 
@@ -88,7 +94,7 @@ export default class LikesManager {
         }
 
         const likeDocumentRefs = parameters.tweetIds.map((tweetId) => {
-            const id = this.createIdentifier({
+            const likeId = this.createIdentifier({
                 authorId: parameters.authorId,
                 tweetId: tweetId,
             });
@@ -97,7 +103,7 @@ export default class LikesManager {
                 DBCollections.tweets +
                 `/${tweetId}/` +
                 DBCollections.likes +
-                `/${id}`;
+                `/${likeId}`;
 
             const likeDocumentRef =
                 DatabaseAssistant.shared.doc(likeDocumentPath);
@@ -137,13 +143,13 @@ export default class LikesManager {
             return reply;
         }
 
-        const id = this.createIdentifier({
+        const likeId = this.createIdentifier({
             authorId: parameters.authorId,
             tweetId: parameters.tweetId,
         });
 
         const like: Like = {
-            id: id,
+            id: likeId,
             authorId: parameters.authorId,
             tweetId: parameters.tweetId,
             creationDate: Dately.shared.now(),
@@ -163,7 +169,9 @@ export default class LikesManager {
 
                     const tweet = tweetDocument.data() as unknown as Tweet;
 
-                    const likeDocumentPath = tweetDocumentPath + `/${like.id}`;
+                    const likeDocumentPath =
+                        tweetDocumentPath +
+                        `/${DBCollections.likes}/${like.id}`;
                     const likeDocumentRef =
                         DatabaseAssistant.shared.doc(likeDocumentPath);
 
@@ -209,16 +217,19 @@ export default class LikesManager {
         try {
             await DatabaseAssistant.shared.runTransaction(
                 async (transaction) => {
-                    const likesCollection = DatabaseAssistant.shared.collection(
-                        DBCollections.likes
-                    );
-                    const likeDocumentRef = likesCollection.doc(
-                        parameters.likeId.valueOf()
-                    );
+                    const likesCollection =
+                        DatabaseAssistant.shared.collectionGroup(
+                            DBCollections.likes
+                        );
+                    const likesQuery = likesCollection
+                        .where("id", "==", parameters.likeId.valueOf())
+                        .limit(1);
 
-                    const likeDocument = await transaction.get(likeDocumentRef);
+                    const querySnapshot = await transaction.get(likesQuery);
 
-                    const like = likeDocument.data() as unknown as Like;
+                    const likeDocumentRef = querySnapshot.docs[0].ref;
+                    const like =
+                        querySnapshot.docs[0].data() as unknown as Like;
 
                     const tweetsCollection =
                         DatabaseAssistant.shared.collection(
@@ -351,11 +362,11 @@ export default class LikesManager {
             const querySnapshot = await query.get();
 
             if (querySnapshot.empty) {
-                const paginatedBookmarks: Paginated<Like> = {
+                const paginatedLikes: Paginated<Like> = {
                     page: [],
                 };
 
-                const reply = new Success<Paginated<Like>>(paginatedBookmarks);
+                const reply = new Success<Paginated<Like>>(paginatedLikes);
 
                 return reply;
             }
@@ -377,12 +388,12 @@ export default class LikesManager {
                 return bookmark;
             });
 
-            const paginatedFollowers: Paginated<Like> = {
+            const paginatedLikes: Paginated<Like> = {
                 page: likes,
                 nextToken: nextToken,
             };
 
-            const reply = new Success<Paginated<Like>>(paginatedFollowers);
+            const reply = new Success<Paginated<Like>>(paginatedLikes);
 
             return reply;
         } catch (e) {
@@ -405,14 +416,14 @@ export default class LikesManager {
         | Success<Paginated<ViewableLike>>
         | Failure<PaginatedViewableLikesFailureReason>
     > {
-        const likeReactionsResult = await this.paginatedLikesOf({
+        const likesResult = await this.paginatedLikesOf({
             tweetId: parameters.tweetId,
             limit: parameters.limit,
             nextToken: parameters.nextToken,
         });
 
-        if (likeReactionsResult instanceof Failure) {
-            switch (likeReactionsResult.reason) {
+        if (likesResult instanceof Failure) {
+            switch (likesResult.reason) {
                 case PaginatedLikesFailureReason.malformedParameters: {
                     const reply =
                         new Failure<PaginatedViewableLikesFailureReason>(
@@ -432,9 +443,9 @@ export default class LikesManager {
             }
         }
 
-        const likeReactions = likeReactionsResult.data;
+        const likes = likesResult.data;
 
-        if (likeReactions.page.length === 0) {
+        if (likes.page.length === 0) {
             const paginatedViewableLikes: Paginated<ViewableLike> = {
                 page: [],
             };
@@ -447,7 +458,7 @@ export default class LikesManager {
         }
 
         const viewableUsersResult = await UsersManager.shared.viewableUsers({
-            userIdentifiers: likeReactions.page.map((like) => {
+            userIdentifiers: likes.page.map((like) => {
                 return like.authorId;
             }),
             viewerId: parameters.viewerId,
@@ -463,13 +474,13 @@ export default class LikesManager {
 
         const viewableUsers = viewableUsersResult.data;
 
-        const viewablesLikes = likeReactions.page.map((likeReaction) => {
+        const viewablesLikes = likes.page.map((like) => {
             const likeViewables: LikeViewables = {
-                author: viewableUsers[likeReaction.authorId.valueOf()],
+                author: viewableUsers[like.authorId.valueOf()],
             };
 
             const viewableLike: ViewableLike = {
-                ...likeReaction,
+                ...like,
                 viewables: likeViewables,
             };
 
@@ -478,7 +489,7 @@ export default class LikesManager {
 
         const paginatedViewableLikes: Paginated<ViewableLike> = {
             page: viewablesLikes,
-            nextToken: likeReactions.nextToken,
+            nextToken: likes.nextToken,
         };
 
         const reply = new Success<Paginated<ViewableLike>>(
