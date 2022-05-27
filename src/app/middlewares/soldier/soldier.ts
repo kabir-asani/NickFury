@@ -15,8 +15,6 @@ const soldier =
         groundZero: GroundZero;
     }): TxMiddleware =>
     async (req, res, next) => {
-        const schema = parameters.schema;
-
         const data = (() => {
             switch (parameters.groundZero) {
                 case GroundZero.parameters:
@@ -27,6 +25,19 @@ const soldier =
                     return req.headers;
                 case GroundZero.body:
                     return req.body;
+            }
+        })();
+
+        const schema = (() => {
+            switch (parameters.groundZero) {
+                case GroundZero.parameters:
+                    return parameters.schema.unknown(true);
+                case GroundZero.query:
+                    return parameters.schema.unknown(true);
+                case GroundZero.headers:
+                    return parameters.schema.unknown(true);
+                case GroundZero.body:
+                    return parameters.schema.unknown(false);
             }
         })();
 
