@@ -27,6 +27,7 @@ import {
     ViewablesParameters,
 } from "../core/types";
 import UsersManager from "../usersManager/usersManager";
+import LikesManager from "./likesManager/likesManager";
 import {
     TweetCreationFailureReason,
     TweetDeletionFailureReason,
@@ -276,9 +277,15 @@ export default class TweetsManager {
             authorId: parameters.viewerId,
         });
 
+        const isLiked = await LikesManager.shared.existsByDetails({
+            tweetId: parameters.tweetId,
+            authorId: parameters.viewerId,
+        });
+
         const viewables: TweetViewables = {
             author: viewableAuthor as ViewableUser,
             bookmarked: isBookmarked,
+            liked: isLiked,
         };
 
         return viewables;
@@ -437,6 +444,7 @@ export default class TweetsManager {
             const tweetViewables: TweetViewables = {
                 author: viewableUsers[tweet.authorId.valueOf()],
                 bookmarked: bookmarkedStatuses[tweet.id.valueOf()],
+                liked: false, // TODO: Fetch likedStatuses from LikesMananger and populate here
             };
 
             const viewableTweet: ViewableTweet = {
@@ -569,6 +577,7 @@ export default class TweetsManager {
             const tweetViewables: TweetViewables = {
                 author: viewableUsers[tweet.authorId.valueOf()],
                 bookmarked: bookmarkedStatuses[tweet.id.valueOf()],
+                liked: false, // TODO: Fetch likedStatuses from LikesMananger and populate here
             };
 
             const viewableTweet: ViewableTweet = {

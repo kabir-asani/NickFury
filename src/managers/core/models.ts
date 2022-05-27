@@ -77,6 +77,7 @@ export interface Tweet {
 export interface TweetViewables {
     author: ViewableUser;
     bookmarked: Boolean;
+    liked: Boolean;
 }
 
 export interface ViewableTweet extends Tweet {
