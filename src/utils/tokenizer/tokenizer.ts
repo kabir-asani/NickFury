@@ -1,8 +1,9 @@
 import * as jwt from "jsonwebtoken";
 
 import Secrets from "../../secrets.json";
+import logger, { LogLevel } from "../logger/logger";
 
-export class Tokenizer {
+export default class Tokenizer {
     static readonly shared = new Tokenizer();
 
     private constructor() {}
@@ -36,7 +37,9 @@ export class Tokenizer {
             );
 
             return true;
-        } catch {
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.verify]);
+
             return false;
         }
     }

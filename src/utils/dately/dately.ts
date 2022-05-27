@@ -1,6 +1,6 @@
 import moment from "moment";
 
-export class Dately {
+export default class Dately {
     public static readonly shared = new Dately();
 
     private constructor() {}
