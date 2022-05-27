@@ -165,7 +165,7 @@ export default class TweetsManager {
             const userDocumentRef =
                 DatabaseAssistant.shared.doc(userDocumentPath);
 
-            const tweetDocumentPath = DBCollections.tweets + `${tweet.id}`;
+            const tweetDocumentPath = DBCollections.tweets + `/${tweet.id}`;
             const tweetDocumentRef =
                 DatabaseAssistant.shared.doc(tweetDocumentPath);
 
@@ -225,13 +225,6 @@ export default class TweetsManager {
             tweetId: String;
         } & ViewablesParameters
     ): Promise<ViewableTweet | null> {
-        const tweetsCollection = DatabaseAssistant.shared.collection(
-            DBCollections.tweets
-        );
-        const tweetDocumentRef = tweetsCollection.doc(
-            parameters.tweetId.valueOf()
-        );
-
         const tweet = await this.tweet({
             tweetId: parameters.tweetId,
         });
@@ -440,11 +433,18 @@ export default class TweetsManager {
                 }),
             });
 
+        const likedStatuses = await LikesManager.shared.likeStatuses({
+            authorId: parameters.viewerId,
+            tweetIds: paginatedTweets.page.map((tweet) => {
+                return tweet.id;
+            }),
+        });
+
         const viewableTweets = paginatedTweets.page.map((tweet) => {
             const tweetViewables: TweetViewables = {
                 author: viewableUsers[tweet.authorId.valueOf()],
                 bookmarked: bookmarkedStatuses[tweet.id.valueOf()],
-                liked: false, // TODO: Fetch likedStatuses from LikesMananger and populate here
+                liked: likedStatuses[tweet.id.valueOf()],
             };
 
             const viewableTweet: ViewableTweet = {
@@ -546,8 +546,10 @@ export default class TweetsManager {
             }
         }
 
+        const tweets = tweetsResult.data;
+
         const viewableUsersResult = await UsersManager.shared.viewableUsers({
-            userIdentifiers: valuesOf(tweetsResult).map((tweet) => {
+            userIdentifiers: valuesOf(tweets).map((tweet) => {
                 return tweet.authorId;
             }),
             viewerId: parameters.viewerId,
@@ -566,18 +568,25 @@ export default class TweetsManager {
         const bookmarkedStatuses =
             await BookmarksManager.shared.bookmarkStatuses({
                 authorId: parameters.viewerId,
-                tweetIds: valuesOf(tweetsResult).map((tweet) => {
+                tweetIds: valuesOf(tweets).map((tweet) => {
                     return tweet.id;
                 }),
             });
 
+        const likedStatuses = await LikesManager.shared.likeStatuses({
+            authorId: parameters.viewerId,
+            tweetIds: valuesOf(tweets).map((tweet) => {
+                return tweet.id;
+            }),
+        });
+
         const viewableTweets: Value<ViewableTweet> = {};
 
-        valuesOf(tweetsResult).forEach((tweet) => {
+        valuesOf(tweets).forEach((tweet) => {
             const tweetViewables: TweetViewables = {
                 author: viewableUsers[tweet.authorId.valueOf()],
                 bookmarked: bookmarkedStatuses[tweet.id.valueOf()],
-                liked: false, // TODO: Fetch likedStatuses from LikesMananger and populate here
+                liked: likedStatuses[tweet.id.valueOf()],
             };
 
             const viewableTweet: ViewableTweet = {
