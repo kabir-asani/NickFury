@@ -1,11 +1,23 @@
-import { User, UserViewables, ViewableUser } from "../core/models";
+import { Follower, User, UserViewables, ViewableUser } from "../core/models";
 import DatabaseAssistant, {
     DBCollections,
 } from "../../assistants/database/database";
 import SocialsManager from "../socialsManager/socialsManager";
-import { Value, ViewablesParameters } from "../core/types";
+import {
+    kMaximumPaginatedPageLength,
+    Paginated,
+    PaginationParameters,
+    Value,
+    ViewablesParameters,
+} from "../core/types";
 import { Failure, keysOf, Success } from "../../utils/typescriptx/typescriptx";
-import { UsersFailureReason, ViewableUsersFailureReason } from "./types";
+import {
+    SearchFailureReason,
+    UsersFailureReason,
+    ViewableUsersFailureReason,
+} from "./types";
+import logger, { LogLevel } from "../../utils/logger/logger";
+import { PaginatedFollowersFailureReason } from "../socialsManager/types";
 
 export default class UsersManager {
     static readonly shared = new UsersManager();
@@ -277,5 +289,105 @@ export default class UsersManager {
         const reply = new Success<Value<ViewableUser>>(viewableUsers);
 
         return reply;
+    }
+
+    async search(
+        parameters: {
+            prefix: String;
+        } & PaginationParameters &
+            ViewablesParameters
+    ): Promise<
+        Success<Paginated<ViewableUser>> | Failure<SearchFailureReason>
+    > {
+        const usersCollection = DatabaseAssistant.shared.collection(
+            DBCollections.users
+        );
+
+        const limit =
+            parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
+
+        let query = usersCollection
+            .orderBy("username")
+            .where("username", ">=", parameters.prefix.valueOf())
+            .limit(limit + 1);
+
+        if (parameters.nextToken !== undefined) {
+            query = query.startAt(parameters.nextToken);
+        }
+
+        try {
+            const querySnapshot = await query.get();
+
+            if (querySnapshot.empty) {
+                const paginatedUsers: Paginated<ViewableUser> = {
+                    page: [],
+                };
+
+                const reply = new Success<Paginated<ViewableUser>>(
+                    paginatedUsers
+                );
+
+                return reply;
+            }
+
+            let nextToken = undefined;
+
+            if (querySnapshot.docs.length === limit + 1) {
+                const lastDocument = querySnapshot.docs.pop();
+
+                if (lastDocument !== undefined) {
+                    nextToken = (lastDocument.data() as unknown as User)
+                        .creationDate;
+                }
+            }
+
+            const users = querySnapshot.docs.map((queryDocument) => {
+                const user = queryDocument.data() as unknown as User;
+
+                return user;
+            });
+
+            const followingStatuses =
+                await SocialsManager.shared.followingRelationshipStatuses({
+                    followerId: parameters.viewerId,
+                    followeeIdentifiers: users.map((user) => {
+                        return user.id;
+                    }),
+                });
+
+            const viewableUsers: ViewableUser[] = [];
+
+            users.forEach((user) => {
+                const userViewables: UserViewables = {
+                    following: followingStatuses[user.id.valueOf()],
+                };
+
+                const viewableUser: ViewableUser = {
+                    ...user,
+                    viewables: userViewables,
+                };
+
+                viewableUsers.push(viewableUser);
+            });
+
+            const paginatedViewableUsers: Paginated<ViewableUser> = {
+                page: viewableUsers,
+                nextToken: nextToken,
+            };
+
+            const reply = new Success<Paginated<ViewableUser>>(
+                paginatedViewableUsers
+            );
+
+            return reply;
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.search]);
+
+            const reply = new Failure<SearchFailureReason>(
+                SearchFailureReason.unknown
+            );
+
+            return reply;
+        }
     }
 }
