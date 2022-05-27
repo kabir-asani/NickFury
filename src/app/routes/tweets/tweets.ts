@@ -8,7 +8,6 @@ import { SessionizedRequest } from "../../core/override";
 import {
     AllOkRouteSuccess,
     CreationRouteSuccess,
-    IncorrectParametersRouteFailure,
     InternalRouteFailure,
     NoContentRouteSuccess,
     SemanticRouteFailure,
