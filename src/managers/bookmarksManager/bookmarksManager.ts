@@ -60,22 +60,23 @@ export default class BookmarksManager {
         tweetId: String;
         authorId: String;
     }): Promise<Boolean> {
-        const bookmarskCollection = DatabaseAssistant.shared.collectionGroup(
-            DBCollections.bookmarks
-        );
-
-        const id = this.createIdentifier({
+        const bookmarkId = this.createIdentifier({
             tweetId: parameters.tweetId,
             authorId: parameters.authorId,
         });
 
-        const bookmarksQuery = bookmarskCollection
-            .where("id", "==", id)
-            .limit(1);
+        const bookmarkDocumentPath =
+            DBCollections.users +
+            `/${parameters.authorId}/` +
+            DBCollections.bookmarks +
+            `/${bookmarkId}`;
 
-        const bookmarksQuerySnapshot = await bookmarksQuery.get();
+        const bookmarkDocumentRef =
+            DatabaseAssistant.shared.doc(bookmarkDocumentPath);
 
-        if (bookmarksQuerySnapshot.docs.length > 0) {
+        const bookmarkDocument = await bookmarkDocumentRef.get();
+
+        if (bookmarkDocument.exists) {
             return true;
         }
 
@@ -91,7 +92,7 @@ export default class BookmarksManager {
         }
 
         const bookmarkDocumentRefs = parameters.tweetIds.map((tweetId) => {
-            const id = this.createIdentifier({
+            const bookmarkId = this.createIdentifier({
                 authorId: parameters.authorId,
                 tweetId: tweetId,
             });
@@ -100,7 +101,7 @@ export default class BookmarksManager {
                 DBCollections.users +
                 `/${parameters.authorId}/` +
                 DBCollections.bookmarks +
-                `/${id}`;
+                `/${bookmarkId}`;
 
             const bookmarkDocumentRef =
                 DatabaseAssistant.shared.doc(bookmarkDocumentPath);
@@ -140,13 +141,13 @@ export default class BookmarksManager {
             return reply;
         }
 
-        const id = this.createIdentifier({
+        const bookmarkId = this.createIdentifier({
             authorId: parameters.authorId,
             tweetId: parameters.tweetId,
         });
 
         const bookmark: Bookmark = {
-            id: id,
+            id: bookmarkId,
             tweetId: parameters.tweetId,
             authorId: parameters.authorId,
             creationDate: Dately.shared.now(),
