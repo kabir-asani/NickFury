@@ -67,8 +67,8 @@ export default class BookmarksManager {
 
         const bookmarkDocumentPath =
             DBCollections.users +
-            `/${parameters.authorId}/` +
-            DBCollections.bookmarks +
+            `/${parameters.authorId}` +
+            `/${DBCollections.bookmarks}` +
             `/${bookmarkId}`;
 
         const bookmarkDocumentRef =
@@ -157,7 +157,7 @@ export default class BookmarksManager {
             DBCollections.users +
             `/${parameters.authorId}/` +
             DBCollections.bookmarks +
-            bookmark.id;
+            `/${bookmark.id}`;
 
         const bookmarkDocumentRef =
             DatabaseAssistant.shared.doc(bookmarkDocumentPath);
@@ -351,12 +351,12 @@ export default class BookmarksManager {
                 return bookmark;
             });
 
-            const paginatedFollowers: Paginated<Bookmark> = {
+            const paginatedBookmarks: Paginated<Bookmark> = {
                 page: bookmarks,
                 nextToken: nextToken,
             };
 
-            const reply = new Success<Paginated<Bookmark>>(paginatedFollowers);
+            const reply = new Success<Paginated<Bookmark>>(paginatedBookmarks);
 
             return reply;
         } catch (e) {
