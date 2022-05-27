@@ -10,9 +10,9 @@ import {
     Follower,
     User,
     ViewableFollower,
-    ViewableFollowing,
+    ViewableFollowee,
     FollowerViewables,
-    FollowingViewables,
+    FolloweeViewables,
 } from "../core/models";
 import {
     kMaximumPaginatedPageLength,
@@ -26,9 +26,9 @@ import {
     FollowFailureReason,
     UnfollowFailureReason,
     PaginatedViewableFollowersFailureReason,
-    PaginatedViewableFollowingsFailureReason,
+    PaginatedViewableFolloweesFailureReason,
     PaginatedFollowersFailureReason,
-    PaginatedFollowingsFailureReason,
+    PaginatedFolloweesFailureReason,
 } from "./types";
 
 export default class SocialsManager {
@@ -36,36 +36,36 @@ export default class SocialsManager {
 
     private constructor() {}
 
-    async isFollowingRelationshipExists(parameters: {
-        followingId: String;
+    async isFollowedRelationshipExists(parameters: {
+        followeeId: String;
         followerId: String;
     }): Promise<Boolean> {
         const followingDocumentPath =
             DBCollections.users +
             `/${parameters.followerId}/` +
-            `/${DBCollections.followings}/` +
-            parameters.followingId;
+            `/${DBCollections.followees}/` +
+            parameters.followeeId;
 
-        const followingDocumentRef = DatabaseAssistant.shared.doc(
+        const followeeDocumentRef = DatabaseAssistant.shared.doc(
             followingDocumentPath
         );
 
-        const followingDocument = await followingDocumentRef.get();
+        const followeeDocument = await followeeDocumentRef.get();
 
-        if (followingDocument.exists) {
+        if (followeeDocument.exists) {
             return true;
         }
 
         return false;
     }
 
-    async isFollowerRelationshipExists(parameters: {
-        followingId: String;
+    async isFollowingRelationshipExists(parameters: {
+        followeeId: String;
         followerId: String;
     }): Promise<Boolean> {
         const followerDocumentPath =
             DBCollections.users +
-            `/${parameters.followingId}/` +
+            `/${parameters.followeeId}/` +
             `/${DBCollections.followers}/` +
             parameters.followerId;
 
@@ -81,47 +81,46 @@ export default class SocialsManager {
         return false;
     }
 
-    async followerRelationshipStatuses(parameters: {
-        followingIdentifiers: String[];
+    async followingRelationshipStatuses(parameters: {
+        followeeIdentifiers: String[];
         followerId: String;
     }): Promise<Value<Boolean>> {
-        if (parameters.followingIdentifiers.length === 0) {
+        if (parameters.followeeIdentifiers.length === 0) {
             return {};
         }
 
-        const followingDocumentRefs = parameters.followingIdentifiers.map(
+        const followeeDocumentRefs = parameters.followeeIdentifiers.map(
             (followingId) => {
-                const followingDocumentPath =
+                const followeeDocumentPath =
                     DBCollections.users +
                     `/${parameters.followerId}/` +
-                    DBCollections.followings +
+                    DBCollections.followees +
                     `/${followingId}`;
 
-                const followingDocumentRef = DatabaseAssistant.shared.doc(
-                    followingDocumentPath
-                );
+                const followeeDocumentRef =
+                    DatabaseAssistant.shared.doc(followeeDocumentPath);
 
-                return followingDocumentRef;
+                return followeeDocumentRef;
             }
         );
 
-        const followingDocuments = await DatabaseAssistant.shared.getAll(
-            ...followingDocumentRefs
+        const followeeDocuments = await DatabaseAssistant.shared.getAll(
+            ...followeeDocumentRefs
         );
 
         const followerRelationshipStatuses: Value<Boolean> = {};
 
-        followingDocuments.forEach((followingDocument) => {
-            followerRelationshipStatuses[followingDocument.id] =
-                followingDocument.exists;
+        followeeDocuments.forEach((followeeDocument) => {
+            followerRelationshipStatuses[followeeDocument.id] =
+                followeeDocument.exists;
         });
 
         return followerRelationshipStatuses;
     }
 
-    async followingRelationshipStatuses(parameters: {
+    async followedRelationshipStatuses(parameters: {
         followerIdentifiers: String[];
-        followingId: String;
+        followeeId: String;
     }): Promise<Value<Boolean>> {
         if (parameters.followerIdentifiers.length === 0) {
             return {};
@@ -131,7 +130,7 @@ export default class SocialsManager {
             (followerId) => {
                 const followerDocumentPath =
                     DBCollections.users +
-                    `/${parameters.followingId}/` +
+                    `/${parameters.followeeId}/` +
                     DBCollections.followers +
                     `/${followerId}`;
 
@@ -160,13 +159,13 @@ export default class SocialsManager {
         followingId: String;
         followerId: String;
     }): Promise<Success<Empty> | Failure<FollowFailureReason>> {
-        const isFollowingExists = await UsersManager.shared.exists({
+        const isFolloweeExists = await UsersManager.shared.exists({
             id: parameters.followingId,
         });
 
-        if (!isFollowingExists) {
+        if (!isFolloweeExists) {
             const reply = new Failure<FollowFailureReason>(
-                FollowFailureReason.followingDoesNotExists
+                FollowFailureReason.followeeDoesNotExists
             );
 
             return reply;
@@ -184,9 +183,23 @@ export default class SocialsManager {
             return reply;
         }
 
+        const isFollowRelationshipExists =
+            await this.isFollowingRelationshipExists({
+                followerId: parameters.followerId,
+                followeeId: parameters.followingId,
+            });
+
+        if (isFollowRelationshipExists) {
+            const reply = new Failure<FollowFailureReason>(
+                FollowFailureReason.relationshipAlreadyExists
+            );
+
+            return reply;
+        }
+
         const followFeed = StreamAssistant.shared.timelineFeed.follow({
             followerUserId: parameters.followerId,
-            followingUserId: parameters.followingId,
+            followeeUserId: parameters.followingId,
         });
 
         if (followFeed instanceof Failure) {
@@ -202,8 +215,8 @@ export default class SocialsManager {
             creationDate: Dately.shared.now(),
         };
 
-        const followingData: Following = {
-            followingId: parameters.followingId,
+        const followeeData: Following = {
+            followeeId: parameters.followingId,
             creationDate: Dately.shared.now(),
         };
 
@@ -211,52 +224,52 @@ export default class SocialsManager {
             DBCollections.users
         );
 
-        const followingUserDocumentRef = usersCollection.doc(
+        const followeeUserDocumentRef = usersCollection.doc(
             parameters.followingId.valueOf()
         );
         const followerUserDocumentRef = usersCollection.doc(
             parameters.followerId.valueOf()
         );
 
-        const followersCollection = followingUserDocumentRef.collection(
+        const followersCollection = followeeUserDocumentRef.collection(
             DBCollections.followers
         );
-        const followingsCollectin = followerUserDocumentRef.collection(
-            DBCollections.followings
+        const followeesCollectin = followerUserDocumentRef.collection(
+            DBCollections.followees
         );
 
         const followerDataDocumentRef = followersCollection.doc(
             parameters.followerId.valueOf()
         );
-        const followingDataDocumentRef = followingsCollectin.doc(
+        const followeeDataDocumentRef = followeesCollectin.doc(
             parameters.followingId.valueOf()
         );
 
         try {
             await DatabaseAssistant.shared.runTransaction(
                 async (transaction) => {
-                    const followingUserDocument =
-                        await followingUserDocumentRef.get();
+                    const followeeUserDocument =
+                        await followeeUserDocumentRef.get();
                     const followerUserDocument =
                         await followerUserDocumentRef.get();
 
-                    const followingUser =
-                        followingUserDocument.data() as unknown as User;
+                    const followeeUser =
+                        followeeUserDocument.data() as unknown as User;
                     const followerUser =
                         followerUserDocument.data() as unknown as User;
 
-                    transaction.set(followingDataDocumentRef, followingData);
+                    transaction.set(followeeDataDocumentRef, followeeData);
                     transaction.set(followerDataDocumentRef, followerData);
 
                     transaction.update(followerUserDocumentRef, {
                         "socialDetails.followingsCount":
-                            followerUser.socialDetails.followingsCount.valueOf() +
+                            followerUser.socialDetails.followeesCount.valueOf() +
                             1,
                     });
 
-                    transaction.update(followingUserDocumentRef, {
+                    transaction.update(followeeUserDocumentRef, {
                         "socialDetails.followersCount":
-                            followingUser.socialDetails.followersCount.valueOf() +
+                            followeeUser.socialDetails.followersCount.valueOf() +
                             1,
                     });
                 }
@@ -277,20 +290,22 @@ export default class SocialsManager {
     }
 
     async unfollow(parameters: {
-        followingId: String;
+        followeeId: String;
         followerId: String;
     }): Promise<Success<Empty> | Failure<UnfollowFailureReason>> {
-        const isFollowing = await this.isFollowingRelationshipExists({
-            followingId: parameters.followingId,
-            followerId: parameters.followerId,
-        });
+        const isFollowedRelationshipExists =
+            await this.isFollowedRelationshipExists({
+                followeeId: parameters.followeeId,
+                followerId: parameters.followerId,
+            });
 
-        const isFollower = await this.isFollowerRelationshipExists({
-            followingId: parameters.followingId,
-            followerId: parameters.followerId,
-        });
+        const isFollowingRelationshipExists =
+            await this.isFollowingRelationshipExists({
+                followeeId: parameters.followeeId,
+                followerId: parameters.followerId,
+            });
 
-        if (!isFollowing && !isFollower) {
+        if (!isFollowedRelationshipExists && !isFollowingRelationshipExists) {
             const reply = new Failure<UnfollowFailureReason>(
                 UnfollowFailureReason.relationshipDoesNotExists
             );
@@ -300,7 +315,7 @@ export default class SocialsManager {
 
         const unfollowFeed = StreamAssistant.shared.timelineFeed.unfollow({
             followerUserId: parameters.followerId,
-            followingUserId: parameters.followingId,
+            followeeUserId: parameters.followeeId,
         });
 
         if (unfollowFeed instanceof Failure) {
@@ -315,54 +330,54 @@ export default class SocialsManager {
             DBCollections.users
         );
 
-        const followingUserDocumentRef = usersCollection.doc(
-            parameters.followingId.valueOf()
+        const followeeUserDocumentRef = usersCollection.doc(
+            parameters.followeeId.valueOf()
         );
         const followerUserDocumentRef = usersCollection.doc(
             parameters.followerId.valueOf()
         );
 
-        const followersCollection = followingUserDocumentRef.collection(
+        const followersCollection = followeeUserDocumentRef.collection(
             DBCollections.followers
         );
-        const followingsCollectin = followerUserDocumentRef.collection(
-            DBCollections.followings
+        const followeesCollectin = followerUserDocumentRef.collection(
+            DBCollections.followees
         );
 
         const followerDataDocumentRef = followersCollection.doc(
             parameters.followerId.valueOf()
         );
-        const followingDataDocumentRef = followingsCollectin.doc(
-            parameters.followingId.valueOf()
+        const followeeDataDocumentRef = followeesCollectin.doc(
+            parameters.followeeId.valueOf()
         );
 
         try {
             await DatabaseAssistant.shared.runTransaction(
                 async (transaction) => {
-                    const followingUserDocument =
-                        await followingUserDocumentRef.get();
+                    const followeeUserDocument =
+                        await followeeUserDocumentRef.get();
                     const followerUserDocument =
                         await followerUserDocumentRef.get();
 
-                    const followingUser =
-                        followingUserDocument.data() as unknown as User;
+                    const followeeUser =
+                        followeeUserDocument.data() as unknown as User;
                     const followerUser =
                         followerUserDocument.data() as unknown as User;
 
-                    transaction.delete(followingDataDocumentRef);
+                    transaction.delete(followeeDataDocumentRef);
                     transaction.delete(followerDataDocumentRef);
 
                     transaction.update(followerUserDocumentRef, {
                         "socialDetails.followingsCount": Math.max(
-                            followerUser.socialDetails.followingsCount.valueOf() -
+                            followerUser.socialDetails.followeesCount.valueOf() -
                                 1,
                             0
                         ),
                     });
 
-                    transaction.update(followingUserDocumentRef, {
+                    transaction.update(followeeUserDocumentRef, {
                         "socialDetails.followersCount": Math.max(
-                            followingUser.socialDetails.followersCount.valueOf() -
+                            followeeUser.socialDetails.followersCount.valueOf() -
                                 1,
                             0
                         ),
@@ -396,14 +411,14 @@ export default class SocialsManager {
             `/${parameters.userId}/` +
             DBCollections.followers;
 
-        const followingsCollection = DatabaseAssistant.shared.collection(
+        const followersCollection = DatabaseAssistant.shared.collection(
             followersCollectionPath
         );
 
         const limit =
             parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
 
-        let query = followingsCollection
+        let query = followersCollection
             .orderBy("creationDate")
             .limit(limit + 1);
 
@@ -541,27 +556,26 @@ export default class SocialsManager {
         return reply;
     }
 
-    private async paginatedFollowings(
+    private async paginatedFollowees(
         parameters: {
             userId: String;
         } & PaginationParameters
     ): Promise<
-        | Success<Paginated<Following>>
-        | Failure<PaginatedFollowingsFailureReason>
+        Success<Paginated<Following>> | Failure<PaginatedFolloweesFailureReason>
     > {
-        const followingsCollectionPath =
+        const followeesCollectionPath =
             DBCollections.users +
             `/${parameters.userId}/` +
-            DBCollections.followings;
+            DBCollections.followees;
 
-        const followingsCollection = DatabaseAssistant.shared.collection(
-            followingsCollectionPath
+        const followeesCollection = DatabaseAssistant.shared.collection(
+            followeesCollectionPath
         );
 
         const limit =
             parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
 
-        let query = followingsCollection
+        let query = followeesCollection
             .orderBy("creationDate")
             .limit(limit + 1);
 
@@ -573,12 +587,12 @@ export default class SocialsManager {
             const querySnapshot = await query.get();
 
             if (querySnapshot.empty) {
-                const paginatedFollowings: Paginated<Following> = {
+                const paginatedFollowees: Paginated<Following> = {
                     page: [],
                 };
 
                 const reply = new Success<Paginated<Following>>(
-                    paginatedFollowings
+                    paginatedFollowees
                 );
 
                 return reply;
@@ -595,83 +609,81 @@ export default class SocialsManager {
                 }
             }
 
-            const followings = querySnapshot.docs.map((queryDocument) => {
-                const following = queryDocument.data() as unknown as Following;
+            const followees = querySnapshot.docs.map((queryDocument) => {
+                const followee = queryDocument.data() as unknown as Following;
 
-                return following;
+                return followee;
             });
 
-            const paginatedFollowings: Paginated<Following> = {
-                page: followings,
+            const paginatedFollowees: Paginated<Following> = {
+                page: followees,
                 nextToken: nextToken,
             };
 
-            const reply = new Success<Paginated<Following>>(
-                paginatedFollowings
-            );
+            const reply = new Success<Paginated<Following>>(paginatedFollowees);
 
             return reply;
         } catch (e) {
-            logger(e, LogLevel.attention, [this, this.paginatedFollowings]);
+            logger(e, LogLevel.attention, [this, this.paginatedFollowees]);
 
-            const reply = new Failure<PaginatedFollowingsFailureReason>(
-                PaginatedFollowingsFailureReason.unknown
+            const reply = new Failure<PaginatedFolloweesFailureReason>(
+                PaginatedFolloweesFailureReason.unknown
             );
 
             return reply;
         }
     }
 
-    async paginatedViewableFollowings(
+    async paginatedViewableFollowees(
         parameters: {
             userId: String;
         } & ViewablesParameters &
             PaginationParameters
     ): Promise<
-        | Success<Paginated<ViewableFollowing>>
-        | Failure<PaginatedViewableFollowingsFailureReason>
+        | Success<Paginated<ViewableFollowee>>
+        | Failure<PaginatedViewableFolloweesFailureReason>
     > {
         const limit =
             parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
 
-        const followingsResult = await this.paginatedFollowings({
+        const followeesResult = await this.paginatedFollowees({
             userId: parameters.userId,
             limit: limit,
             nextToken: parameters.nextToken,
         });
 
-        if (followingsResult instanceof Failure) {
-            const reply = new Failure<PaginatedViewableFollowingsFailureReason>(
-                PaginatedViewableFollowingsFailureReason.unknown
+        if (followeesResult instanceof Failure) {
+            const reply = new Failure<PaginatedViewableFolloweesFailureReason>(
+                PaginatedViewableFolloweesFailureReason.unknown
             );
 
             return reply;
         }
 
-        const followings = followingsResult.data;
+        const followees = followeesResult.data;
 
-        if (followings.page.length === 0) {
-            const paginatedFollowings: Paginated<ViewableFollowing> = {
+        if (followees.page.length === 0) {
+            const paginatedFollowees: Paginated<ViewableFollowee> = {
                 page: [],
             };
 
-            const reply = new Success<Paginated<ViewableFollowing>>(
-                paginatedFollowings
+            const reply = new Success<Paginated<ViewableFollowee>>(
+                paginatedFollowees
             );
 
             return reply;
         }
 
         const viewableUsersResult = await UsersManager.shared.viewableUsers({
-            userIdentifiers: followings.page.map(
-                (followerData) => followerData.followingId
+            userIdentifiers: followees.page.map(
+                (followerData) => followerData.followeeId
             ),
             viewerId: parameters.viewerId,
         });
 
         if (viewableUsersResult instanceof Failure) {
-            const reply = new Failure<PaginatedViewableFollowingsFailureReason>(
-                PaginatedViewableFollowingsFailureReason.unknown
+            const reply = new Failure<PaginatedViewableFolloweesFailureReason>(
+                PaginatedViewableFolloweesFailureReason.unknown
             );
 
             return reply;
@@ -679,26 +691,26 @@ export default class SocialsManager {
 
         const viewableUsers = viewableUsersResult.data;
 
-        const viewableFollowingsData = followings.page.map((followerData) => {
-            const followingViewables: FollowingViewables = {
-                following: viewableUsers[followerData.followingId.valueOf()],
+        const viewableFolloweesData = followees.page.map((followeeData) => {
+            const followeeViewables: FolloweeViewables = {
+                followee: viewableUsers[followeeData.followeeId.valueOf()],
             };
 
-            const viewableFollowing: ViewableFollowing = {
-                ...followerData,
-                viewables: followingViewables,
+            const viewableFollowee: ViewableFollowee = {
+                ...followeeData,
+                viewables: followeeViewables,
             };
 
-            return viewableFollowing;
+            return viewableFollowee;
         });
 
-        const paginatedFollowings: Paginated<ViewableFollowing> = {
-            page: viewableFollowingsData,
-            nextToken: followings.nextToken,
+        const paginatedFollowees: Paginated<ViewableFollowee> = {
+            page: viewableFolloweesData,
+            nextToken: followees.nextToken,
         };
 
-        const reply = new Success<Paginated<ViewableFollowing>>(
-            paginatedFollowings
+        const reply = new Success<Paginated<ViewableFollowee>>(
+            paginatedFollowees
         );
 
         return reply;

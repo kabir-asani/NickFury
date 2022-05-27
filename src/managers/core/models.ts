@@ -9,20 +9,20 @@ export interface User {
     readonly creationDate: String;
     readonly lastUpdatedDate: String;
     readonly socialDetails: {
-        followersCount: Number;
-        followingsCount: Number;
+        readonly followersCount: Number;
+        readonly followeesCount: Number;
     };
     readonly activityDetails: {
-        tweetsCount: Number;
+        readonly tweetsCount: Number;
     };
 }
 
 export interface UserViewables {
-    following: Boolean;
+    readonly following: Boolean;
 }
 
 export interface ViewableUser extends User {
-    viewables: UserViewables;
+    readonly viewables: UserViewables;
 }
 
 // Session
@@ -39,7 +39,7 @@ export interface Follower {
 }
 
 export interface FollowerViewables {
-    follower: ViewableUser;
+    readonly follower: ViewableUser;
 }
 
 export interface ViewableFollower {
@@ -48,16 +48,16 @@ export interface ViewableFollower {
 
 // Followee
 export interface Following {
-    readonly followingId: String;
+    readonly followeeId: String;
     readonly creationDate: String;
 }
 
-export interface FollowingViewables {
-    following: ViewableUser;
+export interface FolloweeViewables {
+    readonly followee: ViewableUser;
 }
 
-export interface ViewableFollowing {
-    readonly viewables: FollowingViewables;
+export interface ViewableFollowee {
+    readonly viewables: FolloweeViewables;
 }
 
 // Tweet
@@ -69,15 +69,15 @@ export interface Tweet {
     readonly creationDate: String;
     readonly lastUpdatedDate: String;
     readonly interactionDetails: {
-        likesCount: Number;
-        commentsCount: Number;
+        readonly likesCount: Number;
+        readonly commentsCount: Number;
     };
 }
 
 export interface TweetViewables {
-    author: ViewableUser;
-    bookmarked: Boolean;
-    liked: Boolean;
+    readonly author: ViewableUser;
+    readonly bookmarked: Boolean;
+    readonly liked: Boolean;
 }
 
 export interface ViewableTweet extends Tweet {
@@ -94,7 +94,7 @@ export interface Comment {
 }
 
 export interface CommentViewables {
-    author: ViewableUser;
+    readonly author: ViewableUser;
 }
 
 export interface ViewableComment extends Comment {
@@ -126,7 +126,7 @@ export interface Bookmark {
 }
 
 export interface BookmarkViewables {
-    tweet: ViewableTweet;
+    readonly tweet: ViewableTweet;
 }
 
 export interface ViewableBookmark extends Bookmark {

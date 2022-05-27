@@ -46,7 +46,7 @@ export default class SelfManager {
             },
             socialDetails: {
                 followersCount: 0,
-                followingsCount: 0,
+                followeesCount: 0,
             },
             creationDate: Dately.shared.now(),
             lastUpdatedDate: Dately.shared.now(),
@@ -61,7 +61,7 @@ export default class SelfManager {
             const followResult =
                 await StreamAssistant.shared.timelineFeed.follow({
                     followerUserId: user.id,
-                    followingUserId: user.id,
+                    followeeUserId: user.id,
                 });
 
             const reply = new Success<User>(user);

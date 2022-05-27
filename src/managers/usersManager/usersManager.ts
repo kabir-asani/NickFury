@@ -158,9 +158,9 @@ export default class UsersManager {
         } & ViewablesParameters
     ): Promise<UserViewables | null> {
         const isFollowing =
-            await SocialsManager.shared.isFollowingRelationshipExists({
+            await SocialsManager.shared.isFollowedRelationshipExists({
                 followerId: parameters.viewerId,
-                followingId: parameters.userId,
+                followeeId: parameters.userId,
             });
 
         const viewables: UserViewables = {
@@ -252,9 +252,9 @@ export default class UsersManager {
         const users = usersResult.data;
 
         const followingStatuses =
-            await SocialsManager.shared.followerRelationshipStatuses({
+            await SocialsManager.shared.followingRelationshipStatuses({
                 followerId: parameters.viewerId,
-                followingIdentifiers: keysOf(users),
+                followeeIdentifiers: keysOf(users),
             });
 
         const viewableUsers: Value<ViewableUser> = {};

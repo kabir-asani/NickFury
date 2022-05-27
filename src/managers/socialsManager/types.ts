@@ -1,7 +1,8 @@
 export enum FollowFailureReason {
     unknown,
     followerDoesNotExists,
-    followingDoesNotExists,
+    followeeDoesNotExists,
+    relationshipAlreadyExists,
 }
 
 export enum UnfollowFailureReason {
@@ -9,7 +10,7 @@ export enum UnfollowFailureReason {
     relationshipDoesNotExists,
 }
 
-export enum PaginatedFollowingsFailureReason {
+export enum PaginatedFolloweesFailureReason {
     unknown,
 }
 
@@ -17,7 +18,7 @@ export enum PaginatedFollowersFailureReason {
     unknown,
 }
 
-export enum PaginatedViewableFollowingsFailureReason {
+export enum PaginatedViewableFolloweesFailureReason {
     unknown,
 }
 
