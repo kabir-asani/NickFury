@@ -1,7 +1,6 @@
 import * as uuid from "uuid";
 
-import {
-    DatabaseAssistant,
+import DatabaseAssistant, {
     DBCollections,
 } from "../../assistants/database/database";
 import StreamAssistant from "../../assistants/stream/stream";

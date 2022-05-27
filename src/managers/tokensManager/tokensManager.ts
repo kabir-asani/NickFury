@@ -1,5 +1,4 @@
-import {
-    DatabaseAssistant,
+import DatabaseAssistant, {
     DBCollections,
 } from "../../assistants/database/database";
 import { Success, Failure, Empty } from "../../utils/typescriptx/typescriptx";

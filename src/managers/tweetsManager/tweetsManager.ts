@@ -1,6 +1,5 @@
 import * as uuid from "uuid";
-import {
-    DatabaseAssistant,
+import DatabaseAssistant, {
     DBCollections,
 } from "../../assistants/database/database";
 import { TweetActivitiesFailureReason } from "../../assistants/stream/feeds/selfFeed/types";

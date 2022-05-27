@@ -1,6 +1,5 @@
 import { User, UserViewables, ViewableUser } from "../core/models";
-import {
-    DatabaseAssistant,
+import DatabaseAssistant, {
     DBCollections,
 } from "../../assistants/database/database";
 import SocialsManager from "../socialsManager/socialsManager";
