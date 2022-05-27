@@ -14,6 +14,7 @@ import {
     ViewableUser,
 } from "../../core/models";
 import {
+    kMaximumPaginatedPageLength,
     Paginated,
     PaginationParameters,
     Value,
@@ -26,15 +27,20 @@ import {
     PaginatedViewableLikesFailureReason,
 } from "./types";
 import Dately from "../../../utils/dately/dately";
-import StreamAssistant from "../../../assistants/stream/stream";
 import UsersManager from "../../usersManager/usersManager";
-import { PaginatedLikeReactionsFailure } from "../../../assistants/stream/reactions/likeReaction/types";
 import logger, { LogLevel } from "../../../utils/logger/logger";
 
 export default class LikesManager {
     static readonly shared = new LikesManager();
 
     private constructor() {}
+
+    private createIdentifier(parameters: {
+        authorId: String;
+        tweetId: String;
+    }): String {
+        return `${parameters.authorId}:${parameters.tweetId}`;
+    }
 
     async exists(parameters: { likeId: String }): Promise<Boolean> {
         const likeDocumentPath = DBCollections.likes + `/${parameters.likeId}`;
@@ -53,14 +59,16 @@ export default class LikesManager {
         tweetId: String;
         authorId: String;
     }): Promise<Boolean> {
-        const likesCollection = DatabaseAssistant.shared.collection(
-            DBCollections.likes
+        const likesCollection = DatabaseAssistant.shared.collectionGroup(
+            DBCollections.bookmarks
         );
 
-        const likesQuery = likesCollection
-            .where("tweetId", "==", parameters.tweetId.valueOf())
-            .where("authorId", "==", parameters.authorId)
-            .limit(1);
+        const id = this.createIdentifier({
+            tweetId: parameters.tweetId,
+            authorId: parameters.authorId,
+        });
+
+        const likesQuery = likesCollection.where("id", "==", id).limit(1);
 
         const likesQuerySnapshot = await likesQuery.get();
 
@@ -79,18 +87,37 @@ export default class LikesManager {
             return {};
         }
 
-        const bookmarkStatuses: Value<Boolean> = {};
-
-        for (let tweetId of parameters.tweetIds) {
-            const isExists = await this.existsByDetails({
+        const likeDocumentRefs = parameters.tweetIds.map((tweetId) => {
+            const id = this.createIdentifier({
                 authorId: parameters.authorId,
                 tweetId: tweetId,
             });
 
-            bookmarkStatuses[tweetId.valueOf()] = isExists;
-        }
+            const likeDocumentPath =
+                DBCollections.tweets +
+                `/${tweetId}/` +
+                DBCollections.likes +
+                `/${id}`;
 
-        return bookmarkStatuses;
+            const likeDocumentRef =
+                DatabaseAssistant.shared.doc(likeDocumentPath);
+
+            return likeDocumentRef;
+        });
+
+        const likeDocuments = await DatabaseAssistant.shared.getAll(
+            ...likeDocumentRefs
+        );
+
+        const likeStatuses: Value<Boolean> = {};
+
+        likeDocuments.forEach((bookmarkDocument) => {
+            const tweetId = bookmarkDocument.id.split(":")[1];
+
+            likeStatuses[tweetId] = bookmarkDocument.exists;
+        });
+
+        return likeStatuses;
     }
 
     async create(parameters: {
@@ -110,22 +137,20 @@ export default class LikesManager {
             return reply;
         }
 
-        const likeAddition = await StreamAssistant.shared.likeReactions.addLike(
-            {
-                tweetId: parameters.tweetId,
-            }
-        );
+        const id = this.createIdentifier({
+            authorId: parameters.authorId,
+            tweetId: parameters.tweetId,
+        });
 
-        if (likeAddition instanceof Failure) {
-            const reply = new Failure<LikeCreationFailureReason>(
-                LikeCreationFailureReason.unknown
-            );
-
-            return reply;
-        }
+        const like: Like = {
+            id: id,
+            authorId: parameters.authorId,
+            tweetId: parameters.tweetId,
+            creationDate: Dately.shared.now(),
+        };
 
         try {
-            const like = await DatabaseAssistant.shared.runTransaction(
+            await DatabaseAssistant.shared.runTransaction(
                 async (transaction) => {
                     const tweetDocumentPath =
                         DBCollections.tweets + `/${parameters.tweetId}`;
@@ -137,12 +162,6 @@ export default class LikesManager {
                     );
 
                     const tweet = tweetDocument.data() as unknown as Tweet;
-                    const like: Like = {
-                        id: likeAddition.data.id,
-                        authorId: parameters.authorId,
-                        tweetId: parameters.tweetId,
-                        creationDate: Dately.shared.now(),
-                    };
 
                     const likeDocumentPath = tweetDocumentPath + `/${like.id}`;
                     const likeDocumentRef =
@@ -182,19 +201,6 @@ export default class LikesManager {
         if (!isLikeExists) {
             const reply = new Failure<LikeDeletionFailureReason>(
                 LikeDeletionFailureReason.likeDoesNotExists
-            );
-
-            return reply;
-        }
-
-        const likeDeletionResult =
-            await StreamAssistant.shared.likeReactions.removeLike({
-                likeId: parameters.likeId,
-            });
-
-        if (likeDeletionResult instanceof Failure) {
-            const reply = new Failure<LikeDeletionFailureReason>(
-                LikeDeletionFailureReason.unknown
             );
 
             return reply;
@@ -252,18 +258,23 @@ export default class LikesManager {
     }
 
     async like(parameters: { likeId: String }): Promise<Like | null> {
-        const likeDocumentPath = DBCollections.likes + `/${parameters.likeId}`;
-        const likeDocumentRef = DatabaseAssistant.shared.doc(likeDocumentPath);
+        const likesCollection = DatabaseAssistant.shared.collectionGroup(
+            DBCollections.likes
+        );
 
-        const likeDocument = await likeDocumentRef.get();
+        const likesQuery = likesCollection
+            .where("id", "==", parameters.likeId.valueOf())
+            .limit(1);
 
-        if (!likeDocument.exists) {
-            return null;
+        const likesQuerySnapshot = await likesQuery.get();
+
+        if (likesQuerySnapshot.docs.length > 0) {
+            const like = likesQuerySnapshot.docs[0].data() as unknown as Like;
+
+            return like;
         }
 
-        const like = likeDocument.data() as unknown as Like;
-
-        return like;
+        return null;
     }
 
     async viewableLike(
@@ -312,90 +323,80 @@ export default class LikesManager {
         return viewables;
     }
 
-    async likes(
+    async paginatedLikesOf(
         parameters: {
             tweetId: String;
         } & PaginationParameters
     ): Promise<
         Success<Paginated<Like>> | Failure<PaginatedLikesFailureReason>
     > {
-        const likeReactionsResult =
-            await StreamAssistant.shared.likeReactions.likes({
-                tweetId: parameters.tweetId,
-                limit: parameters.limit,
-                nextToken: parameters.nextToken,
-            });
+        const likesCollectionPath =
+            DBCollections.tweets +
+            `/${parameters.tweetId}/` +
+            DBCollections.likes;
 
-        if (likeReactionsResult instanceof Failure) {
-            switch (likeReactionsResult.reason) {
-                case PaginatedLikeReactionsFailure.malformedParameters: {
-                    const reply = new Failure<PaginatedLikesFailureReason>(
-                        PaginatedLikesFailureReason.malformedParameters
-                    );
+        const likesCollection =
+            DatabaseAssistant.shared.collection(likesCollectionPath);
 
-                    return reply;
-                }
-                default: {
-                    const reply = new Failure<PaginatedLikesFailureReason>(
-                        PaginatedLikesFailureReason.unknown
-                    );
+        const limit =
+            parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
 
-                    return reply;
-                }
-            }
+        let query = likesCollection.orderBy("creationDate").limit(limit + 1);
+
+        if (parameters.nextToken !== undefined) {
+            query = query.startAt(parameters.nextToken);
         }
 
-        const likeReactions = likeReactionsResult.data;
+        try {
+            const querySnapshot = await query.get();
 
-        if (likeReactions.page.length === 0) {
-            const paginatedLikes: Paginated<Like> = {
-                page: [],
-            };
+            if (querySnapshot.empty) {
+                const paginatedBookmarks: Paginated<Like> = {
+                    page: [],
+                };
 
-            const reply = new Success<Paginated<Like>>(paginatedLikes);
-
-            return reply;
-        }
-
-        const likeDocumentRefs = likeReactions.page.map((likeReaction) => {
-            const likeDocumentPath = DBCollections.likes + `${likeReaction.id}`;
-            const likeDocumentRef =
-                DatabaseAssistant.shared.doc(likeDocumentPath);
-
-            return likeDocumentRef;
-        });
-
-        const likeDocuments = await DatabaseAssistant.shared.getAll(
-            ...likeDocumentRefs
-        );
-
-        const likes: Like[] = [];
-
-        for (let likeDocument of likeDocuments) {
-            if (!likeDocument.exists) {
-                const reply = new Failure<PaginatedLikesFailureReason>(
-                    PaginatedLikesFailureReason.unknown
-                );
+                const reply = new Success<Paginated<Like>>(paginatedBookmarks);
 
                 return reply;
             }
 
-            const like = likeDocument.data() as unknown as Like;
+            let nextToken = undefined;
 
-            likes.push(like);
+            if (querySnapshot.docs.length === limit + 1) {
+                const lastDocument = querySnapshot.docs.pop();
+
+                if (lastDocument !== undefined) {
+                    nextToken = (lastDocument.data() as unknown as Like)
+                        .creationDate;
+                }
+            }
+
+            const likes = querySnapshot.docs.map((queryDocument) => {
+                const bookmark = queryDocument.data() as unknown as Like;
+
+                return bookmark;
+            });
+
+            const paginatedFollowers: Paginated<Like> = {
+                page: likes,
+                nextToken: nextToken,
+            };
+
+            const reply = new Success<Paginated<Like>>(paginatedFollowers);
+
+            return reply;
+        } catch (e) {
+            logger(e, LogLevel.attention, [this, this.paginatedLikesOf]);
+
+            const reply = new Failure<PaginatedLikesFailureReason>(
+                PaginatedLikesFailureReason.unknown
+            );
+
+            return reply;
         }
-
-        const paginatedLikes: Paginated<Like> = {
-            page: likes,
-            nextToken: likeReactions.nextToken,
-        };
-
-        const reply = new Success<Paginated<Like>>(paginatedLikes);
-
-        return reply;
     }
 
-    async viewableLikes(
+    async paginatedViewableLikesOf(
         parameters: {
             tweetId: String;
         } & PaginationParameters &
@@ -404,7 +405,7 @@ export default class LikesManager {
         | Success<Paginated<ViewableLike>>
         | Failure<PaginatedViewableLikesFailureReason>
     > {
-        const likeReactionsResult = await this.likes({
+        const likeReactionsResult = await this.paginatedLikesOf({
             tweetId: parameters.tweetId,
             limit: parameters.limit,
             nextToken: parameters.nextToken,
