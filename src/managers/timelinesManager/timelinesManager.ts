@@ -40,7 +40,7 @@ export default class TimelinesManager {
                 }
                 default: {
                     const reply = new Failure<TimelineFailureReason>(
-                        TimelineFailureReason.malformedParameters
+                        TimelineFailureReason.unknown
                     );
 
                     return reply;
@@ -59,7 +59,7 @@ export default class TimelinesManager {
 
         if (viewableTweetsResult instanceof Failure) {
             const reply = new Failure<TimelineFailureReason>(
-                TimelineFailureReason.malformedParameters
+                TimelineFailureReason.unknown
             );
 
             return reply;

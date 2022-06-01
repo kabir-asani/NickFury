@@ -103,10 +103,6 @@ export default class SelfManager {
         };
     }): Promise<Success<User> | Failure<SelfUpdationFailureReason>> {
         if (parameters.updates.username !== undefined) {
-            // TODO: Check if username is valid
-        }
-
-        if (parameters.updates.username !== undefined) {
             const user = await UsersManager.shared.userWithUsername({
                 username: parameters.updates.username,
             });
@@ -118,18 +114,6 @@ export default class SelfManager {
 
                 return reply;
             }
-        }
-
-        if (parameters.updates.name !== undefined) {
-            // TODO: Check if name is valid
-        }
-
-        if (parameters.updates.image !== undefined) {
-            // TODO: Check if image-url is valid
-        }
-
-        if (parameters.updates.description !== undefined) {
-            // TODO: Check if description is valid
         }
 
         try {
