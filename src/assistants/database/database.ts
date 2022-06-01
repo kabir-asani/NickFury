@@ -4,7 +4,7 @@ import FirebaseAssistant from "../firebase/firebase";
 export default class DatabaseAssistant {
     public static readonly shared = new DatabaseAssistant();
 
-    private readonly firestore = firestore(FirebaseAssistant.shared().app());
+    private readonly firestore = firestore(FirebaseAssistant.shared.app);
 
     private readonly sessionsCollectionName = "sessions";
 

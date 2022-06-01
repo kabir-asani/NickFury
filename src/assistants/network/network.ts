@@ -11,8 +11,7 @@ export class NetworkResult {
 }
 
 export default class NetworkAssistant {
-    private static _shared = new NetworkAssistant();
-    public static shared = (): NetworkAssistant => this._shared;
+    static readonly shared = new NetworkAssistant();
 
     private constructor() {}
 

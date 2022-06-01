@@ -3,11 +3,9 @@ import { App } from "firebase-admin/app";
 import Secrets from "../../secrets.json";
 
 export default class FirebaseAssistant {
-    private static _shared = new FirebaseAssistant();
-    public static shared = () => this._shared;
+    static readonly shared = new FirebaseAssistant();
 
-    private _app: App;
-    public app = (): App => this._app;
+    readonly app: App;
 
     private constructor() {
         const serviceAccount = {
@@ -20,7 +18,7 @@ export default class FirebaseAssistant {
                 process.env.FIREBASE_PRIVATE_KEY || Secrets.firebase.privateKey,
         };
 
-        this._app = admin.initializeApp({
+        this.app = admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
         });
     }
