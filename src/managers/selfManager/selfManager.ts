@@ -1,7 +1,6 @@
 import * as uuid from "uuid";
 
 import DatabaseAssistant from "../../assistants/database/database";
-import StreamAssistant from "../../assistants/stream/stream";
 import Dately from "../../utils/dately/dately";
 import logger, { LogLevel } from "../../utils/logger/logger";
 import { Success, Failure } from "../../utils/typescriptx/typescriptx";
@@ -57,13 +56,6 @@ export default class SelfManager {
 
         try {
             await userDocumentRef.create(user);
-
-            // TODO: Ignoring failure check for now. This works. But eventually handle failure of follow feed too.
-            const followResult =
-                await StreamAssistant.shared.timelineFeed.follow({
-                    followerUserId: user.id,
-                    followeeUserId: user.id,
-                });
 
             const reply = new Success<User>(user);
             return reply;

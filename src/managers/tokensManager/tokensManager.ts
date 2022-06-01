@@ -13,6 +13,7 @@ import Dately from "../../utils/dately/dately";
 import Tokenizer from "../../utils/tokenizer/tokenizer";
 import SelfManager from "../selfManager/selfManager";
 import logger, { LogLevel } from "../../utils/logger/logger";
+import StreamAssistant from "../../assistants/stream/stream";
 
 export default class TokensManager {
     static readonly shared = new TokensManager();
@@ -110,6 +111,20 @@ export default class TokensManager {
             const accessToken = Tokenizer.shared.encode<Session>({
                 payload: session,
             });
+
+            const timelineFeedFollowResult =
+                await StreamAssistant.shared.timelineFeed.follow({
+                    followerUserId: session.userId,
+                    followeeUserId: session.userId,
+                });
+
+            if (timelineFeedFollowResult instanceof Failure) {
+                const reply = new Failure<TokenCreationFailureReason>(
+                    TokenCreationFailureReason.unknown
+                );
+
+                return reply;
+            }
 
             const reply = new Success<Credentials>({
                 accessToken: accessToken,
