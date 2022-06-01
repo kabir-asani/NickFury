@@ -4,7 +4,7 @@ import Dately from "../../utils/dately/dately";
 import logger, { LogLevel } from "../../utils/logger/logger";
 import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
 import {
-    Following,
+    Followee,
     Follower,
     User,
     ViewableFollower,
@@ -200,7 +200,7 @@ export default class SocialsManager {
             creationDate: Dately.shared.now(),
         };
 
-        const followeeData: Following = {
+        const followeeData: Followee = {
             followeeId: parameters.followeeId,
             creationDate: Dately.shared.now(),
         };
@@ -536,7 +536,7 @@ export default class SocialsManager {
             userId: String;
         } & PaginationParameters
     ): Promise<
-        Success<Paginated<Following>> | Failure<PaginatedFolloweesFailureReason>
+        Success<Paginated<Followee>> | Failure<PaginatedFolloweesFailureReason>
     > {
         const followeesCollection =
             DatabaseAssistant.shared.followeesCollectionRef({
@@ -558,11 +558,11 @@ export default class SocialsManager {
             const querySnapshot = await query.get();
 
             if (querySnapshot.empty) {
-                const paginatedFollowees: Paginated<Following> = {
+                const paginatedFollowees: Paginated<Followee> = {
                     page: [],
                 };
 
-                const reply = new Success<Paginated<Following>>(
+                const reply = new Success<Paginated<Followee>>(
                     paginatedFollowees
                 );
 
@@ -575,23 +575,23 @@ export default class SocialsManager {
                 const lastDocument = querySnapshot.docs.pop();
 
                 if (lastDocument !== undefined) {
-                    nextToken = (lastDocument.data() as unknown as Following)
+                    nextToken = (lastDocument.data() as unknown as Followee)
                         .creationDate;
                 }
             }
 
             const followees = querySnapshot.docs.map((queryDocument) => {
-                const followee = queryDocument.data() as unknown as Following;
+                const followee = queryDocument.data() as unknown as Followee;
 
                 return followee;
             });
 
-            const paginatedFollowees: Paginated<Following> = {
+            const paginatedFollowees: Paginated<Followee> = {
                 page: followees,
                 nextToken: nextToken,
             };
 
-            const reply = new Success<Paginated<Following>>(paginatedFollowees);
+            const reply = new Success<Paginated<Followee>>(paginatedFollowees);
 
             return reply;
         } catch (e) {

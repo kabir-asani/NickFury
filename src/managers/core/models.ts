@@ -47,7 +47,7 @@ export interface ViewableFollower {
 }
 
 // Followee
-export interface Following {
+export interface Followee {
     readonly followeeId: String;
     readonly creationDate: String;
 }
