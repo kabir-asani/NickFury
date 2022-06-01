@@ -1,11 +1,8 @@
 import * as Stream from "getstream";
 import { StreamClient } from "getstream";
 import Secrets from "../../secrets.json";
-import BookmarkFeedAssistant from "./feeds/bookmarkFeed/bookmarkFeed";
 import SelfFeedAssistant from "./feeds/selfFeed/selfFeed";
 import TimelineFeedAssistant from "./feeds/timelineFeed/timelineFeed";
-import CommentReactionAssistant from "./reactions/commentReaction/commentReaction";
-import LikeReactionAssistant from "./reactions/likeReaction/likeReaction";
 
 export default class StreamAssistant {
     public static readonly shared = new StreamAssistant();
@@ -14,10 +11,6 @@ export default class StreamAssistant {
 
     readonly selfFeed: SelfFeedAssistant;
     readonly timelineFeed: TimelineFeedAssistant;
-    readonly bookmarkFeed: BookmarkFeedAssistant;
-
-    readonly likeReactions: LikeReactionAssistant;
-    readonly commentReactions: CommentReactionAssistant;
 
     private constructor() {
         this.client = Stream.connect(
@@ -30,18 +23,6 @@ export default class StreamAssistant {
         });
 
         this.timelineFeed = new TimelineFeedAssistant({
-            client: this.client,
-        });
-
-        this.bookmarkFeed = new BookmarkFeedAssistant({
-            client: this.client,
-        });
-
-        this.likeReactions = new LikeReactionAssistant({
-            client: this.client,
-        });
-
-        this.commentReactions = new CommentReactionAssistant({
             client: this.client,
         });
     }
