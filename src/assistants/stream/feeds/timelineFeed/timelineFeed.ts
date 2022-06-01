@@ -107,7 +107,7 @@ export default class TimelineFeedAssistant extends FeedAssistant {
             );
 
             const flatFeed = await feed.get({
-                id_gt: parameters.nextToken?.valueOf(),
+                id_gt: parameters.nextToken?.valueOf() || "",
                 limit: limit,
             });
 
@@ -116,7 +116,7 @@ export default class TimelineFeedAssistant extends FeedAssistant {
             const tweetActivities = flatActivities.map((feedActivity) => {
                 const tweetActivity: TweetActivity = {
                     authorId: feedActivity.actor,
-                    tweetId: feedActivity.object as String,
+                    tweetId: feedActivity.id,
                     externalTweetId: feedActivity.foreign_id as String,
                 };
 
@@ -148,7 +148,7 @@ export default class TimelineFeedAssistant extends FeedAssistant {
             }
 
             const reply = new Failure<TimelineTweetActivitiesFailureReason>(
-                TimelineTweetActivitiesFailureReason.malformedParameters
+                TimelineTweetActivitiesFailureReason.unknown
             );
 
             return reply;
