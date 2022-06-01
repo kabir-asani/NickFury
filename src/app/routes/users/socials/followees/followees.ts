@@ -20,11 +20,11 @@ import paginated from "../../../../middlewares/paginated/paginated";
 import selfishGuard from "../../../../middlewares/selfieGuard/selfieGuard";
 import soldier, { GroundZero } from "../../../../middlewares/soldier/soldier";
 
-const followings = Router({
+const followees = Router({
     mergeParams: true,
 });
 
-followings.get("/", paginated(), async (req: Request, res: Response) => {
+followees.get("/", paginated(), async (req: Request, res: Response) => {
     const session = (req as SessionizedRequest).session;
 
     const userId = req.params.userId || session.userId;
@@ -50,7 +50,7 @@ followings.get("/", paginated(), async (req: Request, res: Response) => {
     res.status(AllOkRouteSuccess.statusCode).json(response);
 });
 
-followings.post(
+followees.post(
     "/",
     [
         selfishGuard(),
@@ -67,6 +67,14 @@ followings.post(
         const parameters = req.body as {
             userId: String;
         };
+
+        if (session.userId === parameters.userId) {
+            const response = new SemanticRouteFailure();
+
+            res.status(SemanticRouteFailure.statusCode).json(response);
+
+            return;
+        }
 
         const followResult = await SocialsManager.shared.follow({
             followerId: session.userId,
@@ -120,13 +128,13 @@ followings.post(
     }
 );
 
-followings.delete(
-    "/:userId",
+followees.delete(
+    ":followeeId",
     [
         selfishGuard(),
         soldier({
             schema: Joi.object({
-                userId: Joi.string().required(),
+                followeeId: Joi.string().required(),
             }),
             groundZero: GroundZero.parameters,
         }),
@@ -134,11 +142,11 @@ followings.delete(
     async (req: Request, res: Response) => {
         const session = (req as SessionizedRequest).session;
 
-        const userId = req.params.userId;
+        const followeeId = req.params.followeeId;
 
         const unfollowResult = await SocialsManager.shared.unfollow({
             followerId: session.userId,
-            followeeId: userId,
+            followeeId: followeeId,
         });
 
         if (unfollowResult instanceof Failure) {
@@ -168,4 +176,4 @@ followings.delete(
     }
 );
 
-export default followings;
+export default followees;

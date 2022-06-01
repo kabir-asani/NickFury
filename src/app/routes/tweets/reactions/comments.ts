@@ -23,9 +23,7 @@ const comments = Router({
 });
 
 comments.get("/", paginated(), async (req: Request, res: Response) => {
-    type NewType = SessionizedRequest;
-
-    const session = (req as NewType).session;
+    const session = (req as SessionizedRequest).session;
 
     const tweetId = req.params.tweetId;
 
@@ -106,39 +104,50 @@ comments.post(
     }
 );
 
-comments.delete("/:commentId", async (req: Request, res: Response) => {
-    const commentId = req.params.commentId;
+comments.delete(
+    "/:commentId",
+    soldier({
+        schema: Joi.object({
+            commentId: Joi.string().required(),
+        }),
+        groundZero: GroundZero.parameters,
+    }),
+    async (req: Request, res: Response) => {
+        const commentId = req.params.commentId;
 
-    const commentDeletionResult = await CommentsManager.shared.delete({
-        commentId: commentId,
-    });
+        const commentDeletionResult = await CommentsManager.shared.delete({
+            commentId: commentId,
+        });
 
-    if (commentDeletionResult instanceof Failure) {
-        const message = sentenceCasize(
-            CommentDeletionFailureReason[commentDeletionResult.reason]
-        );
+        if (commentDeletionResult instanceof Failure) {
+            const message = sentenceCasize(
+                CommentDeletionFailureReason[commentDeletionResult.reason]
+            );
 
-        switch (commentDeletionResult.reason) {
-            case CommentDeletionFailureReason.commentDoesNotExists: {
-                const response = new NoResourceRouteFailure(message);
+            switch (commentDeletionResult.reason) {
+                case CommentDeletionFailureReason.commentDoesNotExists: {
+                    const response = new NoResourceRouteFailure(message);
 
-                res.status(NoResourceRouteFailure.statusCode).json(response);
+                    res.status(NoResourceRouteFailure.statusCode).json(
+                        response
+                    );
 
-                return;
-            }
-            default: {
-                const response = new InternalRouteFailure(message);
+                    return;
+                }
+                default: {
+                    const response = new InternalRouteFailure(message);
 
-                res.status(InternalRouteFailure.statusCode).json(response);
+                    res.status(InternalRouteFailure.statusCode).json(response);
 
-                return;
+                    return;
+                }
             }
         }
+
+        const response = new NoContentRouteSuccess();
+
+        res.status(NoContentRouteSuccess.statusCode).json(response);
     }
-
-    const response = new NoContentRouteSuccess();
-
-    res.status(NoContentRouteSuccess.statusCode).json(response);
-});
+);
 
 export default comments;

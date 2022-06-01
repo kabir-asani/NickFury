@@ -3,7 +3,7 @@ import UsersManager from "../../../../managers/usersManager/usersManager";
 import { SessionizedRequest } from "../../../core/override";
 import { AllOkRouteSuccess, InternalRouteFailure } from "../../../core/types";
 import followers from "../socials/followers/followers";
-import followings from "../socials/followings/followings";
+import followees from "../socials/followees/followees";
 import tweets from "../../tweets/tweets";
 import { userExistentialGuard } from "./middlewares/userExistentialGuard";
 
@@ -14,9 +14,7 @@ const others = Router({
 others.use(userExistentialGuard());
 
 others.use("/followers", followers);
-
-others.use("/followings", followings);
-
+others.use("/followees", followees);
 others.use("/tweets", tweets);
 
 others.get("/", async (req: Request, res: Response) => {

@@ -18,7 +18,7 @@ search.get(
         paginated(),
         soldier({
             schema: Joi.object({
-                keyword: Joi.string().required().min(1),
+                keyword: Joi.string().min(1).required(),
             }),
             groundZero: GroundZero.query,
         }),

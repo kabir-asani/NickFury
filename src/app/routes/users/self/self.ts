@@ -3,6 +3,7 @@ import Joi from "joi";
 import SelfManager from "../../../../managers/selfManager/selfManager";
 import { SelfUpdationFailureReason } from "../../../../managers/selfManager/types";
 import { sentenceCasize } from "../../../../utils/caser/caser";
+import { Patternizer } from "../../../../utils/patternizer/patternizer";
 import { Failure } from "../../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../../core/override";
 import {
@@ -10,13 +11,12 @@ import {
     ConflictRouteFailure,
     InternalRouteFailure,
     NoResourceRouteFailure,
-    SemanticRouteFailure,
 } from "../../../core/types";
 import soldier, { GroundZero } from "../../../middlewares/soldier/soldier";
 import tweets from "../../tweets/tweets";
 import bookmarks from "../bookmarks/bookmarks";
 import followers from "../socials/followers/followers";
-import followings from "../socials/followings/followings";
+import followees from "../socials/followees/followees";
 import timeline from "../timeline/timeline";
 
 const self = Router({
@@ -25,7 +25,7 @@ const self = Router({
 
 self.use("/timeline", timeline);
 self.use("/followers", followers);
-self.use("/followings", followings);
+self.use("/followees", followees);
 self.use("/tweets", tweets);
 self.use("/bookmarks", bookmarks);
 
@@ -53,10 +53,12 @@ self.patch(
     "/",
     soldier({
         schema: Joi.object({
-            username: Joi.string().max(50).optional(),
-            name: Joi.string().max(100).optional(),
+            username: Joi.string()
+                .pattern(Patternizer.shared.username)
+                .optional(),
+            name: Joi.string().pattern(Patternizer.shared.name).optional(),
             description: Joi.string().max(250).optional(),
-            image: Joi.string().optional(),
+            image: Joi.string().pattern(Patternizer.shared.imageUrl).optional(),
         }),
         groundZero: GroundZero.body,
     }),

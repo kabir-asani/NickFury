@@ -2,6 +2,7 @@ import { Request, Response, Router } from "express";
 import Joi from "joi";
 import TokensManager from "../../../managers/tokensManager/tokensManager";
 import { AuthProvider } from "../../../managers/tokensManager/types";
+import { Patternizer } from "../../../utils/patternizer/patternizer";
 import { Failure } from "../../../utils/typescriptx/typescriptx";
 import {
     IncorrectParametersRouteFailure,
@@ -30,9 +31,12 @@ tokens.post(
                     .required(),
             }).required(),
             details: Joi.object({
-                name: Joi.string().required(),
+                name: Joi.string().pattern(Patternizer.shared.name).required(),
                 email: Joi.string().email().required(),
-                image: Joi.string().uri().required(),
+                image: Joi.string()
+                    .uri()
+                    .pattern(Patternizer.shared.imageUrl)
+                    .required(),
             }).required(),
         }),
         groundZero: GroundZero.body,

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import Joi from "joi";
 import LikesManager from "../../../../managers/tweetsManager/likesManager/likesManager";
 import {
     LikeCreationFailureReason,
@@ -17,6 +18,7 @@ import {
     SemanticRouteFailure,
 } from "../../../core/types";
 import paginated from "../../../middlewares/paginated/paginated";
+import soldier, { GroundZero } from "../../../middlewares/soldier/soldier";
 
 const likes = Router({
     mergeParams: true,
@@ -101,39 +103,50 @@ likes.post("/", async (req: Request, res: Response) => {
     res.status(NoContentRouteSuccess.statusCode).json(response);
 });
 
-likes.delete("/:likeId", async (req: Request, res: Response) => {
-    const likeId = req.params.likeId;
+likes.delete(
+    "/:likeId",
+    soldier({
+        schema: Joi.object({
+            likeId: Joi.string().required(),
+        }),
+        groundZero: GroundZero.parameters,
+    }),
+    async (req: Request, res: Response) => {
+        const likeId = req.params.likeId;
 
-    const likeDeletionResult = await LikesManager.shared.delete({
-        likeId: likeId,
-    });
+        const likeDeletionResult = await LikesManager.shared.delete({
+            likeId: likeId,
+        });
 
-    if (likeDeletionResult instanceof Failure) {
-        const message = sentenceCasize(
-            LikeDeletionFailureReason[likeDeletionResult.reason]
-        );
+        if (likeDeletionResult instanceof Failure) {
+            const message = sentenceCasize(
+                LikeDeletionFailureReason[likeDeletionResult.reason]
+            );
 
-        switch (likeDeletionResult.reason) {
-            case LikeDeletionFailureReason.likeDoesNotExists: {
-                const response = new NoResourceRouteFailure(message);
+            switch (likeDeletionResult.reason) {
+                case LikeDeletionFailureReason.likeDoesNotExists: {
+                    const response = new NoResourceRouteFailure(message);
 
-                res.status(NoResourceRouteFailure.statusCode).json(response);
+                    res.status(NoResourceRouteFailure.statusCode).json(
+                        response
+                    );
 
-                return;
-            }
-            default: {
-                const response = new InternalRouteFailure(message);
+                    return;
+                }
+                default: {
+                    const response = new InternalRouteFailure(message);
 
-                res.status(InternalRouteFailure.statusCode).json(response);
+                    res.status(InternalRouteFailure.statusCode).json(response);
 
-                return;
+                    return;
+                }
             }
         }
+
+        const response = new NoContentRouteSuccess();
+
+        res.status(NoContentRouteSuccess.statusCode).json(response);
     }
-
-    const response = new NoContentRouteSuccess();
-
-    res.status(NoContentRouteSuccess.statusCode).json(response);
-});
+);
 
 export default likes;
