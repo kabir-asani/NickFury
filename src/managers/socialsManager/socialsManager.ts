@@ -386,7 +386,7 @@ export default class SocialsManager {
         Success<Paginated<Follower>> | Failure<PaginatedFollowersFailureReason>
     > {
         const followersCollection =
-            DatabaseAssistant.shared.followeesCollectionRef({
+            DatabaseAssistant.shared.followersCollectionRef({
                 userId: parameters.userId,
             });
 
