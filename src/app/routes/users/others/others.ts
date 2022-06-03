@@ -5,13 +5,10 @@ import { AllOkRouteSuccess, InternalRouteFailure } from "../../../core/types";
 import followers from "../socials/followers/followers";
 import followees from "../socials/followees/followees";
 import tweets from "../../tweets/tweets";
-import { userExistentialGuard } from "./middlewares/userExistentialGuard";
 
 const others = Router({
     mergeParams: true,
 });
-
-others.use(userExistentialGuard());
 
 others.use("/followers", followers);
 others.use("/followees", followees);

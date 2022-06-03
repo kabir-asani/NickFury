@@ -8,6 +8,7 @@ import tokens from "./routes/tokens/tokens";
 import others from "./routes/users/others/others";
 import search from "./routes/search/search";
 import self from "./routes/users/self/self";
+import { userExistentialGuard } from "./routes/users/others/middlewares/userExistentialGuard";
 
 const app = express();
 
@@ -19,7 +20,7 @@ app.use(storyteller());
 // Routers
 app.use("/tokens", tokens);
 
-app.use("/users/self", gatekeeper(), self);
+app.use("/self", gatekeeper(), self);
 
 app.use(
     "/users/:userId",
@@ -31,6 +32,7 @@ app.use(
             }),
             groundZero: GroundZero.parameters,
         }),
+        userExistentialGuard(),
     ],
     others
 );
