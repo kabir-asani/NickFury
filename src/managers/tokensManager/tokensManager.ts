@@ -3,9 +3,7 @@ import { Success, Failure, Empty } from "../../utils/typescriptx/typescriptx";
 import UsersManager from "../usersManager/usersManager";
 import {
     TokenCreationFailureReason,
-    Credentials,
     TokenDeletionFailureReason,
-    TokenValidationFailureReason,
 } from "./types";
 import * as uuid from "uuid";
 import { Session } from "../core/models";
@@ -14,6 +12,7 @@ import Tokenizer from "../../utils/tokenizer/tokenizer";
 import SelfManager from "../selfManager/selfManager";
 import logger, { LogLevel } from "../../utils/logger/logger";
 import StreamAssistant from "../../assistants/stream/stream";
+import { Credentials } from "../core/types";
 
 export default class TokensManager {
     static readonly shared = new TokensManager();

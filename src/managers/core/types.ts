@@ -16,4 +16,8 @@ export interface Paginated<T> {
     readonly nextToken?: String;
 }
 
+export interface Credentials {
+    readonly accessToken: String;
+}
+
 export const kMaximumPaginatedPageLength = 25;

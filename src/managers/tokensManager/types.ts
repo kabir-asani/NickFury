@@ -18,10 +18,6 @@ export class AuthProvider {
     }
 }
 
-export interface Credentials {
-    readonly accessToken: String;
-}
-
 export enum TokenValidationFailureReason {
     unknown,
     invalidToken,
