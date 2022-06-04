@@ -38,6 +38,10 @@ export default class SocialsManager {
         followeeId: String;
         followerId: String;
     }): Promise<Boolean> {
+        if (parameters.followeeId === parameters.followerId) {
+            return true;
+        }
+
         const followeeDocumentRef =
             DatabaseAssistant.shared.followeeDocumentRef({
                 userId: parameters.followerId,
@@ -57,6 +61,10 @@ export default class SocialsManager {
         followeeId: String;
         followerId: String;
     }): Promise<Boolean> {
+        if (parameters.followeeId === parameters.followerId) {
+            return true;
+        }
+
         const followerDocumentRef =
             DatabaseAssistant.shared.followerDocumentRef({
                 userId: parameters.followeeId,
@@ -80,8 +88,19 @@ export default class SocialsManager {
             return {};
         }
 
-        const followeeDocumentRefs = parameters.followeeIdentifiers.map(
-            (followeeId) => {
+        const followingRelationshipStatuses: Value<Boolean> = {};
+
+        parameters.followeeIdentifiers.forEach((followeeId) => {
+            if (followeeId === parameters.followerId) {
+                followingRelationshipStatuses[followeeId.valueOf()] = true;
+            }
+        });
+
+        const followeeDocumentRefs = parameters.followeeIdentifiers
+            .filter((followeeId) => {
+                return followeeId !== parameters.followerId;
+            })
+            .map((followeeId) => {
                 const followeeDocumentRef =
                     DatabaseAssistant.shared.followeeDocumentRef({
                         userId: parameters.followerId,
@@ -89,21 +108,18 @@ export default class SocialsManager {
                     });
 
                 return followeeDocumentRef;
-            }
-        );
+            });
 
         const followeeDocuments = await DatabaseAssistant.shared.all(
             ...followeeDocumentRefs
         );
 
-        const followerRelationshipStatuses: Value<Boolean> = {};
-
         followeeDocuments.forEach((followeeDocument) => {
-            followerRelationshipStatuses[followeeDocument.id] =
+            followingRelationshipStatuses[followeeDocument.id] =
                 followeeDocument.exists;
         });
 
-        return followerRelationshipStatuses;
+        return followingRelationshipStatuses;
     }
 
     async followedRelationshipStatuses(parameters: {
@@ -114,8 +130,19 @@ export default class SocialsManager {
             return {};
         }
 
-        const followerDocumentRefs = parameters.followerIdentifiers.map(
-            (followerId) => {
+        const followedRelationshipStatuses: Value<Boolean> = {};
+
+        parameters.followerIdentifiers.forEach((followerId) => {
+            if (parameters.followeeId === followerId) {
+                followedRelationshipStatuses[followerId.valueOf()] = true;
+            }
+        });
+
+        const followerDocumentRefs = parameters.followerIdentifiers
+            .filter((followerId) => {
+                return parameters.followeeId !== followerId;
+            })
+            .map((followerId) => {
                 const followerDocumentRef =
                     DatabaseAssistant.shared.followerDocumentRef({
                         userId: parameters.followeeId,
@@ -123,27 +150,32 @@ export default class SocialsManager {
                     });
 
                 return followerDocumentRef;
-            }
-        );
+            });
 
         const followerDocuments = await DatabaseAssistant.shared.all(
             ...followerDocumentRefs
         );
 
-        const followingRelationshipStatuses: Value<Boolean> = {};
-
         followerDocuments.forEach((followerDocument) => {
-            followingRelationshipStatuses[followerDocument.id] =
+            followedRelationshipStatuses[followerDocument.id] =
                 followerDocument.exists;
         });
 
-        return followingRelationshipStatuses;
+        return followedRelationshipStatuses;
     }
 
     async follow(parameters: {
         followeeId: String;
         followerId: String;
     }): Promise<Success<Empty> | Failure<FollowFailureReason>> {
+        if (parameters.followeeId === parameters.followerId) {
+            const reply = new Failure<FollowFailureReason>(
+                FollowFailureReason.followingOneselfIsForbidden
+            );
+
+            return reply;
+        }
+
         const isFolloweeExists = await UsersManager.shared.exists({
             id: parameters.followeeId,
         });
@@ -275,6 +307,14 @@ export default class SocialsManager {
         followeeId: String;
         followerId: String;
     }): Promise<Success<Empty> | Failure<UnfollowFailureReason>> {
+        if (parameters.followeeId === parameters.followerId) {
+            const reply = new Failure<UnfollowFailureReason>(
+                UnfollowFailureReason.unfollowingOneselfIsForbidden
+            );
+
+            return reply;
+        }
+
         const isFollowedRelationshipExists =
             await this.isFollowedRelationshipExists({
                 followeeId: parameters.followeeId,

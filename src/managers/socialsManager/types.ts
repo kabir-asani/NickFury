@@ -1,5 +1,6 @@
 export enum FollowFailureReason {
     unknown,
+    followingOneselfIsForbidden,
     followerDoesNotExists,
     followeeDoesNotExists,
     relationshipAlreadyExists,
@@ -7,6 +8,7 @@ export enum FollowFailureReason {
 
 export enum UnfollowFailureReason {
     unknown,
+    unfollowingOneselfIsForbidden,
     relationshipDoesNotExists,
 }
 

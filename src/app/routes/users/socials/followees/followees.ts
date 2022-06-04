@@ -11,6 +11,7 @@ import { SessionizedRequest } from "../../../../core/override";
 import {
     AllOkRouteSuccess,
     ConflictRouteFailure,
+    ForbiddenRouteFailure,
     InternalRouteFailure,
     NoContentRouteSuccess,
     NoResourceRouteFailure,
@@ -112,6 +113,13 @@ followees.post(
 
                     return;
                 }
+                case FollowFailureReason.followingOneselfIsForbidden: {
+                    const response = new ForbiddenRouteFailure(message);
+
+                    res.status(ForbiddenRouteFailure.statusCode).json(response);
+
+                    return;
+                }
                 default: {
                     const response = new InternalRouteFailure(message);
 
@@ -150,9 +158,13 @@ followees.delete(
         });
 
         if (unfollowResult instanceof Failure) {
+            const message = sentenceCasize(
+                UnfollowFailureReason[unfollowResult.reason]
+            );
+
             switch (unfollowResult.reason) {
                 case UnfollowFailureReason.relationshipDoesNotExists: {
-                    const response = new NoResourceRouteFailure();
+                    const response = new NoResourceRouteFailure(message);
 
                     res.status(NoResourceRouteFailure.statusCode).json(
                         response
@@ -160,8 +172,15 @@ followees.delete(
 
                     return;
                 }
+                case UnfollowFailureReason.unfollowingOneselfIsForbidden: {
+                    const response = new ForbiddenRouteFailure(message);
+
+                    res.status(ForbiddenRouteFailure.statusCode).json(response);
+
+                    return;
+                }
                 default: {
-                    const response = new InternalRouteFailure();
+                    const response = new InternalRouteFailure(message);
 
                     res.status(InternalRouteFailure.statusCode).json(response);
 

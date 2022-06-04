@@ -4,7 +4,8 @@ import DatabaseAssistant from "../../assistants/database/database";
 import Dately from "../../utils/dately/dately";
 import logger, { LogLevel } from "../../utils/logger/logger";
 import { Success, Failure } from "../../utils/typescriptx/typescriptx";
-import { User } from "../core/models";
+import { User, ViewableUser } from "../core/models";
+import SocialsManager from "../socialsManager/socialsManager";
 import UsersManager from "../usersManager/usersManager";
 import { SelfCreationFailureReason, SelfUpdationFailureReason } from "./types";
 
@@ -15,7 +16,7 @@ export default class SelfManager {
         email: String;
         name: String;
         image: String;
-    }): Promise<Success<User> | Failure<SelfCreationFailureReason>> {
+    }): Promise<Success<ViewableUser> | Failure<SelfCreationFailureReason>> {
         const isOtherUserExists = await UsersManager.shared.existsWithEmail({
             email: parameters.email,
         });
@@ -57,7 +58,20 @@ export default class SelfManager {
         try {
             await userDocumentRef.create(user);
 
-            const reply = new Success<User>(user);
+            const isFollowingRelationshipExists =
+                await SocialsManager.shared.isFollowingRelationshipExists({
+                    followeeId: user.id,
+                    followerId: user.id,
+                });
+
+            const viewableUser: ViewableUser = {
+                ...user,
+                viewables: {
+                    following: isFollowingRelationshipExists,
+                },
+            };
+
+            const reply = new Success<ViewableUser>(viewableUser);
             return reply;
         } catch (e) {
             logger(e, LogLevel.attention, [this, this.create]);
@@ -93,7 +107,7 @@ export default class SelfManager {
             image?: String;
             description?: String;
         };
-    }): Promise<Success<User> | Failure<SelfUpdationFailureReason>> {
+    }): Promise<Success<ViewableUser> | Failure<SelfUpdationFailureReason>> {
         if (parameters.updates.username !== undefined) {
             const user = await UsersManager.shared.userWithUsername({
                 username: parameters.updates.username,
@@ -135,7 +149,20 @@ export default class SelfManager {
                 }
             );
 
-            const reply = new Success<User>(updatedUser);
+            const isFollowingRelationshipExists =
+                await SocialsManager.shared.isFollowingRelationshipExists({
+                    followeeId: updatedUser.id,
+                    followerId: updatedUser.id,
+                });
+
+            const viewableUser: ViewableUser = {
+                ...updatedUser,
+                viewables: {
+                    following: isFollowingRelationshipExists,
+                },
+            };
+
+            const reply = new Success<ViewableUser>(viewableUser);
 
             return reply;
         } catch (e) {
