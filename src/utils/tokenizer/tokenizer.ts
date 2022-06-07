@@ -1,6 +1,6 @@
 import * as jwt from "jsonwebtoken";
+import { exit } from "process";
 
-import Secrets from "../../secrets.json";
 import logger, { LogLevel } from "../logger/logger";
 
 export default class Tokenizer {
@@ -11,7 +11,7 @@ export default class Tokenizer {
     encode<T extends Object>(parameters: { payload: T }): String {
         const token = jwt.sign(
             parameters.payload,
-            process.env.JWT_SECRET || Secrets.jwt.secret
+            process.env.JWT_SECRET || exit()
         );
 
         return token;
@@ -33,7 +33,7 @@ export default class Tokenizer {
         try {
             jwt.verify(
                 parameters.token.valueOf(),
-                process.env.JWT_SECRET || Secrets.jwt.secret
+                process.env.JWT_SECRET || exit()
             );
 
             return true;

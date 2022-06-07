@@ -1,6 +1,6 @@
 import * as Stream from "getstream";
 import { StreamClient } from "getstream";
-import Secrets from "../../secrets.json";
+import { exit } from "process";
 import SelfFeedAssistant from "./feeds/selfFeed/selfFeed";
 import TimelineFeedAssistant from "./feeds/timelineFeed/timelineFeed";
 
@@ -14,8 +14,8 @@ export default class StreamAssistant {
 
     private constructor() {
         this.client = Stream.connect(
-            process.env.STREAM_KEY || Secrets.stream.key,
-            process.env.STREAM_SECRET || Secrets.stream.secret
+            process.env.STREAM_KEY || exit(),
+            process.env.STREAM_SECRET || exit()
         );
 
         this.selfFeed = new SelfFeedAssistant({

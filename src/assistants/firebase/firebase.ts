@@ -1,6 +1,6 @@
 import admin from "firebase-admin";
 import { App } from "firebase-admin/app";
-import Secrets from "../../secrets.json";
+import { exit } from "process";
 
 export default class FirebaseAssistant {
     static readonly shared = new FirebaseAssistant();
@@ -9,13 +9,9 @@ export default class FirebaseAssistant {
 
     private constructor() {
         const serviceAccount = {
-            projectId:
-                process.env.FIREBASE_PROJECT_ID || Secrets.firebase.projectId,
-            clientEmail:
-                process.env.FIREBASE_CLIENT_EMAIL ||
-                Secrets.firebase.clientEmail,
-            privateKey:
-                process.env.FIREBASE_PRIVATE_KEY || Secrets.firebase.privateKey,
+            projectId: process.env.FIREBASE_PROJECT_ID || exit(),
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL || exit(),
+            privateKey: process.env.FIREBASE_PRIVATE_KEY || exit(),
         };
 
         this.app = admin.initializeApp({
