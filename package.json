@@ -4,7 +4,7 @@
   "description": "TwitterX's backend written in NodeJS (express+firestore)",
   "main": "src/index.ts",
   "scripts": {
-    "start": "node build/index.js",
+    "start": "node index.js",
     "dev": "nodemon src/index.ts"
   },
   "keywords": [
