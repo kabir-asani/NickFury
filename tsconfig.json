@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "forceConsistentCasingInFileNames": true,
-        "module": "commonjs",
+        "module": "CommonJS",
         "esModuleInterop": true,
         "resolveJsonModule": true,
         "outDir": "./build",
