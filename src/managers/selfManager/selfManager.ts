@@ -83,7 +83,7 @@ export default class SelfManager {
         }
     }
 
-    async self(parameters: { id: String }): Promise<User | null> {
+    async self(parameters: { id: String }): Promise<ViewableUser | null> {
         const userDocumentRef = DatabaseAssistant.shared.userDocumentRef({
             userId: parameters.id,
         });
@@ -92,8 +92,14 @@ export default class SelfManager {
 
         if (userDocument.exists) {
             const user = userDocument.data() as unknown as User;
+            const viewableUser: ViewableUser = {
+                ...user,
+                viewables: {
+                    following: true,
+                },
+            };
 
-            return user;
+            return viewableUser;
         }
 
         return null;
