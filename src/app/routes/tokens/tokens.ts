@@ -33,10 +33,8 @@ tokens.post(
             details: Joi.object({
                 name: Joi.string().pattern(Patternizer.shared.name).required(),
                 email: Joi.string().email().required(),
-                image: Joi.string()
-                    .uri()
-                    .pattern(Patternizer.shared.imageUrl)
-                    .required(),
+                // TODO: Validate if a valid image-url
+                image: Joi.string().required(),
             }).required(),
         }),
         groundZero: GroundZero.body,

@@ -58,7 +58,8 @@ self.patch(
                 .optional(),
             name: Joi.string().pattern(Patternizer.shared.name).optional(),
             description: Joi.string().max(250).optional(),
-            image: Joi.string().pattern(Patternizer.shared.imageUrl).optional(),
+            // TODO: Validate if a valid image-url
+            image: Joi.string().optional(),
         }),
         groundZero: GroundZero.body,
     }),
