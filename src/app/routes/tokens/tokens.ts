@@ -8,7 +8,7 @@ import {
     IncorrectParametersRouteFailure,
     InternalRouteFailure,
     NoContentRouteSuccess,
-    AllOkRouteSuccess,
+    CreationRouteSuccess,
 } from "../../core/types";
 import gatekeeper from "../../middlewares/gatekeeper/gatekeeper";
 import soldier, { GroundZero } from "../../middlewares/soldier/soldier";
@@ -75,9 +75,9 @@ tokens.post(
             return;
         }
 
-        const response = new AllOkRouteSuccess(tokenCreationResult.data);
+        const response = new CreationRouteSuccess(tokenCreationResult.data);
 
-        res.status(AllOkRouteSuccess.statusCode).json(response);
+        res.status(CreationRouteSuccess.statusCode).json(response);
     }
 );
 
