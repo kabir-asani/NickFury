@@ -110,14 +110,16 @@ export default class SocialsManager {
                 return followeeDocumentRef;
             });
 
-        const followeeDocuments = await DatabaseAssistant.shared.all(
-            ...followeeDocumentRefs
-        );
+        if (followeeDocumentRefs.length > 0) {
+            const followeeDocuments = await DatabaseAssistant.shared.all(
+                ...followeeDocumentRefs
+            );
 
-        followeeDocuments.forEach((followeeDocument) => {
-            followingRelationshipStatuses[followeeDocument.id] =
-                followeeDocument.exists;
-        });
+            followeeDocuments.forEach((followeeDocument) => {
+                followingRelationshipStatuses[followeeDocument.id] =
+                    followeeDocument.exists;
+            });
+        }
 
         return followingRelationshipStatuses;
     }
@@ -152,14 +154,16 @@ export default class SocialsManager {
                 return followerDocumentRef;
             });
 
-        const followerDocuments = await DatabaseAssistant.shared.all(
-            ...followerDocumentRefs
-        );
+        if (followerDocumentRefs.length > 0) {
+            const followerDocuments = await DatabaseAssistant.shared.all(
+                ...followerDocumentRefs
+            );
 
-        followerDocuments.forEach((followerDocument) => {
-            followedRelationshipStatuses[followerDocument.id] =
-                followerDocument.exists;
-        });
+            followerDocuments.forEach((followerDocument) => {
+                followedRelationshipStatuses[followerDocument.id] =
+                    followerDocument.exists;
+            });
+        }
 
         return followedRelationshipStatuses;
     }
