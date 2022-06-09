@@ -23,8 +23,8 @@ timeline.get(
     async (req: Request, res: Response) => {
         const session = (req as SessionizedRequest).session;
 
-        const nextToken = req.params.nextToken;
-        const limit = parseInt(req.params.limit);
+        const nextToken = req.query.nextToken as String;
+        const limit = parseInt(req.query.limit as string);
 
         const safeLimit = isNaN(limit) ? kMaximumPaginatedPageLength : limit;
 

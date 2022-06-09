@@ -107,7 +107,7 @@ export default class TimelineFeedAssistant extends FeedAssistant {
             );
 
             const flatFeed = await feed.get({
-                id_gt: parameters.nextToken?.valueOf() || "",
+                id_lt: parameters.nextToken?.valueOf() || "",
                 limit: limit,
             });
 
@@ -123,9 +123,14 @@ export default class TimelineFeedAssistant extends FeedAssistant {
                 return tweetActivity;
             });
 
+            const nextToken =
+                flatFeed.next !== "" && tweetActivities.length > 0
+                    ? tweetActivities[tweetActivities.length - 1].tweetId
+                    : undefined;
+
             const paginatedTweetActivities: Paginated<TweetActivity> = {
                 page: tweetActivities,
-                nextToken: flatFeed.next || undefined,
+                nextToken: nextToken,
             };
 
             const reply = new Success<Paginated<TweetActivity>>(

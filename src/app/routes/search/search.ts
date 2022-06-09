@@ -27,8 +27,8 @@ search.get(
         const session = (req as SessionizedRequest).session;
         const keyword = req.query.keyword as String;
 
-        const nextToken = req.params.nextToken;
-        const limit = parseInt(req.params.limit);
+        const nextToken = req.query.nextToken as String;
+        const limit = parseInt(req.query.limit as string);
 
         const safeLimit = isNaN(limit) ? kMaximumPaginatedPageLength : limit;
 
