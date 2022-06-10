@@ -15,7 +15,6 @@ import {
     ViewableUsersFailureReason,
 } from "./types";
 import logger, { LogLevel } from "../../utils/logger/logger";
-import { PaginatedFollowersFailureReason } from "../socialsManager/types";
 
 export default class UsersManager {
     static readonly shared = new UsersManager();
