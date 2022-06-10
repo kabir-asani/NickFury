@@ -59,7 +59,7 @@ export default class TweetsManager {
         data: {
             text: String;
         };
-    }): Promise<Success<Tweet> | Failure<TweetCreationFailureReason>> {
+    }): Promise<Success<ViewableTweet> | Failure<TweetCreationFailureReason>> {
         const tweetActivityAdditionResult =
             await StreamAssistant.shared.selfFeed.addTweetActivity({
                 authorId: parameters.authorId,
@@ -111,7 +111,20 @@ export default class TweetsManager {
                 });
             });
 
-            const reply = new Success<Tweet>(tweet);
+            const viewableTweet = await this.viewableTweet({
+                tweetId: tweet.id,
+                viewerId: parameters.authorId,
+            });
+
+            if (viewableTweet == null) {
+                const reply = new Failure<TweetCreationFailureReason>(
+                    TweetCreationFailureReason.unknown
+                );
+
+                return reply;
+            }
+
+            const reply = new Success<ViewableTweet>(viewableTweet);
 
             return reply;
         } catch (e) {
