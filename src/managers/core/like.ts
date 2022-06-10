@@ -7,10 +7,10 @@ export interface Like {
     readonly creationDate: String;
 }
 
-export interface LikeViewables {
-    author: ViewableUser;
-}
-
 export interface ViewableLike extends Like {
     readonly viewables: LikeViewables;
+}
+
+export interface LikeViewables {
+    author: ViewableUser;
 }

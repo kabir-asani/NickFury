@@ -12,3 +12,16 @@ export {
 export { Like, LikeViewables, ViewableLike } from "./like";
 export { Comment, CommentViewables, ViewableComment } from "./comment";
 export { Bookmark, BookmarkViewables, ViewableBookmark } from "./bookmark";
+export {
+    Notification,
+    NotificationType,
+    LikeNotification,
+    LikeNotificationViewables,
+    ViewableLikeNotification,
+    CommentNotification,
+    CommentNotificationViewables,
+    ViewableCommentNotification,
+    FollowNotification,
+    FollowNotificationViewables,
+    ViewableFollowNotification,
+} from "./notifications";

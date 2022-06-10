@@ -8,10 +8,10 @@ export interface Comment {
     readonly creationDate: String;
 }
 
-export interface CommentViewables {
-    readonly author: ViewableUser;
-}
-
 export interface ViewableComment extends Comment {
     readonly viewables: CommentViewables;
+}
+
+export interface CommentViewables {
+    readonly author: ViewableUser;
 }

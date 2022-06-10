@@ -13,12 +13,12 @@ export interface Tweet {
     };
 }
 
+export interface ViewableTweet extends Tweet {
+    readonly viewables: TweetViewables;
+}
+
 export interface TweetViewables {
     readonly author: ViewableUser;
     readonly bookmarked: Boolean;
     readonly liked: Boolean;
-}
-
-export interface ViewableTweet extends Tweet {
-    readonly viewables: TweetViewables;
 }

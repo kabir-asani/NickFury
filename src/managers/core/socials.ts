@@ -6,12 +6,12 @@ export interface Follower {
     readonly creationDate: String;
 }
 
-export interface FollowerViewables {
-    readonly follower: ViewableUser;
-}
-
 export interface ViewableFollower {
     readonly viewables: FollowerViewables;
+}
+
+export interface FollowerViewables {
+    readonly follower: ViewableUser;
 }
 
 // Followee
@@ -20,10 +20,10 @@ export interface Followee {
     readonly creationDate: String;
 }
 
-export interface FolloweeViewables {
-    readonly followee: ViewableUser;
-}
-
 export interface ViewableFollowee {
     readonly viewables: FolloweeViewables;
+}
+
+export interface FolloweeViewables {
+    readonly followee: ViewableUser;
 }

@@ -16,10 +16,10 @@ export interface User {
     };
 }
 
-export interface UserViewables {
-    readonly following: Boolean;
-}
-
 export interface ViewableUser extends User {
     readonly viewables: UserViewables;
+}
+
+export interface UserViewables {
+    readonly following: Boolean;
 }

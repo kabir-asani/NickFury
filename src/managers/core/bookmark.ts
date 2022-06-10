@@ -7,10 +7,10 @@ export interface Bookmark {
     readonly creationDate: String;
 }
 
-export interface BookmarkViewables {
-    readonly tweet: ViewableTweet;
-}
-
 export interface ViewableBookmark extends Bookmark {
     readonly viewables: BookmarkViewables;
+}
+
+export interface BookmarkViewables {
+    readonly tweet: ViewableTweet;
 }
