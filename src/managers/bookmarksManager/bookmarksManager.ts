@@ -118,7 +118,9 @@ export default class BookmarksManager {
     async create(parameters: {
         tweetId: String;
         authorId: String;
-    }): Promise<Success<Bookmark> | Failure<BookmarkCreationFailureReason>> {
+    }): Promise<
+        Success<ViewableBookmark> | Failure<BookmarkCreationFailureReason>
+    > {
         const isBookmarkExists = await this.existsByDetails({
             tweetId: parameters.tweetId,
             authorId: parameters.authorId,
@@ -154,7 +156,18 @@ export default class BookmarksManager {
         try {
             await bookmarkDocumentRef.create(bookmark);
 
-            const reply = new Success<Bookmark>(bookmark);
+            const viewablesBookmark = await this.viewableBookmark({
+                bookmarkId: bookmark.id,
+                viewerId: bookmark.authorId,
+            });
+
+            if (viewablesBookmark === null) {
+                return new Failure<BookmarkCreationFailureReason>(
+                    BookmarkCreationFailureReason.unknown
+                );
+            }
+
+            const reply = new Success<ViewableBookmark>(viewablesBookmark);
 
             return reply;
         } catch (e) {
