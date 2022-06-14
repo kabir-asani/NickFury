@@ -29,16 +29,13 @@ likes.get("/", paginated(), async (req: Request, res: Response) => {
 
     const tweetId = req.params.tweetId;
 
-    const paginatedLikesResult =
-        await LikesManager.shared.paginatedViewableLikesOf({
-            tweetId: tweetId,
-            viewerId: session.userId,
-        });
+    const paginatedLikesResult = await LikesManager.shared.paginatedViewableLikesOf({
+        tweetId: tweetId,
+        viewerId: session.userId,
+    });
 
     if (paginatedLikesResult instanceof Failure) {
-        const message = sentenceCasize(
-            PaginatedViewableLikesFailureReason[paginatedLikesResult.reason]
-        );
+        const message = sentenceCasize(PaginatedViewableLikesFailureReason[paginatedLikesResult.reason]);
 
         switch (paginatedLikesResult.reason) {
             case PaginatedViewableLikesFailureReason.malformedParameters: {
@@ -76,9 +73,7 @@ likes.post("/", async (req: Request, res: Response) => {
     });
 
     if (likeCreationResult instanceof Failure) {
-        const message = sentenceCasize(
-            LikeCreationFailureReason[likeCreationResult.reason]
-        );
+        const message = sentenceCasize(LikeCreationFailureReason[likeCreationResult.reason]);
 
         switch (likeCreationResult.reason) {
             case LikeCreationFailureReason.likeAlreadyExists: {
@@ -103,50 +98,39 @@ likes.post("/", async (req: Request, res: Response) => {
     res.status(NoContentRouteSuccess.statusCode).json(response);
 });
 
-likes.delete(
-    "/:likeId",
-    soldier({
-        schema: Joi.object({
-            likeId: Joi.string().required(),
-        }),
-        groundZero: GroundZero.parameters,
-    }),
-    async (req: Request, res: Response) => {
-        const likeId = req.params.likeId;
+likes.delete("/", async (req: Request, res: Response) => {
+    const session = (req as SessionizedRequest).session;
+    const tweetId = req.params.tweetId;
 
-        const likeDeletionResult = await LikesManager.shared.delete({
-            likeId: likeId,
-        });
+    const likeDeletionResult = await LikesManager.shared.delete({
+        authorId: session.userId,
+        tweetId: tweetId,
+    });
 
-        if (likeDeletionResult instanceof Failure) {
-            const message = sentenceCasize(
-                LikeDeletionFailureReason[likeDeletionResult.reason]
-            );
+    if (likeDeletionResult instanceof Failure) {
+        const message = sentenceCasize(LikeDeletionFailureReason[likeDeletionResult.reason]);
 
-            switch (likeDeletionResult.reason) {
-                case LikeDeletionFailureReason.likeDoesNotExists: {
-                    const response = new NoResourceRouteFailure(message);
+        switch (likeDeletionResult.reason) {
+            case LikeDeletionFailureReason.likeDoesNotExists: {
+                const response = new NoResourceRouteFailure(message);
 
-                    res.status(NoResourceRouteFailure.statusCode).json(
-                        response
-                    );
+                res.status(NoResourceRouteFailure.statusCode).json(response);
 
-                    return;
-                }
-                default: {
-                    const response = new InternalRouteFailure(message);
+                return;
+            }
+            default: {
+                const response = new InternalRouteFailure(message);
 
-                    res.status(InternalRouteFailure.statusCode).json(response);
+                res.status(InternalRouteFailure.statusCode).json(response);
 
-                    return;
-                }
+                return;
             }
         }
-
-        const response = new NoContentRouteSuccess();
-
-        res.status(NoContentRouteSuccess.statusCode).json(response);
     }
-);
+
+    const response = new NoContentRouteSuccess();
+
+    res.status(NoContentRouteSuccess.statusCode).json(response);
+});
 
 export default likes;

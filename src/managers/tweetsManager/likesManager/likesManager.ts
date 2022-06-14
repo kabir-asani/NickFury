@@ -1,16 +1,6 @@
 import DatabaseAssistant from "../../../assistants/database/database";
-import {
-    Empty,
-    Failure,
-    Success,
-} from "../../../utils/typescriptx/typescriptx";
-import {
-    Like,
-    ViewableLike,
-    Tweet,
-    LikeViewables,
-    ViewableUser,
-} from "../../core/models";
+import { Empty, Failure, Success } from "../../../utils/typescriptx/typescriptx";
+import { Like, ViewableLike, Tweet, LikeViewables, ViewableUser } from "../../core/models";
 import {
     kMaximumPaginatedPageLength,
     Paginated,
@@ -33,20 +23,14 @@ export default class LikesManager {
 
     private constructor() {}
 
-    private createIdentifier(parameters: {
-        authorId: String;
-        tweetId: String;
-    }): String {
+    private createIdentifier(parameters: { authorId: String; tweetId: String }): String {
         return `${parameters.authorId}:${parameters.tweetId}`;
     }
 
     async exists(parameters: { likeId: String }): Promise<Boolean> {
-        const likesCollection =
-            DatabaseAssistant.shared.likesCollectionGroupRef();
+        const likesCollection = DatabaseAssistant.shared.likesCollectionGroupRef();
 
-        const likesQuery = likesCollection
-            .where("id", "==", parameters.likeId.valueOf())
-            .limit(1);
+        const likesQuery = likesCollection.where("id", "==", parameters.likeId.valueOf()).limit(1);
 
         const querySnapshot = await likesQuery.get();
 
@@ -57,10 +41,7 @@ export default class LikesManager {
         return false;
     }
 
-    async existsByDetails(parameters: {
-        tweetId: String;
-        authorId: String;
-    }): Promise<Boolean> {
+    async existsByDetails(parameters: { tweetId: String; authorId: String }): Promise<Boolean> {
         const likeId = this.createIdentifier({
             tweetId: parameters.tweetId,
             authorId: parameters.authorId,
@@ -80,10 +61,7 @@ export default class LikesManager {
         return false;
     }
 
-    async likeStatuses(parameters: {
-        authorId: String;
-        tweetIds: String[];
-    }): Promise<Value<Boolean>> {
+    async likeStatuses(parameters: { authorId: String; tweetIds: String[] }): Promise<Value<Boolean>> {
         if (parameters.tweetIds.length === 0) {
             return {};
         }
@@ -102,9 +80,7 @@ export default class LikesManager {
             return likeDocumentRef;
         });
 
-        const likeDocuments = await DatabaseAssistant.shared.all(
-            ...likeDocumentRefs
-        );
+        const likeDocuments = await DatabaseAssistant.shared.all(...likeDocumentRefs);
 
         const likeStatuses: Value<Boolean> = {};
 
@@ -127,9 +103,7 @@ export default class LikesManager {
         });
 
         if (isLikeExists) {
-            const reply = new Failure<LikeCreationFailureReason>(
-                LikeCreationFailureReason.likeAlreadyExists
-            );
+            const reply = new Failure<LikeCreationFailureReason>(LikeCreationFailureReason.likeAlreadyExists);
 
             return reply;
         }
@@ -148,25 +122,22 @@ export default class LikesManager {
 
         try {
             await DatabaseAssistant.shared.transaction(async (transaction) => {
-                const tweetDocumentRef =
-                    DatabaseAssistant.shared.tweetDocumentRef({
-                        tweetId: parameters.tweetId,
-                    });
+                const tweetDocumentRef = DatabaseAssistant.shared.tweetDocumentRef({
+                    tweetId: parameters.tweetId,
+                });
 
                 const tweetDocument = await transaction.get(tweetDocumentRef);
 
                 const tweet = tweetDocument.data() as unknown as Tweet;
 
-                const likeDocumentRef =
-                    DatabaseAssistant.shared.likeDocumentRef({
-                        tweetId: parameters.tweetId,
-                        likeId: like.id,
-                    });
+                const likeDocumentRef = DatabaseAssistant.shared.likeDocumentRef({
+                    tweetId: parameters.tweetId,
+                    likeId: like.id,
+                });
 
                 transaction.create(likeDocumentRef, like);
                 transaction.update(tweetDocumentRef, {
-                    "interactionDetails.likesCount":
-                        tweet.interactionDetails.likesCount.valueOf() + 1,
+                    "interactionDetails.likesCount": tweet.interactionDetails.likesCount.valueOf() + 1,
                 });
 
                 return like;
@@ -178,47 +149,45 @@ export default class LikesManager {
         } catch (e) {
             logger(e, LogLevel.attention, [this, this.create]);
 
-            const reply = new Failure<LikeCreationFailureReason>(
-                LikeCreationFailureReason.unknown
-            );
+            const reply = new Failure<LikeCreationFailureReason>(LikeCreationFailureReason.unknown);
 
             return reply;
         }
     }
 
     async delete(parameters: {
-        likeId: String;
+        tweetId: String;
+        authorId: String;
     }): Promise<Success<Empty> | Failure<LikeDeletionFailureReason>> {
+        const likedId = this.createIdentifier({
+            authorId: parameters.authorId,
+            tweetId: parameters.tweetId,
+        });
+
         const isLikeExists = await this.exists({
-            likeId: parameters.likeId,
+            likeId: likedId,
         });
 
         if (!isLikeExists) {
-            const reply = new Failure<LikeDeletionFailureReason>(
-                LikeDeletionFailureReason.likeDoesNotExists
-            );
+            const reply = new Failure<LikeDeletionFailureReason>(LikeDeletionFailureReason.likeDoesNotExists);
 
             return reply;
         }
 
         try {
             await DatabaseAssistant.shared.transaction(async (transaction) => {
-                const likesCollection =
-                    DatabaseAssistant.shared.likesCollectionGroupRef();
+                const likesCollection = DatabaseAssistant.shared.likesCollectionGroupRef();
 
-                const likesQuery = likesCollection
-                    .where("id", "==", parameters.likeId.valueOf())
-                    .limit(1);
+                const likesQuery = likesCollection.where("id", "==", likedId.valueOf()).limit(1);
 
                 const querySnapshot = await transaction.get(likesQuery);
 
                 const likeDocumentRef = querySnapshot.docs[0].ref;
                 const like = querySnapshot.docs[0].data() as unknown as Like;
 
-                const tweetDocumentRef =
-                    DatabaseAssistant.shared.tweetDocumentRef({
-                        tweetId: like.tweetId,
-                    });
+                const tweetDocumentRef = DatabaseAssistant.shared.tweetDocumentRef({
+                    tweetId: like.tweetId,
+                });
 
                 const tweetDocument = await transaction.get(tweetDocumentRef);
 
@@ -226,10 +195,7 @@ export default class LikesManager {
 
                 transaction.delete(likeDocumentRef);
                 transaction.update(tweetDocumentRef, {
-                    "interactionDetails.likesCount": Math.max(
-                        tweet.interactionDetails.likesCount.valueOf() - 1,
-                        0
-                    ),
+                    "interactionDetails.likesCount": Math.max(tweet.interactionDetails.likesCount.valueOf() - 1, 0),
                 });
             });
 
@@ -239,21 +205,16 @@ export default class LikesManager {
         } catch (e) {
             logger(e, LogLevel.attention, [this, this.delete]);
 
-            const reply = new Failure<LikeDeletionFailureReason>(
-                LikeDeletionFailureReason.unknown
-            );
+            const reply = new Failure<LikeDeletionFailureReason>(LikeDeletionFailureReason.unknown);
 
             return reply;
         }
     }
 
     async like(parameters: { likeId: String }): Promise<Like | null> {
-        const likesCollection =
-            DatabaseAssistant.shared.likesCollectionGroupRef();
+        const likesCollection = DatabaseAssistant.shared.likesCollectionGroupRef();
 
-        const likesQuery = likesCollection
-            .where("id", "==", parameters.likeId.valueOf())
-            .limit(1);
+        const likesQuery = likesCollection.where("id", "==", parameters.likeId.valueOf()).limit(1);
 
         const likesQuerySnapshot = await likesQuery.get();
 
@@ -266,9 +227,7 @@ export default class LikesManager {
         return null;
     }
 
-    async viewableLike(
-        parameters: { likeId: String } & ViewablesParameters
-    ): Promise<ViewableLike | null> {
+    async viewableLike(parameters: { likeId: String } & ViewablesParameters): Promise<ViewableLike | null> {
         const like = await this.like({ likeId: parameters.likeId });
 
         if (like === null) {
@@ -292,10 +251,7 @@ export default class LikesManager {
         return viewableLike;
     }
 
-    private async likeViewables(parameters: {
-        authorId: String;
-        viewerId: String;
-    }): Promise<LikeViewables | null> {
+    private async likeViewables(parameters: { authorId: String; viewerId: String }): Promise<LikeViewables | null> {
         const viewableAuthor = await UsersManager.shared.viewableUser({
             id: parameters.authorId,
             viewerId: parameters.viewerId,
@@ -316,15 +272,12 @@ export default class LikesManager {
         parameters: {
             tweetId: String;
         } & PaginationParameters
-    ): Promise<
-        Success<Paginated<Like>> | Failure<PaginatedLikesFailureReason>
-    > {
+    ): Promise<Success<Paginated<Like>> | Failure<PaginatedLikesFailureReason>> {
         const likesCollection = DatabaseAssistant.shared.likesCollectionRef({
             tweetId: parameters.tweetId,
         });
 
-        const limit =
-            parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
+        const limit = parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
 
         let query = likesCollection.orderBy("creationDate").limit(limit + 1);
 
@@ -351,8 +304,7 @@ export default class LikesManager {
                 const lastDocument = querySnapshot.docs.pop();
 
                 if (lastDocument !== undefined) {
-                    nextToken = (lastDocument.data() as unknown as Like)
-                        .creationDate;
+                    nextToken = (lastDocument.data() as unknown as Like).creationDate;
                 }
             }
 
@@ -373,9 +325,7 @@ export default class LikesManager {
         } catch (e) {
             logger(e, LogLevel.attention, [this, this.paginatedLikesOf]);
 
-            const reply = new Failure<PaginatedLikesFailureReason>(
-                PaginatedLikesFailureReason.unknown
-            );
+            const reply = new Failure<PaginatedLikesFailureReason>(PaginatedLikesFailureReason.unknown);
 
             return reply;
         }
@@ -386,10 +336,7 @@ export default class LikesManager {
             tweetId: String;
         } & PaginationParameters &
             ViewablesParameters
-    ): Promise<
-        | Success<Paginated<ViewableLike>>
-        | Failure<PaginatedViewableLikesFailureReason>
-    > {
+    ): Promise<Success<Paginated<ViewableLike>> | Failure<PaginatedViewableLikesFailureReason>> {
         const likesResult = await this.paginatedLikesOf({
             tweetId: parameters.tweetId,
             limit: parameters.limit,
@@ -399,18 +346,16 @@ export default class LikesManager {
         if (likesResult instanceof Failure) {
             switch (likesResult.reason) {
                 case PaginatedLikesFailureReason.malformedParameters: {
-                    const reply =
-                        new Failure<PaginatedViewableLikesFailureReason>(
-                            PaginatedViewableLikesFailureReason.malformedParameters
-                        );
+                    const reply = new Failure<PaginatedViewableLikesFailureReason>(
+                        PaginatedViewableLikesFailureReason.malformedParameters
+                    );
 
                     return reply;
                 }
                 default: {
-                    const reply =
-                        new Failure<PaginatedViewableLikesFailureReason>(
-                            PaginatedViewableLikesFailureReason.unknown
-                        );
+                    const reply = new Failure<PaginatedViewableLikesFailureReason>(
+                        PaginatedViewableLikesFailureReason.unknown
+                    );
 
                     return reply;
                 }
@@ -424,9 +369,7 @@ export default class LikesManager {
                 page: [],
             };
 
-            const reply = new Success<Paginated<ViewableLike>>(
-                paginatedViewableLikes
-            );
+            const reply = new Success<Paginated<ViewableLike>>(paginatedViewableLikes);
 
             return reply;
         }
@@ -439,9 +382,7 @@ export default class LikesManager {
         });
 
         if (viewableUsersResult instanceof Failure) {
-            const reply = new Failure<PaginatedViewableLikesFailureReason>(
-                PaginatedViewableLikesFailureReason.unknown
-            );
+            const reply = new Failure<PaginatedViewableLikesFailureReason>(PaginatedViewableLikesFailureReason.unknown);
 
             return reply;
         }
@@ -466,9 +407,7 @@ export default class LikesManager {
             nextToken: likes.nextToken,
         };
 
-        const reply = new Success<Paginated<ViewableLike>>(
-            paginatedViewableLikes
-        );
+        const reply = new Success<Paginated<ViewableLike>>(paginatedViewableLikes);
 
         return reply;
     }
