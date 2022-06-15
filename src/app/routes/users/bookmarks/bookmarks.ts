@@ -13,7 +13,6 @@ import { SessionizedRequest } from "../../../core/override";
 import {
     AllOkRouteSuccess,
     ConflictRouteFailure,
-    IncorrectParametersRouteFailure,
     InternalRouteFailure,
     NoContentRouteSuccess,
     NoResourceRouteFailure,
@@ -27,58 +26,50 @@ const bookmarks = Router({
     mergeParams: true,
 });
 
-bookmarks.get(
-    "/",
-    [selfishGuard(), paginated()],
-    async (req: Request, res: Response) => {
-        const session = (req as SessionizedRequest).session;
+bookmarks.get("/", [selfishGuard(), paginated()], async (req: Request, res: Response) => {
+    const session = (req as SessionizedRequest).session;
 
-        const nextToken = req.query.nextToken as String;
-        const limit = parseInt(req.query.limit as string);
+    const nextToken = req.query.nextToken as String;
+    const limit = parseInt(req.query.limit as string);
 
-        const safeLimit = isNaN(limit) ? kMaximumPaginatedPageLength : limit;
+    const safeLimit = isNaN(limit) ? kMaximumPaginatedPageLength : limit;
 
-        const paginatedViewableBookmarksResult =
-            await BookmarksManager.shared.paginatedViewableBookmarksOf({
-                userId: session.userId,
-                viewerId: session.userId,
-                limit: safeLimit,
-                nextToken: nextToken,
-            });
+    const paginatedViewableBookmarksResult = await BookmarksManager.shared.paginatedViewableBookmarksOf({
+        userId: session.userId,
+        viewerId: session.userId,
+        limit: safeLimit,
+        nextToken: nextToken,
+    });
 
-        if (paginatedViewableBookmarksResult instanceof Failure) {
-            const message = sentenceCasize(
-                PaginatedViewableBookmarksFailureReason[
-                    paginatedViewableBookmarksResult.reason
-                ]
-            );
+    if (paginatedViewableBookmarksResult instanceof Failure) {
+        const message = sentenceCasize(
+            PaginatedViewableBookmarksFailureReason[paginatedViewableBookmarksResult.reason]
+        );
 
-            switch (paginatedViewableBookmarksResult.reason) {
-                case PaginatedViewableBookmarksFailureReason.malformedParameters: {
-                    const response = new SemanticRouteFailure(message);
+        switch (paginatedViewableBookmarksResult.reason) {
+            case PaginatedViewableBookmarksFailureReason.malformedParameters: {
+                const response = new SemanticRouteFailure(message);
 
-                    res.status(SemanticRouteFailure.statusCode).json(response);
+                res.status(SemanticRouteFailure.statusCode).json(response);
 
-                    return;
-                }
-                default: {
-                    const response = new InternalRouteFailure(message);
+                return;
+            }
+            default: {
+                const response = new InternalRouteFailure(message);
 
-                    res.status(InternalRouteFailure.statusCode).json(response);
+                res.status(InternalRouteFailure.statusCode).json(response);
 
-                    return;
-                }
+                return;
             }
         }
-
-        const paginatedViewableBookmarks =
-            paginatedViewableBookmarksResult.data;
-
-        const response = new AllOkRouteSuccess(paginatedViewableBookmarks);
-
-        res.status(AllOkRouteSuccess.statusCode).json(response);
     }
-);
+
+    const paginatedViewableBookmarks = paginatedViewableBookmarksResult.data;
+
+    const response = new AllOkRouteSuccess(paginatedViewableBookmarks);
+
+    res.status(AllOkRouteSuccess.statusCode).json(response);
+});
 
 bookmarks.post(
     "/",
@@ -103,9 +94,7 @@ bookmarks.post(
         });
 
         if (bookmarkCreationResult instanceof Failure) {
-            const message = sentenceCasize(
-                BookmarkCreationFailureReason[bookmarkCreationResult.reason]
-            );
+            const message = sentenceCasize(BookmarkCreationFailureReason[bookmarkCreationResult.reason]);
 
             switch (bookmarkCreationResult.reason) {
                 case BookmarkCreationFailureReason.bookmarkAlreadyExists: {
@@ -132,35 +121,33 @@ bookmarks.post(
 );
 
 bookmarks.delete(
-    "/:bookmarkId",
+    "/",
     [
         selfishGuard(),
         soldier({
             schema: Joi.object({
-                bookmarkId: Joi.string().required(),
+                tweetId: Joi.string().required(),
             }),
-            groundZero: GroundZero.parameters,
+            groundZero: GroundZero.query,
         }),
     ],
     async (req: Request, res: Response) => {
-        const bookmarkId = req.params.bookmarkId;
+        const session = (req as SessionizedRequest).session;
+        const tweetId = req.query.tweetId as String;
 
         const bookmarkDeletionResult = await BookmarksManager.shared.delete({
-            bookmarkId: bookmarkId,
+            authorId: session.userId,
+            tweetId: tweetId,
         });
 
         if (bookmarkDeletionResult instanceof Failure) {
-            const message = sentenceCasize(
-                BookmarkDeletionFailureReason[bookmarkDeletionResult.reason]
-            );
+            const message = sentenceCasize(BookmarkDeletionFailureReason[bookmarkDeletionResult.reason]);
 
             switch (bookmarkDeletionResult.reason) {
                 case BookmarkDeletionFailureReason.bookmarkDoesNotExists: {
                     const response = new NoResourceRouteFailure(message);
 
-                    res.status(NoResourceRouteFailure.statusCode).json(
-                        response
-                    );
+                    res.status(NoResourceRouteFailure.statusCode).json(response);
 
                     return;
                 }
