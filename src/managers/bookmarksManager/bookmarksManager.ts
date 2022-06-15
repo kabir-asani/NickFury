@@ -1,12 +1,7 @@
 import DatabaseAssistant from "../../assistants/database/database";
 import Dately from "../../utils/dately/dately";
 import { Empty, Failure, Success } from "../../utils/typescriptx/typescriptx";
-import {
-    Bookmark,
-    BookmarkViewables,
-    ViewableBookmark,
-    ViewableTweet,
-} from "../core/models";
+import { Bookmark, BookmarkViewables, ViewableBookmark, ViewableTweet } from "../core/models";
 import {
     kMaximumPaginatedPageLength,
     Paginated,
@@ -28,20 +23,14 @@ export default class BookmarksManager {
 
     private constructor() {}
 
-    private createIdentifier(parameters: {
-        authorId: String;
-        tweetId: String;
-    }): String {
+    private createIdentifier(parameters: { authorId: String; tweetId: String }): String {
         return `${parameters.authorId}:${parameters.tweetId}`;
     }
 
     async exists(parameters: { id: String }): Promise<Boolean> {
-        const bookmarskCollection =
-            DatabaseAssistant.shared.bookmarksCollectionGroupRef();
+        const bookmarskCollection = DatabaseAssistant.shared.bookmarksCollectionGroupRef();
 
-        const bookmarksQuery = bookmarskCollection
-            .where("id", "==", parameters.id.valueOf())
-            .limit(1);
+        const bookmarksQuery = bookmarskCollection.where("id", "==", parameters.id.valueOf()).limit(1);
 
         const bookmarksQuerySnapshot = await bookmarksQuery.get();
 
@@ -52,21 +41,16 @@ export default class BookmarksManager {
         return false;
     }
 
-    async existsByDetails(parameters: {
-        tweetId: String;
-        authorId: String;
-    }): Promise<Boolean> {
+    async existsByDetails(parameters: { tweetId: String; authorId: String }): Promise<Boolean> {
         const bookmarkId = this.createIdentifier({
             tweetId: parameters.tweetId,
             authorId: parameters.authorId,
         });
 
-        const bookmarkDocumentRef = DatabaseAssistant.shared.bookmarkDocumenRef(
-            {
-                userId: parameters.authorId,
-                bookmarkId: bookmarkId,
-            }
-        );
+        const bookmarkDocumentRef = DatabaseAssistant.shared.bookmarkDocumenRef({
+            userId: parameters.authorId,
+            bookmarkId: bookmarkId,
+        });
 
         const bookmarkDocument = await bookmarkDocumentRef.get();
 
@@ -77,10 +61,7 @@ export default class BookmarksManager {
         return false;
     }
 
-    async bookmarkStatuses(parameters: {
-        authorId: String;
-        tweetIds: String[];
-    }): Promise<Value<Boolean>> {
+    async bookmarkStatuses(parameters: { authorId: String; tweetIds: String[] }): Promise<Value<Boolean>> {
         if (parameters.tweetIds.length === 0) {
             return {};
         }
@@ -91,18 +72,15 @@ export default class BookmarksManager {
                 tweetId: tweetId,
             });
 
-            const bookmarkDocumentRef =
-                DatabaseAssistant.shared.bookmarkDocumenRef({
-                    userId: parameters.authorId,
-                    bookmarkId: bookmarkId,
-                });
+            const bookmarkDocumentRef = DatabaseAssistant.shared.bookmarkDocumenRef({
+                userId: parameters.authorId,
+                bookmarkId: bookmarkId,
+            });
 
             return bookmarkDocumentRef;
         });
 
-        const bookmarkDocuments = await DatabaseAssistant.shared.all(
-            ...bookmarkDocumentRefs
-        );
+        const bookmarkDocuments = await DatabaseAssistant.shared.all(...bookmarkDocumentRefs);
 
         const bookmarkStatuses: Value<Boolean> = {};
 
@@ -118,9 +96,7 @@ export default class BookmarksManager {
     async create(parameters: {
         tweetId: String;
         authorId: String;
-    }): Promise<
-        Success<ViewableBookmark> | Failure<BookmarkCreationFailureReason>
-    > {
+    }): Promise<Success<ViewableBookmark> | Failure<BookmarkCreationFailureReason>> {
         const isBookmarkExists = await this.existsByDetails({
             tweetId: parameters.tweetId,
             authorId: parameters.authorId,
@@ -146,12 +122,10 @@ export default class BookmarksManager {
             creationDate: Dately.shared.now(),
         };
 
-        const bookmarkDocumentRef = DatabaseAssistant.shared.bookmarkDocumenRef(
-            {
-                userId: parameters.authorId,
-                bookmarkId: bookmarkId,
-            }
-        );
+        const bookmarkDocumentRef = DatabaseAssistant.shared.bookmarkDocumenRef({
+            userId: parameters.authorId,
+            bookmarkId: bookmarkId,
+        });
 
         try {
             await bookmarkDocumentRef.create(bookmark);
@@ -162,9 +136,7 @@ export default class BookmarksManager {
             });
 
             if (viewablesBookmark === null) {
-                return new Failure<BookmarkCreationFailureReason>(
-                    BookmarkCreationFailureReason.unknown
-                );
+                return new Failure<BookmarkCreationFailureReason>(BookmarkCreationFailureReason.unknown);
             }
 
             const reply = new Success<ViewableBookmark>(viewablesBookmark);
@@ -173,19 +145,23 @@ export default class BookmarksManager {
         } catch (e) {
             logger(e, LogLevel.attention, [this, this.create]);
 
-            const reply = new Failure<BookmarkCreationFailureReason>(
-                BookmarkCreationFailureReason.unknown
-            );
+            const reply = new Failure<BookmarkCreationFailureReason>(BookmarkCreationFailureReason.unknown);
 
             return reply;
         }
     }
 
     async delete(parameters: {
-        bookmarkId: String;
+        tweetId: String;
+        authorId: String;
     }): Promise<Success<Empty> | Failure<BookmarkDeletionFailureReason>> {
+        const bookmarkId = this.createIdentifier({
+            authorId: parameters.authorId,
+            tweetId: parameters.tweetId,
+        });
+
         const bookmark = await this.bookmark({
-            bookmarkId: parameters.bookmarkId,
+            bookmarkId: bookmarkId,
         });
 
         if (bookmark === null) {
@@ -197,11 +173,10 @@ export default class BookmarksManager {
         }
 
         try {
-            const bookmarkDocumentRef =
-                DatabaseAssistant.shared.bookmarkDocumenRef({
-                    userId: bookmark.authorId,
-                    bookmarkId: bookmark.id,
-                });
+            const bookmarkDocumentRef = DatabaseAssistant.shared.bookmarkDocumenRef({
+                userId: bookmark.authorId,
+                bookmarkId: bookmark.id,
+            });
 
             await bookmarkDocumentRef.delete();
 
@@ -211,29 +186,21 @@ export default class BookmarksManager {
         } catch (e) {
             logger(e, LogLevel.attention, [this, this.delete]);
 
-            const reply = new Failure<BookmarkDeletionFailureReason>(
-                BookmarkDeletionFailureReason.unknown
-            );
+            const reply = new Failure<BookmarkDeletionFailureReason>(BookmarkDeletionFailureReason.unknown);
 
             return reply;
         }
     }
 
-    async bookmark(parameters: {
-        bookmarkId: String;
-    }): Promise<Bookmark | null> {
-        const bookmarskCollection =
-            DatabaseAssistant.shared.bookmarksCollectionGroupRef();
+    async bookmark(parameters: { bookmarkId: String }): Promise<Bookmark | null> {
+        const bookmarskCollection = DatabaseAssistant.shared.bookmarksCollectionGroupRef();
 
-        const bookmarksQuery = bookmarskCollection
-            .where("id", "==", parameters.bookmarkId.valueOf())
-            .limit(1);
+        const bookmarksQuery = bookmarskCollection.where("id", "==", parameters.bookmarkId.valueOf()).limit(1);
 
         const bookmarksQuerySnapshot = await bookmarksQuery.get();
 
         if (bookmarksQuerySnapshot.docs.length > 0) {
-            const bookmark =
-                bookmarksQuerySnapshot.docs[0].data() as unknown as Bookmark;
+            const bookmark = bookmarksQuerySnapshot.docs[0].data() as unknown as Bookmark;
 
             return bookmark;
         }
@@ -241,9 +208,7 @@ export default class BookmarksManager {
         return null;
     }
 
-    async viewableBookmark(
-        parameters: { bookmarkId: String } & ViewablesParameters
-    ): Promise<ViewableBookmark | null> {
+    async viewableBookmark(parameters: { bookmarkId: String } & ViewablesParameters): Promise<ViewableBookmark | null> {
         const bookmark = await this.bookmark({
             bookmarkId: parameters.bookmarkId,
         });
@@ -294,20 +259,14 @@ export default class BookmarksManager {
         parameters: {
             userId: String;
         } & PaginationParameters
-    ): Promise<
-        Success<Paginated<Bookmark>> | Failure<PaginatedBookmarksFailureReason>
-    > {
-        const bookmarksCollection =
-            DatabaseAssistant.shared.bookmarksCollectionRef({
-                userId: parameters.userId,
-            });
+    ): Promise<Success<Paginated<Bookmark>> | Failure<PaginatedBookmarksFailureReason>> {
+        const bookmarksCollection = DatabaseAssistant.shared.bookmarksCollectionRef({
+            userId: parameters.userId,
+        });
 
-        const limit =
-            parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
+        const limit = parameters.limit?.valueOf() || kMaximumPaginatedPageLength;
 
-        let query = bookmarksCollection
-            .orderBy("creationDate")
-            .limit(limit + 1);
+        let query = bookmarksCollection.orderBy("creationDate").limit(limit + 1);
 
         if (parameters.nextToken !== undefined) {
             query = query.startAt(parameters.nextToken);
@@ -321,9 +280,7 @@ export default class BookmarksManager {
                     page: [],
                 };
 
-                const reply = new Success<Paginated<Bookmark>>(
-                    paginatedBookmarks
-                );
+                const reply = new Success<Paginated<Bookmark>>(paginatedBookmarks);
 
                 return reply;
             }
@@ -334,8 +291,7 @@ export default class BookmarksManager {
                 const lastDocument = querySnapshot.docs.pop();
 
                 if (lastDocument !== undefined) {
-                    nextToken = (lastDocument.data() as unknown as Bookmark)
-                        .creationDate;
+                    nextToken = (lastDocument.data() as unknown as Bookmark).creationDate;
                 }
             }
 
@@ -356,9 +312,7 @@ export default class BookmarksManager {
         } catch (e) {
             logger(e, LogLevel.attention, [this, this.paginatedBookmarksOf]);
 
-            const reply = new Failure<PaginatedBookmarksFailureReason>(
-                PaginatedBookmarksFailureReason.unknown
-            );
+            const reply = new Failure<PaginatedBookmarksFailureReason>(PaginatedBookmarksFailureReason.unknown);
 
             return reply;
         }
@@ -369,10 +323,7 @@ export default class BookmarksManager {
             userId: String;
         } & ViewablesParameters &
             PaginationParameters
-    ): Promise<
-        | Success<Paginated<ViewableBookmark>>
-        | Failure<PaginatedViewableBookmarksFailureReason>
-    > {
+    ): Promise<Success<Paginated<ViewableBookmark>> | Failure<PaginatedViewableBookmarksFailureReason>> {
         const paginatedBookmarksResult = await this.paginatedBookmarksOf({
             userId: parameters.userId,
             limit: parameters.limit,
@@ -382,18 +333,16 @@ export default class BookmarksManager {
         if (paginatedBookmarksResult instanceof Failure) {
             switch (paginatedBookmarksResult.reason) {
                 case PaginatedBookmarksFailureReason.malformedParameters: {
-                    const reply =
-                        new Failure<PaginatedViewableBookmarksFailureReason>(
-                            PaginatedViewableBookmarksFailureReason.malformedParameters
-                        );
+                    const reply = new Failure<PaginatedViewableBookmarksFailureReason>(
+                        PaginatedViewableBookmarksFailureReason.malformedParameters
+                    );
 
                     return reply;
                 }
                 default: {
-                    const reply =
-                        new Failure<PaginatedViewableBookmarksFailureReason>(
-                            PaginatedViewableBookmarksFailureReason.unknown
-                        );
+                    const reply = new Failure<PaginatedViewableBookmarksFailureReason>(
+                        PaginatedViewableBookmarksFailureReason.unknown
+                    );
 
                     return reply;
                 }
@@ -407,17 +356,13 @@ export default class BookmarksManager {
                 page: [],
             };
 
-            const reply = new Success<Paginated<ViewableBookmark>>(
-                paginatedViewableBookmarks
-            );
+            const reply = new Success<Paginated<ViewableBookmark>>(paginatedViewableBookmarks);
 
             return reply;
         }
 
         const viewableTweetsResult = await TweetsManager.shared.viewableTweets({
-            tweetIdentifiers: paginatedBookmarks.page.map(
-                (bookmark) => bookmark.tweetId
-            ),
+            tweetIdentifiers: paginatedBookmarks.page.map((bookmark) => bookmark.tweetId),
             viewerId: parameters.viewerId,
         });
 
@@ -449,9 +394,7 @@ export default class BookmarksManager {
             nextToken: paginatedBookmarks.nextToken,
         };
 
-        const reply = new Success<Paginated<ViewableBookmark>>(
-            paginatedViewableBookmarks
-        );
+        const reply = new Success<Paginated<ViewableBookmark>>(paginatedViewableBookmarks);
 
         return reply;
     }
