@@ -112,7 +112,7 @@ export default class SocialsManager {
 
         if (followeeDocumentRefs.length > 0) {
             const followeeDocuments = await DatabaseAssistant.shared.all(
-                ...followeeDocumentRefs
+                ...followeeDocumentRefs,
             );
 
             followeeDocuments.forEach((followeeDocument) => {
@@ -156,7 +156,7 @@ export default class SocialsManager {
 
         if (followerDocumentRefs.length > 0) {
             const followerDocuments = await DatabaseAssistant.shared.all(
-                ...followerDocumentRefs
+                ...followerDocumentRefs,
             );
 
             followerDocuments.forEach((followerDocument) => {
@@ -174,7 +174,7 @@ export default class SocialsManager {
     }): Promise<Success<Empty> | Failure<FollowFailureReason>> {
         if (parameters.followeeId === parameters.followerId) {
             const reply = new Failure<FollowFailureReason>(
-                FollowFailureReason.followingOneselfIsForbidden
+                FollowFailureReason.followingOneselfIsForbidden,
             );
 
             return reply;
@@ -186,7 +186,7 @@ export default class SocialsManager {
 
         if (!isFolloweeExists) {
             const reply = new Failure<FollowFailureReason>(
-                FollowFailureReason.followeeDoesNotExists
+                FollowFailureReason.followeeDoesNotExists,
             );
 
             return reply;
@@ -198,7 +198,7 @@ export default class SocialsManager {
 
         if (!isFollowerExists) {
             const reply = new Failure<FollowFailureReason>(
-                FollowFailureReason.followerDoesNotExists
+                FollowFailureReason.followerDoesNotExists,
             );
 
             return reply;
@@ -212,7 +212,7 @@ export default class SocialsManager {
 
         if (isFollowRelationshipExists) {
             const reply = new Failure<FollowFailureReason>(
-                FollowFailureReason.relationshipAlreadyExists
+                FollowFailureReason.relationshipAlreadyExists,
             );
 
             return reply;
@@ -225,7 +225,7 @@ export default class SocialsManager {
 
         if (followFeed instanceof Failure) {
             const reply = new Failure<FollowFailureReason>(
-                FollowFailureReason.unknown
+                FollowFailureReason.unknown,
             );
 
             return reply;
@@ -261,10 +261,10 @@ export default class SocialsManager {
             });
 
         const followerDataDocumentRef = followersCollection.doc(
-            parameters.followerId.valueOf()
+            parameters.followerId.valueOf(),
         );
         const followeeDataDocumentRef = followeesCollectin.doc(
-            parameters.followeeId.valueOf()
+            parameters.followeeId.valueOf(),
         );
 
         try {
@@ -283,7 +283,7 @@ export default class SocialsManager {
                 transaction.set(followerDataDocumentRef, followerData);
 
                 transaction.update(followerUserDocumentRef, {
-                    "socialDetails.followingsCount":
+                    "socialDetails.followeesCount":
                         followerUser.socialDetails.followeesCount.valueOf() + 1,
                 });
 
@@ -300,7 +300,7 @@ export default class SocialsManager {
             logger(e, LogLevel.attention, [this, this.follow]);
 
             const reply = new Failure<FollowFailureReason>(
-                FollowFailureReason.unknown
+                FollowFailureReason.unknown,
             );
 
             return reply;
@@ -313,27 +313,21 @@ export default class SocialsManager {
     }): Promise<Success<Empty> | Failure<UnfollowFailureReason>> {
         if (parameters.followeeId === parameters.followerId) {
             const reply = new Failure<UnfollowFailureReason>(
-                UnfollowFailureReason.unfollowingOneselfIsForbidden
+                UnfollowFailureReason.unfollowingOneselfIsForbidden,
             );
 
             return reply;
         }
 
-        const isFollowedRelationshipExists =
+        const isFollowRelationshipExists =
             await this.isFollowedRelationshipExists({
                 followeeId: parameters.followeeId,
                 followerId: parameters.followerId,
             });
 
-        const isFollowingRelationshipExists =
-            await this.isFollowingRelationshipExists({
-                followeeId: parameters.followeeId,
-                followerId: parameters.followerId,
-            });
-
-        if (!isFollowedRelationshipExists && !isFollowingRelationshipExists) {
+        if (!isFollowRelationshipExists) {
             const reply = new Failure<UnfollowFailureReason>(
-                UnfollowFailureReason.relationshipDoesNotExists
+                UnfollowFailureReason.relationshipDoesNotExists,
             );
 
             return reply;
@@ -346,7 +340,7 @@ export default class SocialsManager {
 
         if (unfollowFeed instanceof Failure) {
             const reply = new Failure<UnfollowFailureReason>(
-                UnfollowFailureReason.unknown
+                UnfollowFailureReason.unknown,
             );
 
             return reply;
@@ -372,10 +366,10 @@ export default class SocialsManager {
             });
 
         const followerDataDocumentRef = followersCollection.doc(
-            parameters.followerId.valueOf()
+            parameters.followerId.valueOf(),
         );
         const followeeDataDocumentRef = followeesCollectin.doc(
-            parameters.followeeId.valueOf()
+            parameters.followeeId.valueOf(),
         );
 
         try {
@@ -394,16 +388,16 @@ export default class SocialsManager {
                 transaction.delete(followerDataDocumentRef);
 
                 transaction.update(followerUserDocumentRef, {
-                    "socialDetails.followingsCount": Math.max(
+                    "socialDetails.followeesCount": Math.max(
                         followerUser.socialDetails.followeesCount.valueOf() - 1,
-                        0
+                        0,
                     ),
                 });
 
                 transaction.update(followeeUserDocumentRef, {
                     "socialDetails.followersCount": Math.max(
                         followeeUser.socialDetails.followersCount.valueOf() - 1,
-                        0
+                        0,
                     ),
                 });
             });
@@ -415,7 +409,7 @@ export default class SocialsManager {
             logger(e, LogLevel.attention, [this, this.unfollow]);
 
             const reply = new Failure<UnfollowFailureReason>(
-                UnfollowFailureReason.unknown
+                UnfollowFailureReason.unknown,
             );
 
             return reply;
@@ -425,7 +419,7 @@ export default class SocialsManager {
     private async paginatedFollowers(
         parameters: {
             userId: String;
-        } & PaginationParameters
+        } & PaginationParameters,
     ): Promise<
         Success<Paginated<Follower>> | Failure<PaginatedFollowersFailureReason>
     > {
@@ -454,7 +448,7 @@ export default class SocialsManager {
                 };
 
                 const reply = new Success<Paginated<Follower>>(
-                    paginatedFollowers
+                    paginatedFollowers,
                 );
 
                 return reply;
@@ -489,7 +483,7 @@ export default class SocialsManager {
             logger(e, LogLevel.attention, [this, this.paginatedFollowers]);
 
             const reply = new Failure<PaginatedFollowersFailureReason>(
-                PaginatedFollowersFailureReason.unknown
+                PaginatedFollowersFailureReason.unknown,
             );
 
             return reply;
@@ -500,7 +494,7 @@ export default class SocialsManager {
         parameters: {
             userId: String;
         } & ViewablesParameters &
-            PaginationParameters
+            PaginationParameters,
     ): Promise<
         | Success<Paginated<ViewableFollower>>
         | Failure<PaginatedViewableFollowersFailureReason>
@@ -513,7 +507,7 @@ export default class SocialsManager {
 
         if (followersResult instanceof Failure) {
             const reply = new Failure<PaginatedViewableFollowersFailureReason>(
-                PaginatedViewableFollowersFailureReason.unknown
+                PaginatedViewableFollowersFailureReason.unknown,
             );
 
             return reply;
@@ -527,7 +521,7 @@ export default class SocialsManager {
             };
 
             const reply = new Success<Paginated<ViewableFollower>>(
-                paginatedFollowers
+                paginatedFollowers,
             );
 
             return reply;
@@ -535,14 +529,14 @@ export default class SocialsManager {
 
         const viewableUsersResult = await UsersManager.shared.viewableUsers({
             userIdentifiers: followers.page.map(
-                (followerData) => followerData.followerId
+                (followerData) => followerData.followerId,
             ),
             viewerId: parameters.viewerId,
         });
 
         if (viewableUsersResult instanceof Failure) {
             const reply = new Failure<PaginatedViewableFollowersFailureReason>(
-                PaginatedViewableFollowersFailureReason.unknown
+                PaginatedViewableFollowersFailureReason.unknown,
             );
 
             return reply;
@@ -569,7 +563,7 @@ export default class SocialsManager {
         };
 
         const reply = new Success<Paginated<ViewableFollower>>(
-            paginatedFollowers
+            paginatedFollowers,
         );
 
         return reply;
@@ -578,7 +572,7 @@ export default class SocialsManager {
     private async paginatedFollowees(
         parameters: {
             userId: String;
-        } & PaginationParameters
+        } & PaginationParameters,
     ): Promise<
         Success<Paginated<Followee>> | Failure<PaginatedFolloweesFailureReason>
     > {
@@ -607,7 +601,7 @@ export default class SocialsManager {
                 };
 
                 const reply = new Success<Paginated<Followee>>(
-                    paginatedFollowees
+                    paginatedFollowees,
                 );
 
                 return reply;
@@ -642,7 +636,7 @@ export default class SocialsManager {
             logger(e, LogLevel.attention, [this, this.paginatedFollowees]);
 
             const reply = new Failure<PaginatedFolloweesFailureReason>(
-                PaginatedFolloweesFailureReason.unknown
+                PaginatedFolloweesFailureReason.unknown,
             );
 
             return reply;
@@ -653,7 +647,7 @@ export default class SocialsManager {
         parameters: {
             userId: String;
         } & ViewablesParameters &
-            PaginationParameters
+            PaginationParameters,
     ): Promise<
         | Success<Paginated<ViewableFollowee>>
         | Failure<PaginatedViewableFolloweesFailureReason>
@@ -669,7 +663,7 @@ export default class SocialsManager {
 
         if (followeesResult instanceof Failure) {
             const reply = new Failure<PaginatedViewableFolloweesFailureReason>(
-                PaginatedViewableFolloweesFailureReason.unknown
+                PaginatedViewableFolloweesFailureReason.unknown,
             );
 
             return reply;
@@ -683,7 +677,7 @@ export default class SocialsManager {
             };
 
             const reply = new Success<Paginated<ViewableFollowee>>(
-                paginatedFollowees
+                paginatedFollowees,
             );
 
             return reply;
@@ -691,14 +685,14 @@ export default class SocialsManager {
 
         const viewableUsersResult = await UsersManager.shared.viewableUsers({
             userIdentifiers: followees.page.map(
-                (followerData) => followerData.followeeId
+                (followerData) => followerData.followeeId,
             ),
             viewerId: parameters.viewerId,
         });
 
         if (viewableUsersResult instanceof Failure) {
             const reply = new Failure<PaginatedViewableFolloweesFailureReason>(
-                PaginatedViewableFolloweesFailureReason.unknown
+                PaginatedViewableFolloweesFailureReason.unknown,
             );
 
             return reply;
@@ -725,7 +719,7 @@ export default class SocialsManager {
         };
 
         const reply = new Success<Paginated<ViewableFollowee>>(
-            paginatedFollowees
+            paginatedFollowees,
         );
 
         return reply;
