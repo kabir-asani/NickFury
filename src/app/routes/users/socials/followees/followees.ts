@@ -1,10 +1,7 @@
 import { Router, Request, Response } from "express";
 import Joi from "joi";
 import SocialsManager from "../../../../../managers/socialsManager/socialsManager";
-import {
-    FollowFailureReason,
-    UnfollowFailureReason,
-} from "../../../../../managers/socialsManager/types";
+import { FollowFailureReason, UnfollowFailureReason } from "../../../../../managers/socialsManager/types";
 import { sentenceCasize } from "../../../../../utils/caser/caser";
 import { Failure } from "../../../../../utils/typescriptx/typescriptx";
 import { SessionizedRequest } from "../../../../core/override";
@@ -30,11 +27,10 @@ followees.get("/", paginated(), async (req: Request, res: Response) => {
 
     const userId = req.params.userId || session.userId;
 
-    const paginatedViewableFollowingsResult =
-        await SocialsManager.shared.paginatedViewableFollowees({
-            userId: userId,
-            viewerId: session.userId,
-        });
+    const paginatedViewableFollowingsResult = await SocialsManager.shared.paginatedViewableFollowees({
+        userId: userId,
+        viewerId: session.userId,
+    });
 
     if (paginatedViewableFollowingsResult instanceof Failure) {
         const response = new InternalRouteFailure();
@@ -83,9 +79,7 @@ followees.post(
         });
 
         if (followResult instanceof Failure) {
-            const message = sentenceCasize(
-                FollowFailureReason[followResult.reason]
-            );
+            const message = sentenceCasize(FollowFailureReason[followResult.reason]);
 
             switch (followResult.reason) {
                 case FollowFailureReason.relationshipAlreadyExists: {
@@ -98,18 +92,14 @@ followees.post(
                 case FollowFailureReason.followeeDoesNotExists: {
                     const response = new NoResourceRouteFailure(message);
 
-                    res.status(NoResourceRouteFailure.statusCode).json(
-                        response
-                    );
+                    res.status(NoResourceRouteFailure.statusCode).json(response);
 
                     return;
                 }
                 case FollowFailureReason.followerDoesNotExists: {
                     const response = new NoResourceRouteFailure(message);
 
-                    res.status(NoResourceRouteFailure.statusCode).json(
-                        response
-                    );
+                    res.status(NoResourceRouteFailure.statusCode).json(response);
 
                     return;
                 }
@@ -137,7 +127,7 @@ followees.post(
 );
 
 followees.delete(
-    ":followeeId",
+    "/:followeeId",
     [
         selfishGuard(),
         soldier({
@@ -158,17 +148,13 @@ followees.delete(
         });
 
         if (unfollowResult instanceof Failure) {
-            const message = sentenceCasize(
-                UnfollowFailureReason[unfollowResult.reason]
-            );
+            const message = sentenceCasize(UnfollowFailureReason[unfollowResult.reason]);
 
             switch (unfollowResult.reason) {
                 case UnfollowFailureReason.relationshipDoesNotExists: {
                     const response = new NoResourceRouteFailure(message);
 
-                    res.status(NoResourceRouteFailure.statusCode).json(
-                        response
-                    );
+                    res.status(NoResourceRouteFailure.statusCode).json(response);
 
                     return;
                 }
