@@ -127,20 +127,19 @@ followees.post(
 );
 
 followees.delete(
-    "/:followeeId",
+    "/",
     [
         selfishGuard(),
         soldier({
             schema: Joi.object({
-                followeeId: Joi.string().required(),
+                userId: Joi.string().required(),
             }),
-            groundZero: GroundZero.parameters,
+            groundZero: GroundZero.query,
         }),
     ],
     async (req: Request, res: Response) => {
         const session = (req as SessionizedRequest).session;
-
-        const followeeId = req.params.followeeId;
+        const followeeId = req.query.userId as String;
 
         const unfollowResult = await SocialsManager.shared.unfollow({
             followerId: session.userId,
